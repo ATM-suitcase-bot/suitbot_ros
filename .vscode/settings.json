@@ -1,0 +1,19 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/tina-laptop/localFiles/research/lidar/lidar_ws/devel/lib/python2.7/dist-packages",
+        "/home/tina-laptop/Applications/ros_ws/devel/lib/python2.7/dist-packages",
+        "/home/tina-laptop/Downloads/ws_livox/devel/lib/python2.7/dist-packages",
+        "/home/tina-laptop/catkin_ws/devel/lib/python2.7/dist-packages",
+        "/home/tina-laptop/localFiles/readings/learnROS/catkin_ws/devel/lib/python2.7/dist-packages",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/tina-laptop/localFiles/research/lidar/lidar_ws/devel/lib/python2.7/dist-packages",
+        "/home/tina-laptop/Applications/ros_ws/devel/lib/python2.7/dist-packages",
+        "/home/tina-laptop/Downloads/ws_livox/devel/lib/python2.7/dist-packages",
+        "/home/tina-laptop/catkin_ws/devel/lib/python2.7/dist-packages",
+        "/home/tina-laptop/localFiles/readings/learnROS/catkin_ws/devel/lib/python2.7/dist-packages",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ],
+    "C_Cpp.dimInactiveRegions": false
+}

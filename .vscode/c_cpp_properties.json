@@ -1,0 +1,46 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${workspaceFolder}/.vscode/browse.vc.db",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/tina-laptop/localFiles/research/lidar/lidar_ws/devel/include/**",
+        "/home/tina-laptop/Applications/ros_ws/devel/include/**",
+        "/home/tina-laptop/Downloads/ws_livox/devel/include/**",
+        "/home/tina-laptop/catkin_ws/devel/include/**",
+        "/home/tina-laptop/localFiles/readings/learnROS/catkin_ws/devel/include/**",
+        "/opt/ros/melodic/include/**",
+        "/home/tina-laptop/localFiles/readings/learnROS/catkin_ws/src/beginner_tutorials/include/**",
+        "/home/tina-laptop/localFiles/readings/learnROS/catkin_ws/src/code_utils/include/**",
+        "/home/tina-laptop/Applications/ros_ws/src/Universal_Robots_ROS_Driver/controller_stopper/include/**",
+        "/home/tina-laptop/localFiles/readings/learnROS/catkin_ws/src/vision_opencv/cv_bridge/include/**",
+        "/home/tina-laptop/localFiles/readings/learnROS/catkin_ws/src/cv_camera/include/**",
+        "/home/tina-laptop/catkin_ws/src/ddynamic_reconfigure/include/**",
+        "/home/tina-laptop/localFiles/research/lidar/lidar_ws/src/FAST_LIO/include/**",
+        "/home/tina-laptop/localFiles/readings/learnROS/catkin_ws/src/vision_opencv/image_geometry/include/**",
+        "/home/tina-laptop/localFiles/research/lidar/lidar_ws/src/lidar_error_modeling/include/**",
+        "/home/tina-laptop/localFiles/research/lidar/lidar_ws/src/loam_livox/include/**",
+        "/home/tina-laptop/localFiles/readings/learnROS/catkin_ws/src/mocap/include/**",
+        "/home/tina-laptop/localFiles/readings/learnROS/catkin_ws/src/monocular_sfm/include/**",
+        "/home/tina-laptop/localFiles/readings/learnROS/catkin_ws/src/nbv_mapping/include/**",
+        "/home/tina-laptop/catkin_ws/src/realsense-ros/realsense2_camera/include/**",
+        "/home/tina-laptop/localFiles/courses/atm_ws/src/localization/ssl_slam2/include/**",
+        "/home/tina-laptop/localFiles/research/lidar/lidar_ws/src/ds_teensy_server/include/**",
+        "/home/tina-laptop/Applications/ros_ws/src/Universal_Robots_ROS_Driver/ur_calibration/include/**",
+        "/home/tina-laptop/Applications/ros_ws/src/Universal_Robots_ROS_Driver/ur_controllers/include/**",
+        "/home/tina-laptop/Applications/ros_ws/src/fmauch_universal_robot/ur_kinematics/include/**",
+        "/home/tina-laptop/Applications/ros_ws/src/Universal_Robots_ROS_Driver/ur_robot_driver/include/**",
+        "/home/tina-laptop/localFiles/readings/learnROS/catkin_ws/src/vrep_plugin/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
