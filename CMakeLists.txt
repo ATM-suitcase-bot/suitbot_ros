@@ -8,13 +8,18 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  roslib
   message_generation
   std_msgs
   geometry_msgs
   nav_msgs
   tf
+  tf2_ros
+  visualization_msgs
+  cv_bridge
 )
 
+find_package(OpenCV 3.2 REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
@@ -40,6 +45,8 @@ catkin_package(
                   message_runtime
                   std_msgs 
                   geometry_msgs
+                  tf2_ros
+                  visualization_msgs
 )
 
 
@@ -48,18 +55,29 @@ include_directories(
 )
 catkin_package()
 
-add_executable(job_management
-  src/job_management.cpp
+
+# add_executable(job_management
+#   src/job_management.cpp
+# )
+
+# target_link_libraries(job_management ${catkin_LIBRARIES})
+
+
+# add_executable(initialization_node
+#   src/localization/initialization.cpp
+# )
+
+# target_link_libraries(initialization_node ${catkin_LIBRARIES})
+
+
+add_executable(planner_node 
+  src/path_planning/planner_node.cpp
+  src/path_planning/planner.cpp
+  src/path_planning/a_star.cpp
 )
 
-target_link_libraries(job_management ${catkin_LIBRARIES})
+target_link_libraries(planner_node ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
-
-add_executable(initialization_node
-  src/localization/initialization.cpp
-)
-
-target_link_libraries(initialization_node ${catkin_LIBRARIES})
 
 
 
