@@ -11,6 +11,7 @@
 
 #include "planner_node.h"
 #include <opencv2/opencv.hpp>
+#include "../utility/tic_toc.h"
 
 #define OCCUPIED 0
 #define FREE 255
@@ -131,14 +132,40 @@ void PlannerNode::initializeSubscribers()
 {
     ROS_INFO("Planner Node: Initializing Subscribers");
     odom_sub = nh.subscribe("/suitbot/odom", 1, &PlannerNode::subscriberCallback, this);
+    ctrl_sub = nh.subscribe("/suitbot/ctrl/velocity", 1, &PlannerNode::controlCallback, this);
+    waypoint_cli = nh.serviceClient<suitbot_ros::SetCourse>("/suitbot/reset_course");
 }
 
 void PlannerNode::initializePublishers()
 {
     ROS_INFO("Planner Node: Initializing Publishers");
-    // plan_pub = nh.advertise<std_msgs::Float64>("/suitbot/plan", 1, true);
     initVisualization();
+    arrow_pub = nh.advertise<visualization_msgs::Marker>("/suitbot/arrow", 1);
 }
+
+
+void PlannerNode::controlCallback(const nav_msgs::Odometry &ctrl_in)
+{
+    //geometry_msgs::Point pt = ctrl_in.pose.pose.position;
+    //double yaw = ctrl_in.pose.pose.orientation;
+    visualization_msgs::Marker arrow_marker;
+    arrow_marker.header.stamp = ros::Time::now();
+    arrow_marker.header.frame_id = "world";
+    arrow_marker.ns = "planner_node";
+    arrow_marker.id = 1000000;
+    arrow_marker.type = visualization_msgs::Marker::ARROW;
+    arrow_marker.action = visualization_msgs::Marker::ADD;
+    arrow_marker.pose = ctrl_in.pose.pose;
+    arrow_marker.scale.x = 6;
+    arrow_marker.scale.y = 0.5;
+    arrow_marker.scale.z = 2;
+    arrow_marker.color.r = 1.0;
+    arrow_marker.color.g = 0.1;
+    arrow_marker.color.b = 0.0;
+    arrow_marker.color.a = 1.0;
+    arrow_pub.publish(arrow_marker);
+}
+
 
 void PlannerNode::subscriberCallback(const nav_msgs::Odometry &odom_in)
 {
@@ -322,20 +349,41 @@ int main(int argc, char **argv)
     plannerNode.coord_to_idx(start_x, start_y, x_idx, y_idx);
     plannerNode.set_start_indices(x_idx, y_idx);
 
+    bool no_course = true;
+
     // replan
+    TicToc t;
     if (plannerNode.a_star_planner() < 0)
     {
         ROS_WARN("Planner Node: No Path Found!");
     }
+    ROS_INFO("Planning time: %f ms", t.toc());
 
-    ros::Rate loop_rate(0.2);
+    ros::Rate loop_rate(1);
     while (ros::ok())
     {
-        /**
-         * This is a message object. You stuff it with data, and then publish it.
-         */
-
         plannerNode.updateVisualization();
+        if (no_course) 
+        {
+            suitbot_ros::SetCourse srv;
+            for (int i = 0; i < plannerNode.planned_path_marker.points.size(); i++)
+            {
+                geometry_msgs::Point pt = plannerNode.planned_path_marker.points[i];
+                srv.request.points.push_back(pt);
+            }
+            if (plannerNode.waypoint_cli.call(srv))
+            {
+                ROS_INFO("Reset course succeedded: %d", (int)srv.response.success);
+            }
+            else
+            {
+                ROS_WARN("Failed to call service reset_course");
+                ros::spinOnce();
+                loop_rate.sleep();
+                continue;
+            }
+            no_course = false;
+        }
 
         ros::spinOnce();
 

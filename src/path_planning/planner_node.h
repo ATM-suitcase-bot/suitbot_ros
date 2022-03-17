@@ -33,6 +33,7 @@
 #include "a_star.h"
 //#include <Eigen/Dense>
 #include <chrono>
+#include "suitbot_ros/SetCourse.h"
 
 using namespace std;
 
@@ -53,9 +54,12 @@ public:
 
     void publish_pose();
     
-private:
+
     ros::NodeHandle nh; 
     ros::Subscriber odom_sub; 
+    ros::Subscriber ctrl_sub;
+    ros::ServiceClient waypoint_cli; // point array
+    ros::Publisher arrow_pub;
     ros::Publisher  planned_path_pub; // line list
     visualization_msgs::Marker planned_path_marker;
     ros::Publisher grid_map_pub; // cubes
@@ -82,6 +86,7 @@ private:
     void initializePublishers();
     
     void subscriberCallback(const nav_msgs::Odometry &odom_in); 
+    void controlCallback(const nav_msgs::Odometry &ctrl_in);
 
     // visualization
     void initVisualization();

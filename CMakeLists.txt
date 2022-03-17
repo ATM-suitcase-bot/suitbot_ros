@@ -9,6 +9,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
+  rospy
   message_generation
   std_msgs
   geometry_msgs
@@ -34,17 +35,20 @@ add_message_files(FILES
 
 add_service_files(FILES
   InitializationSrvMsg.srv
+  SetCourse.srv
 )
 
 # Actually generate the language-specific message and service files
-generate_messages(DEPENDENCIES std_msgs)
+generate_messages(DEPENDENCIES std_msgs geometry_msgs)
 
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS roscpp 
+                  rospy
                   message_runtime
                   std_msgs 
                   geometry_msgs
+                  nav_msgs
                   tf2_ros
                   visualization_msgs
 )

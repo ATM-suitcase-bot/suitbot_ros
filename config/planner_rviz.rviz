@@ -8,6 +8,8 @@ Panels:
         - /Status1
         - /MarkerArray1
         - /Marker1
+        - /Marker2
+        - /Marker2/Status1
       Splitter Ratio: 0.5
     Tree Height: 549
   - Class: rviz/Selection
@@ -70,6 +72,14 @@ Visualization Manager:
         planner_node: true
       Queue Size: 100
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /suitbot/arrow
+      Name: Marker
+      Namespaces:
+        planner_node: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -98,7 +108,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 97.96634674072266
+      Distance: 71.58879852294922
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -135,4 +145,4 @@ Window Geometry:
     collapsed: false
   Width: 1267
   X: 67
-  Y: 30
+  Y: 27

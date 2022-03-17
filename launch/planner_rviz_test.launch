@@ -1,5 +1,6 @@
 <launch>
     <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find suitbot_ros)/config/planner_rviz.rviz" />
+    <node name="tracking_simulator" pkg="suitbot_ros" type="tracking_simulator.py" output="screen"/>
     <node name="planner_node" pkg="suitbot_ros" type="planner_node" output="screen">
       <param name="map_file" value="$(find suitbot_ros)/data/wean_map_grid_edited.jpg"/>
       <param name="goal_x" value="49.0"/>
