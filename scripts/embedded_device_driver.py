@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 import serial
 from std_msgs.msg import Float64
-from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3, PoseWithCovariance, TwistWithCovariance
 import rospy
 import math
 import time
@@ -10,10 +11,8 @@ import time
 IN_FORCE = 0
 IN_VELOCITY = 1
 IN_UNDEF = 2
+STOP_RECEIVED = 3
 
-
-force_pub = rospy.Publisher('/suitbot/handle/force', Float64, queue_size=50)
-twist_pub = rospy.Publisher('/suitbot/mobility/velocity', Twist, queue_size=50)
 
 
 class SerialHandler:
@@ -21,13 +20,24 @@ class SerialHandler:
         self.ser = serial.Serial(port, 57600, timeout=1)
         self.ser.flush()
         self.stamp_counter = 0
+        self.ctrl_sub = rospy.Subscriber("/suitbot/ctrl/velocity", Odometry, self.callback_ctrl)
+        self.force_pub = rospy.Publisher('/suitbot/handle/force', Float64, queue_size=50)
+        self.twist_pub = rospy.Publisher('/suitbot/mobility/velocity', Twist, queue_size=50)
         # keep sending start until teensy replies
-        print("Trying to connect with teensy")
+        #print("Trying to connect with MCU")
         #while self.readData() == False:
-        self.ser.write("start".encode())
+        #self.ser.write("start".encode())
             #time.sleep(0.05)
         self.time_offset = 0 # machine time - device time
-        print("Serial ready!")
+        #print("Serial ready!")
+
+    def callback_ctrl(self, msg_in):
+        ai = msg_in.twist.twist.linear.x
+        di = msg_in.twist.twist.angular.z
+        speed_str = str(ai)
+        ang_str = str(di)
+        msg_to_mcu = speed_str + "\t" + ang_str 
+        self.ser.write(msg_to_mcu)
 
 
     def readData(self):
@@ -59,6 +69,9 @@ class SerialHandler:
             msg.angular.y = 0.0
             msg.angular.z = float(values[5])
             msg_type = IN_VELOCITY
+        elif msg[0] == 'stopping':
+            print('MCU stops')
+            return MSG, STOP_RECEIVED
         else:
             print("Serial message " + values[0] + " not recognized")
         return msg, msg_type
@@ -79,9 +92,9 @@ class SerialHandler:
         t_stop = time.time()
         self.ser.write("stop".encode())
         # after SIGINT, wait 2 seconds to confirm hardware has stopped
-        # while time.time()-t_stop < 2: 
-        #     if self.readData() == STOP_RECEIVED:
-        #         break
+        while time.time()-t_stop < 2: 
+            if self.readData() == STOP_RECEIVED:
+                break
         self.ser.close()
 
 
@@ -109,21 +122,21 @@ class SerialHandler:
         self.time_offset = rospy.Duration.from_sec(self.time_offset)
 
 
-def loop():
-    global port
-    serial_handler = SerialHandler(port)
-    serial_handler.initTimestamp()
-    while not rospy.is_shutdown():
-        msg, msg_type = serial_handler.readData()
-        if msg_type == IN_FORCE:
-            force_pub.publish(msg)
-        elif msg_type == IN_VELOCITY:
-            twist_pub.publish(msg)
+    def loop(self):
+        global port
+        serial_handler = SerialHandler(port)
+        serial_handler.initTimestamp()
+        while not rospy.is_shutdown():
+            msg, msg_type = serial_handler.readData()
+            if msg_type == IN_FORCE:
+                self.force_pub.publish(msg)
+            elif msg_type == IN_VELOCITY:
+                self.twist_pub.publish(msg)
 
 
 if __name__ == '__main__':
     try:
-        port = serial.Serial('/dev/ttyACM2', 115200)
+        port = serial.Serial('/dev/ttyACM0', 115200)
     except:
         port = serial.Serial('/dev/ttyACM1', 115200)
 
