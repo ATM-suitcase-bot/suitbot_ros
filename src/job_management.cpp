@@ -58,21 +58,22 @@ void JobManager::get_goal_coordinate(int goal, double &goal_x, double &goal_y) {
 }
 
 
-void JobManager::audio_cmd_subscriber_callback(const suitbot_ros::CmdMsg &msg_in)
+void JobManager::audio_cmd_subscriber_callback(const std_msgs::Int32 &msg_in)
 {
     // if it's in idle state, go to initialization state
     if (state == IDLE)
     {
-        if (msg_in.cmd_type == NEW_JOB)
+        
+        if (msg_in.data != CANCEL_JOB)
         {
-            get_goal_coordinate(msg_in.goal, goal_x, goal_y);
+            //get_goal_coordinate(msg_in.goal, goal_x, goal_y);
             state = INITIALIZATION;
         }
     }
-    // elif it's in guiding state, possibly go to complete state
-    else if (state == GUIDING)
+    // elif it's in INITIALIZATION or GUIDING state, possibly go to complete state
+    else
     {
-        if (msg_in.cmd_type == CANCEL_JOB)
+        if (msg_in.data == CANCEL_JOB)
         {
             // cancel current job
 

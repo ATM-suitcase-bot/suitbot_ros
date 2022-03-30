@@ -21,13 +21,14 @@
 
 #include <std_msgs/Bool.h> 
 #include <std_msgs/Float64.h>
+#include <std_msgs/Int32.h>
 #include <std_srvs/Trigger.h> 
 
 #include <nav_msgs/Odometry.h>
 
 
 #include "parameters.h"
-#include <suitbot_ros/CmdMsg.h>
+
 #include <suitbot_ros/InitializationSrvMsg.h>
 
 #include "localization/initialization.h"

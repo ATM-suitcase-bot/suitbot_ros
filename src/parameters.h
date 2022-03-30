@@ -11,15 +11,13 @@
 #ifndef PARAMETERS_H_
 #define PARAMETERS_H_
 
-typedef enum cmd_type {
-    NEW_JOB,
-    CANCEL_JOB
-} cmd_t;
 
-typedef enum goal_num {
-    ROOM_1,
-    ROOM_2,
-    ROOM_3
-} goal_t;
+typedef enum cmd_type {
+    CANCEL_JOB = 0,
+    GHC = 2, 
+    HH = 3,
+    UC = 4, 
+    HOME = 5
+} cmd_t;
 
 #endif /* PARAMETERS_H_ */
