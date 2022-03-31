@@ -10,7 +10,7 @@ import tf
 import time
 from nav_msgs.msg import Odometry
 from tf.transformations import quaternion_about_axis
-from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3, PoseWithCovariance, TwistWithCovariance
+from geometry_msgs.msg import Point, Pose, Quaternion, Twist, TwistStamped, Vector3, PoseWithCovariance, TwistWithCovariance
 from suitbot_ros.srv import SetCourse
 
 # Parameters
@@ -190,6 +190,7 @@ class TrackingSimulator:
         self.ctrl_pub = rospy.Publisher("/suitbot/ctrl/velocity", Odometry, queue_size=10)
         #self.odom_pub = rospy.Publisher("/suitbot/odom", Odometry, queue_size=10)
         #self.number_subscriber = rospy.Subscriber("/number", Int64, self.callback_number)
+        self.twist_sub = rospy.Subscriber('/suitbot/mobility/velocity', TwistStamped, self.callback_update)
         self.path_service = rospy.Service("/suitbot/reset_course", SetCourse, self.callback_reset_course)
         self.target_course = None
         self.time = 0.0
@@ -199,9 +200,18 @@ class TrackingSimulator:
         self.lastIndex = None
         self.dt = 1
         self.r = rospy.Rate(self.dt)
-        self.target_speed = 3.0  # [m/s]
+        self.target_speed = 1.0  # [m/s]
         self.T = 10000.0  # max simulation time
+        self.t_prev = rospy.Time.now().to_sec()
 
+
+    def callback_update(self, msg_in):
+        v = msg_in.twist.linear.x
+        w = msg_in.twist.angular.z
+        t_cur = msg_in.header.stamp.secs + (msg_in.header.stamp.nsecs) / 1000000000.0
+        d_t = t_cur - self.t_prev
+        self.t_prev = t_cur
+        self.state.update_actual(v, w, d_t)
 
     def callback_reset_course(self, req):
         print("Resetting course..")
@@ -231,7 +241,7 @@ class TrackingSimulator:
         print("start simulating")
         t_init = rospy.Time.now().to_sec()
         t_cur = t_init
-        while t_cur - t_init <= self.T and self.lastIndex > self.target_ind and not rospy.is_shutdown():
+        while t_cur - t_init <= self.T and self.lastIndex >= self.target_ind and not rospy.is_shutdown():
             print(t_cur)
             # Calc control cmd
             ai = pid_control(self.target_speed, self.state.v, self.dt)
@@ -239,7 +249,7 @@ class TrackingSimulator:
                 self.state, self.target_course, self.target_ind)
 
             # TODO add noise to the control
-            self.state.update(ai, di)  # Execute control and update vehicle state
+            #self.state.update(ai, di)  # Execute control and update vehicle state
 
             msg_out = Odometry()
             pt = Point(self.state.x, self.state.y, 0)
@@ -255,6 +265,18 @@ class TrackingSimulator:
             self.r.sleep()
             t_cur = rospy.Time.now().to_sec()
             self.states.append(t_cur, self.state)
+
+        if self.lastIndex >= self.target_ind:
+            msg_out = Odometry()
+            pt = Point(self.state.x, self.state.y, 0)
+            # np array of x y z w
+            q = quaternion_about_axis(self.state.yaw, (0,0,1))
+            ang = Quaternion(q[0], q[1], q[2], q[3])
+            msg_out.pose.pose = Pose(pt, ang)
+            linear = Vector3(0.0, 0.0, 0.0)
+            angular = Vector3(0.0, 0.0, 0.0)
+            msg_out.twist.twist = Twist(linear, angular)
+            self.ctrl_pub.publish(msg_out)
 
 
 if __name__ == '__main__':

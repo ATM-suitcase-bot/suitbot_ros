@@ -107,9 +107,10 @@ class SerialHandler:
     def close(self):
         print("Trying to stop MCU...")
         t_stop = time.time()
-        self.write_data("0.0 0.0")
+        self.write_data("0.0\t0.0")
         # after SIGINT, wait 2 seconds to confirm hardware has stopped
-        # while time.time()-t_stop < 2: 
+        while time.time()-t_stop < 1:
+            pass 
         #     if self.readData() == STOP_RECEIVED:
         #         break
         self.ser.close()
