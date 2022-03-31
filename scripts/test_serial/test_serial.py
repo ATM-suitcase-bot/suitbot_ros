@@ -8,14 +8,14 @@ string = "Python is interesting."
 arr = bytes(string, 'utf-8')
 print(arr)
 
-ser = serial.Serial('/dev/ttyACM0', 9600)
+ser = serial.Serial('/dev/ttyACM0', 115200)
 ser.close()
 ser.open()
 #ser.flush()
 
 def write_read(x):
     ser.write(bytes(x, 'utf-8'))
-    time.sleep(0.05)
+    time.sleep(0.01)
     data = ser.readline().rstrip()
     print("here", data)
     values_str = data.decode()
@@ -28,6 +28,6 @@ while True:
     print(num1, type(num1))
     num2 = input("Enter number2: ")
     print(num2, type(num2))
-    st = num1 + " " + num2
+    st = num1 + "\t" + num2 + "\t111111111111111111111111111111111111111111111111111111111"
     value1, value2 = write_read(st)
     print(value1, type(value1), value2, type(value2)) # printing the value

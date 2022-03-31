@@ -1,0 +1,2 @@
+rostopic pub -r 10 /suitbot/ctrl/velocity nav_msgs/Odometry '{header: {seq: 1, stamp: now}, pose: {pose: {position: { x: 10, y: 20, z: 30}, orientation: { x: 0.2, y: 0.1, z: 0}}, covariance: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}, twist: {twist: {linear: { x: 0.9, y: 0, z: 0}, angular: { x: 0, y: 0, z: 0.3}}, covariance: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}}'
+

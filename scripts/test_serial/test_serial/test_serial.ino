@@ -2,13 +2,19 @@ float counter = 0.0;
 float x1 = 0.0, x2 = 0.0;
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(9600);
+  Serial.setTimeout(50);
+  Serial.begin(115200);
 }
+
+
 
 void loop() {
   // put your main code here, to run repeatedly:
-  while (!Serial.available());
+  if (Serial.available()){
+  long start = micros();
   String strIn = Serial.readString();
+  
+  long ends = micros();
   
   int n = strIn.length();
   // declaring character array
@@ -30,6 +36,8 @@ void loop() {
       x2 = x2_str.toFloat();
     }
   }
-  String dataToSend = String(x1, 8) + "\t" + String(x2,8);
+  long delta = ends - start;
+  String dataToSend = "data\t2\t2\t" + String(delta) + "\t" + String(x2,4);
   Serial.println(dataToSend);
+  }
 }
