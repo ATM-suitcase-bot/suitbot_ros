@@ -44,8 +44,38 @@ class State:
         self.y += self.v * math.sin(self.yaw) * dt
         self.yaw += self.v / WB * math.tan(delta) * dt
         self.v += a * dt
-        self.rear_x = self.x - ((WB / 2) * math.cos(self.yaw))
-        self.rear_y = self.y - ((WB / 2) * math.sin(self.yaw))
+        self.rear_x = self.x #- ((WB / 2) * math.cos(self.yaw))
+        self.rear_y = self.y #- ((WB / 2) * math.sin(self.yaw))
+        
+    # if we have the encoder reading
+    def update_actual(self, v, w, d_t):
+        self.v = v
+        k00 = self.v * math.cos(self.yaw)
+        k01 = self.v * math.sin(self.yaw)
+        k02 = w 
+
+        k10 = k00 + self.v * d_t / 2.0 * k02
+        k11 = k01 + self.v * d_t / 2.0 * k02
+        k12 = w
+
+        k20 = k10
+        k21 = k11
+        k22 = w
+
+        k30 = k00 + self.v * d_t * k22
+        k31 = k00 + self.v * d_t * k22
+        k32 = w
+
+        self.x += d_t / 6.0 * (k00 + 2 * (k10 + k20) + k30)
+        self.y += d_t / 6.0 * (k01 + 2 * (k11 + k21) + k31)
+        self.yaw += d_t / 6.0 * (k02 + 2 * (k12 + k22) + k32)
+
+        self.rear_x = self.x
+        self.rear_y = self.y
+
+
+
+
 
     def calc_distance(self, point_x, point_y):
         dx = self.rear_x - point_x

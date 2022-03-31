@@ -26,6 +26,7 @@ PlannerNode::PlannerNode(ros::NodeHandle *nodehandle, string map_file, double go
         ROS_ERROR("Failed to initialize Planner Node, exiting");
         // TODO error handling
     }
+    
     rows = occupancy_map.size();
     cols = occupancy_map[0].size();
     bloat_obstacles();
@@ -72,6 +73,8 @@ int PlannerNode::initOccupancyGridMap(string map_file)
         }
     */
     cv::Mat map_img = cv::imread(map_file, cv::IMREAD_GRAYSCALE);
+    //cv::imshow("map", map_img);
+    //cv::waitKey(0);
     if (!map_img.empty())
     {
         for (int r = 0; r < map_img.rows; r++)
@@ -344,8 +347,8 @@ int main(int argc, char **argv)
 
     // for testing purpose
     int x_idx = 0, y_idx = 0;
-    double start_x = 25.0; // x idx = 50
-    double start_y = 15.5; // y idx = 31
+    double start_x = 23.0; // x idx = 50   46
+    double start_y = 66.0; // y idx = 31   132
     plannerNode.coord_to_idx(start_x, start_y, x_idx, y_idx);
     plannerNode.set_start_indices(x_idx, y_idx);
 
