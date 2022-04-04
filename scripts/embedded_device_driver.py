@@ -3,6 +3,7 @@ import serial
 from std_msgs.msg import Float64
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, TwistStamped, Vector3, PoseWithCovariance, TwistWithCovariance
+from suitbot_ros.msg import TwoFloats
 import rospy
 import math
 import time
@@ -24,7 +25,7 @@ class SerialHandler:
         self.ser.open()
         self.stamp_counter = 0
         self.ctrl_sub = rospy.Subscriber("/suitbot/ctrl/velocity", Odometry, self.callback_ctrl)
-        self.force_pub = rospy.Publisher('/suitbot/handle/force', Float64, queue_size=50)
+        self.force_pub = rospy.Publisher('/suitbot/handle/force', TwoFloats, queue_size=50)
         self.twist_pub = rospy.Publisher('/suitbot/mobility/velocity', TwistStamped, queue_size=50)
         self.time_offset = None # machine time - device time
         #self.initTimestamp()
@@ -51,7 +52,7 @@ class SerialHandler:
         if len(line) == 0: # empty line
             return msg, msg_type
         values_str = line.decode()
-        print(values_str)
+        #print(values_str)
         values = values_str.split('\t')
         #assert(self.time_offset != None)
         assert(len(values) > 3)
@@ -60,10 +61,12 @@ class SerialHandler:
         nsecs = int(values[2])
         stamp_in_machine_time = rospy.Time.now() #self.deviceTime2machineTime(rospy.Time(secs, nsecs))
         if values[0] == 'force':
-            msg = Float64()
+            msg = TwoFloats()
             msg.header.stamp = stamp_in_machine_time
             msg.header.frame_id = "force"
-            msg.data = float(values[3])
+            msg.float1 = float(values[3]) # nonzero if push
+            msg.float2 = float(values[4]) # nonzero if pull
+            print("force from mcu: %.4f, %.4f" % (msg.float1, msg.float2))
             msg_type = IN_FORCE
         elif values[0] == 'encoder':
             msg = TwistStamped()
@@ -84,7 +87,7 @@ class SerialHandler:
         elif values[0] == 'data':
             v1 = float(values[3])
             v2 = float(values[4])
-            print("cmd sending back to pc from mcu: %.8f, %.8f" % (v1, v2))
+            #print("cmd sending back to pc from mcu: %.8f, %.8f" % (v1, v2))
             return msg, IN_UNDEF
         elif values[0] == 'stopping':
             print('MCU stops')

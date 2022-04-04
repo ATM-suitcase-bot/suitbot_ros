@@ -31,6 +31,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 add_message_files(FILES
   CmdMsg.msg
+  TwoFloats.msg
 )
 
 add_service_files(FILES

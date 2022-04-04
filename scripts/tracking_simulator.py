@@ -2,6 +2,7 @@
 
 # Modified from https://github.com/AtsushiSakai/PythonRobotics/blob/master/PathTracking/pure_pursuit/pure_pursuit.py
 
+import imp
 import numpy as np
 import math
 import matplotlib.pyplot as plt
@@ -12,6 +13,7 @@ from nav_msgs.msg import Odometry
 from tf.transformations import quaternion_about_axis
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, TwistStamped, Vector3, PoseWithCovariance, TwistWithCovariance
 from suitbot_ros.srv import SetCourse
+from suitbot_ros.msg import TwoFloats
 
 # Parameters
 k = 0.1  # look forward gain
@@ -192,6 +194,7 @@ class TrackingSimulator:
         #self.number_subscriber = rospy.Subscriber("/number", Int64, self.callback_number)
         self.twist_sub = rospy.Subscriber('/suitbot/mobility/velocity', TwistStamped, self.callback_update)
         self.path_service = rospy.Service("/suitbot/reset_course", SetCourse, self.callback_reset_course)
+        self.force_sub = rospy.Subscriber("/suitbot/handle/force", TwoFloats, self.callback_force)
         self.target_course = None
         self.time = 0.0
         self.state = None
@@ -204,6 +207,18 @@ class TrackingSimulator:
         self.T = 10000.0  # max simulation time
         self.t_prev = rospy.Time.now().to_sec()
 
+
+    def callback_force(self, msg_in):
+        force1 = msg_in.float1
+        force2 = msg_in.float2
+        print("here")
+        # cap the target speed to (0, 1)
+        self.target_speed = max(min(self.target_speed * ((force1 - force2) / 15.0 * 0.01 + 1.0), 0.75), 0)
+        global Lfc
+        # cap it to (1, 3)
+        Lfc = max(1.0, 1.0 + (self.target_speed - 0.5) * 2 / 0.5)
+        print(Lfc)
+        
 
     def callback_update(self, msg_in):
         v = msg_in.twist.linear.x
