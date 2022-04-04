@@ -14,10 +14,10 @@
 
 typedef enum cmd_type {
     CANCEL_JOB = 0,
-    GHC = 2, 
-    HH = 3,
-    UC = 4, 
-    HOME = 5
+    LEFT = 2,
+    MIDDLE = 3,
+    RIGHT = 4,
+    NOTHING = 5
 } cmd_t;
 
 #endif /* PARAMETERS_H_ */

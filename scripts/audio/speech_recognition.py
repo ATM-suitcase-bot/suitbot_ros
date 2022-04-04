@@ -45,7 +45,7 @@ def similar(a, b):
 
 
 def speechRecog(keywords_map):
-    model = Model('.\vosk-model-small-en-us-0.15')
+    model = Model('/home/atm/catkin_ws/src/suitbot_ros/scripts/audio/vosk-model-small-en-us-0.15')
     # read the model
 
     recognizer = KaldiRecognizer(model, 16000)
@@ -68,4 +68,4 @@ def speechRecog(keywords_map):
             if similarity > 0.5:
                 break
    # print(keywords.index(matchedWord), '\n')
-    return keywords[matchedWord]
+    return keywords_map[matchedWord]

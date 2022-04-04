@@ -36,6 +36,7 @@ add_message_files(FILES
 add_service_files(FILES
   InitializationSrvMsg.srv
   SetCourse.srv
+  SpeechSrv.srv
 )
 
 # Actually generate the language-specific message and service files
@@ -60,11 +61,11 @@ include_directories(
 catkin_package()
 
 
-# add_executable(job_management
-#   src/job_management.cpp
-# )
+add_executable(job_management
+  src/job_management.cpp
+)
 
-# target_link_libraries(job_management ${catkin_LIBRARIES})
+target_link_libraries(job_management ${catkin_LIBRARIES})
 
 
 # add_executable(initialization_node

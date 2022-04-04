@@ -13,7 +13,7 @@
 
 JobManager::JobManager(ros::NodeHandle *nodehandle) : nh(*nodehandle)
 {
-    ROS_INFO("Initializing Corner Extractor...");
+    ROS_INFO("Initializing Job Manager...");
     initializeSubscribers();
     initializePublishers();
     initializeServices();
@@ -27,7 +27,7 @@ JobManager::JobManager(ros::NodeHandle *nodehandle) : nh(*nodehandle)
 void JobManager::initializeSubscribers()
 {
     ROS_INFO("Initializing Subscribers");
-    audio_sub = nh.subscribe("audio_topic", 1, &JobManager::audio_cmd_subscriber_callback, this);
+    audio_sub = nh.subscribe("/suitbot/audio/cmd_in", 1, &JobManager::audio_cmd_subscriber_callback, this);
     odom_sub = nh.subscribe("odom_topic", 1, &JobManager::localization_callback, this);
     // add more subscribers here, as needed
 }
@@ -35,17 +35,17 @@ void JobManager::initializeSubscribers()
 void JobManager::initializeServices()
 {
     ROS_INFO("Initializing Services");
-    minimal_service_ = nh.advertiseService("example_minimal_service",
-                                            &JobManager::serviceCallback,
-                                            this);
+    //minimal_service_ = nh.advertiseService("example_minimal_service", &JobManager::serviceCallback, this);
     // add more services here, as needed
-    initialization_cli = nh.serviceClient<suitbot_ros::InitializationSrvMsg>("init_pose");
+    //initialization_cli = nh.serviceClient<suitbot_ros::InitializationSrvMsg>("init_pose");
+    audio_cli = nh.serviceClient<std_srvs::SetBool>("/suitbot/audio/set_listening");
+    speech_cli = nh.serviceClient<suitbot_ros::SpeechSrv>("/suitbot/audio/speech_output");
 }
 
 void JobManager::initializePublishers()
 {
     ROS_INFO("Initializing Publishers");
-    minimal_publisher_ = nh.advertise<std_msgs::Float64>("example_class_output_topic", 1, true);
+    //minimal_publisher_ = nh.advertise<std_msgs::Float64>("example_class_output_topic", 1, true);
     // add more publishers, as needed
     //  note: COULD make minimal_publisher_ a public member function, if want to use it within "main()"
 }
@@ -64,10 +64,12 @@ void JobManager::audio_cmd_subscriber_callback(const std_msgs::Int32 &msg_in)
     if (state == IDLE)
     {
         
-        if (msg_in.data != CANCEL_JOB)
+        if (msg_in.data != CANCEL_JOB && msg_in.data != NOTHING)
         {
             //get_goal_coordinate(msg_in.goal, goal_x, goal_y);
-            state = INITIALIZATION;
+            state = GUIDING;
+            // start path planning and following job. we use state to control run or not run
+
         }
     }
     // elif it's in INITIALIZATION or GUIDING state, possibly go to complete state
@@ -100,6 +102,7 @@ bool JobManager::serviceCallback(std_srvs::TriggerRequest &request, std_srvs::Tr
 
 int JobManager::initialization_handler()
 {
+    /*
     suitbot_ros::InitializationSrvMsg srv_msg;
     srv_msg.request.header.stamp = ros::Time::now();
     srv_msg.request.wait_time = 10;
@@ -112,6 +115,7 @@ int JobManager::initialization_handler()
         ROS_INFO("Failed to initialize starting pose, going back to IDLE...");
         state = IDLE;
     }
+    */
     return 0;
 }
 
@@ -128,13 +132,51 @@ int JobManager::error_handler()
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "jobManager");
+    ros::init(argc, argv, "job_management");
     ros::NodeHandle nh;
 
     ROS_INFO("main: instantiating an object of type JobManager");
     JobManager jobManager(&nh);
 
+    bool mic_enabled = false;
 
+    ros::Rate loop_rate(1);
+    int counter = 0;
+    // wait for 5 seconds til all nodes are up
+    sleep(5);
+
+    // say something
+    suitbot_ros::SpeechSrv speech;
+    speech.request.data = "Robot initialized, where do you want to go?";
+    if (jobManager.speech_cli.call(speech)){
+        ROS_INFO("Spoken successfully: %d", speech.request.data);
+    }
+    else {
+        ROS_INFO("fail to speak");
+    }
+    // enable audio listening
+    std_srvs::SetBool srv_mic;
+    srv_mic.request.data = true;
+    if (jobManager.audio_cli.call(srv_mic))
+    {
+        ROS_INFO("Audio listener enabled");
+        mic_enabled = true;
+    }
+    else {
+        ROS_INFO("fail to enable listening");
+    }
+
+    while (ros::ok())
+    {
+        
+        if (jobManager.state == GUIDING)
+        {
+            std::cout << "guiding!" << std::endl;
+        }
+        ros::spinOnce();
+
+        loop_rate.sleep();
+    }
     ROS_INFO("main: going into spin; let the callbacks do all the work");
     ros::spin();
     return 0;

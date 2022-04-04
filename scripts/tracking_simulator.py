@@ -15,12 +15,12 @@ from suitbot_ros.srv import SetCourse
 
 # Parameters
 k = 0.1  # look forward gain
-Lfc = 2.0  # [m] look-ahead distance
+Lfc = 1.0  # [m] look-ahead distance
 Kp = 1.0  # speed proportional gain
 Ki = 0.0  # speed integral gain
 Kd = 0.0  # speed differential gain
 dt = 0.1  # [s] time tick
-WB = 2.9  # [m] wheel base of vehicle
+WB = 0.2  # [m] wheel base of vehicle
 
 show_animation = True
 
@@ -200,7 +200,7 @@ class TrackingSimulator:
         self.lastIndex = None
         self.dt = 1
         self.r = rospy.Rate(self.dt)
-        self.target_speed = 1.0  # [m/s]
+        self.target_speed = 0.5  # [m/s]
         self.T = 10000.0  # max simulation time
         self.t_prev = rospy.Time.now().to_sec()
 
@@ -241,7 +241,7 @@ class TrackingSimulator:
         print("start simulating")
         t_init = rospy.Time.now().to_sec()
         t_cur = t_init
-        while t_cur - t_init <= self.T and self.lastIndex >= self.target_ind and not rospy.is_shutdown():
+        while t_cur - t_init <= self.T and self.target_ind < self.lastIndex and not rospy.is_shutdown():
             print(t_cur)
             # Calc control cmd
             ai = pid_control(self.target_speed, self.state.v, self.dt)
@@ -267,6 +267,7 @@ class TrackingSimulator:
             self.states.append(t_cur, self.state)
 
         if self.lastIndex >= self.target_ind:
+            #print("Here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             msg_out = Odometry()
             pt = Point(self.state.x, self.state.y, 0)
             # np array of x y z w
