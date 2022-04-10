@@ -64,6 +64,7 @@ catkin_package()
 
 add_executable(job_management
   src/job_management.cpp
+  src/parameters.cpp
 )
 
 target_link_libraries(job_management ${catkin_LIBRARIES})
@@ -80,6 +81,7 @@ add_executable(planner_node
   src/path_planning/planner_node.cpp
   src/path_planning/planner.cpp
   src/path_planning/a_star.cpp
+  src/parameters.cpp
 )
 
 target_link_libraries(planner_node ${catkin_LIBRARIES} ${OpenCV_LIBS})

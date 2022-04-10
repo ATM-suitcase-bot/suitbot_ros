@@ -15,6 +15,11 @@ from geometry_msgs.msg import Point, Pose, Quaternion, Twist, TwistStamped, Vect
 from suitbot_ros.srv import SetCourse
 from suitbot_ros.msg import TwoFloats
 
+import sys, os.path
+script_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(script_dir)
+from parameters import Parameters
+
 # Parameters
 k = 0.1  # look forward gain
 Lfc = 1.0  # [m] look-ahead distance
@@ -189,12 +194,12 @@ def plot_arrow(x, y, yaw, length=1.0, width=0.5, fc="r", ec="k"):
 class TrackingSimulator:
     def __init__(self):
         self.counter = 0
-        self.ctrl_pub = rospy.Publisher("/suitbot/ctrl/velocity", Odometry, queue_size=10)
+        self.ctrl_pub = rospy.Publisher(parameters.ctrl_topic, Odometry, queue_size=10)
         #self.odom_pub = rospy.Publisher("/suitbot/odom", Odometry, queue_size=10)
         #self.number_subscriber = rospy.Subscriber("/number", Int64, self.callback_number)
-        self.twist_sub = rospy.Subscriber('/suitbot/mobility/velocity', TwistStamped, self.callback_update)
-        self.path_service = rospy.Service("/suitbot/reset_course", SetCourse, self.callback_reset_course)
-        self.force_sub = rospy.Subscriber("/suitbot/handle/force", TwoFloats, self.callback_force)
+        self.twist_sub = rospy.Subscriber(parameters.encoder_topic, TwistStamped, self.callback_update)
+        self.path_service = rospy.Service(parameters.reset_path_service, SetCourse, self.callback_reset_course)
+        self.force_sub = rospy.Subscriber(parameters.force_topic, TwoFloats, self.callback_force)
         self.target_course = None
         self.time = 0.0
         self.state = None
@@ -211,25 +216,27 @@ class TrackingSimulator:
     def callback_force(self, msg_in):
         force1 = msg_in.float1
         force2 = msg_in.float2
-        print("here")
         # cap the target speed to (0, 1)
         self.target_speed = max(min(self.target_speed * ((force1 - force2) / 15.0 * 0.01 + 1.0), 0.75), 0)
         global Lfc
         # cap it to (1, 3)
         Lfc = max(1.0, 1.0 + (self.target_speed - 0.5) * 2 / 0.5)
-        print(Lfc)
+        
         
 
     def callback_update(self, msg_in):
-        v = msg_in.twist.linear.x
-        w = msg_in.twist.angular.z
-        t_cur = msg_in.header.stamp.secs + (msg_in.header.stamp.nsecs) / 1000000000.0
-        d_t = t_cur - self.t_prev
-        self.t_prev = t_cur
-        self.state.update_actual(v, w, d_t)
+        try:
+            v = msg_in.twist.linear.x
+            w = msg_in.twist.angular.z
+            t_cur = msg_in.header.stamp.secs + (msg_in.header.stamp.nsecs) / 1000000000.0
+            d_t = t_cur - self.t_prev
+            self.t_prev = t_cur
+            self.state.update_actual(v, w, d_t)
+        except:
+            rospy.logwarn_throttle_identical(5, "Tracking simulator: bad update_callback")
 
     def callback_reset_course(self, req):
-        print("Resetting course..")
+        rospy.loginfo("Tracking simulator: Resetting course..")
         l = len(req.points)
         cx = np.zeros(l)
         cy = np.zeros(l)
@@ -238,26 +245,32 @@ class TrackingSimulator:
             cx[i] = point.x
             cy[i] = point.y
         self.target_course = TargetCourse(cx, cy)
+
+        path_cmd = req.path_cmd
         # initial state
-        self.state = State(x=cx[0], y=cy[0], yaw=1.57, v=0.0)
+        if path_cmd == 0:
+            self.state = State(x=cx[0], y=cy[0], yaw=1.57, v=0.0)
+        elif path_cmd == 1:
+            self.state = State(x=cx[0], y=cy[0], yaw=-1.57, v=0.0)
+        else:
+            self.state = State(x=cx[0], y=cy[0], yaw=3.14, v=0.0)
 
         self.states.append(self.time, self.state)
 
         self.target_ind, _ = self.target_course.search_target_index(self.state)
         self.lastIndex = l - 1
-        print("Reset success")
+        rospy.loginfo("Tracking simulator: Reset success")
         return True
 
 
     def loop(self):
-        print("entering loop")
+        rospy.loginfo("Tracking simulator: entering loop")
         while self.target_course == None and not rospy.is_shutdown():
             self.r.sleep()
-        print("start simulating")
+        rospy.loginfo("Tracking simulator: start simulator")
         t_init = rospy.Time.now().to_sec()
         t_cur = t_init
         while t_cur - t_init <= self.T and self.target_ind < self.lastIndex and not rospy.is_shutdown():
-            print(t_cur)
             # Calc control cmd
             ai = pid_control(self.target_speed, self.state.v, self.dt)
             di, self.target_ind = pure_pursuit_steer_control(
@@ -282,7 +295,6 @@ class TrackingSimulator:
             self.states.append(t_cur, self.state)
 
         if self.lastIndex >= self.target_ind:
-            #print("Here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             msg_out = Odometry()
             pt = Point(self.state.x, self.state.y, 0)
             # np array of x y z w
@@ -296,9 +308,11 @@ class TrackingSimulator:
 
 
 if __name__ == '__main__':
-    print("Tracking simulator node starting")
+    parameters = Parameters()
+    parameters.initParameters()
+    rospy.loginfo("Tracking simulator: node starting")
     rospy.init_node('tracking_simulator')
     simulator = TrackingSimulator()
     simulator.loop()
-    print("Tracking simulator going into spin...")
+    rospy.loginfo("Tracking simulator: node going into spin")
     rospy.spin()

@@ -68,6 +68,7 @@ void JobManager::audio_cmd_subscriber_callback(const std_msgs::Int32 &msg_in)
         {
             //get_goal_coordinate(msg_in.goal, goal_x, goal_y);
             state = GUIDING;
+            direction = msg_in.data;
             // start path planning and following job. we use state to control run or not run
 
         }
@@ -135,21 +136,25 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "job_management");
     ros::NodeHandle nh;
 
+    readParameters(nh);
+
     ROS_INFO("main: instantiating an object of type JobManager");
     JobManager jobManager(&nh);
+
 
     bool mic_enabled = false;
 
     ros::Rate loop_rate(1);
     int counter = 0;
+    int counter_state = 0;
     // wait for 5 seconds til all nodes are up
-    sleep(5);
+    sleep(4);
 
     // say something
     suitbot_ros::SpeechSrv speech;
     speech.request.data = "Robot initialized, where do you want to go?";
     if (jobManager.speech_cli.call(speech)){
-        ROS_INFO("Spoken successfully: %d", speech.request.data);
+        ROS_INFO("Spoken successfully: %s", speech.request.data.c_str());
     }
     else {
         ROS_INFO("fail to speak");
@@ -169,9 +174,34 @@ int main(int argc, char **argv)
     while (ros::ok())
     {
         
-        if (jobManager.state == GUIDING)
+        if (jobManager.state == GUIDING && counter_state == 0)
         {
-            std::cout << "guiding!" << std::endl;
+            std::cout << "guiding! direction: " << int(jobManager.direction) << std::endl;
+            std::string dir;
+            if (jobManager.direction == LEFT)
+                dir = "left";
+            else if (jobManager.direction == MIDDLE)
+                dir = "middle";
+            else if (jobManager.direction == RIGHT)
+                dir = "right";
+            speech.request.data = "Received command. Going " + dir;
+            if (jobManager.speech_cli.call(speech)){
+                ROS_INFO("Spoken successfully: %s", speech.request.data);
+            }
+            else {
+                ROS_INFO("fail to speak");
+            }
+            counter_state += 1;
+
+            srv_mic.request.data = false;
+            if (jobManager.audio_cli.call(srv_mic))
+            {
+                ROS_INFO("Audio listener disabled");
+                mic_enabled = true;
+            }
+            else {
+                ROS_INFO("fail to enable listening");
+            }
         }
         ros::spinOnce();
 

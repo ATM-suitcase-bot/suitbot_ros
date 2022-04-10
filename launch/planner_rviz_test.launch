@@ -1,5 +1,5 @@
 <launch>
-    <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find suitbot_ros)/config/planner_rviz.rviz" />
+    <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find suitbot_ros)/rviz/planner_rviz.rviz" />
     <node name="tracking_simulator" pkg="suitbot_ros" type="tracking_simulator.py" output="screen"/>
     <node name="embedded_device_driver" pkg="suitbot_ros" type="embedded_device_driver.py" output="screen"/>
     <node name="planner_node" pkg="suitbot_ros" type="planner_node" output="screen">

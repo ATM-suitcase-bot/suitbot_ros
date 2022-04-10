@@ -17,8 +17,8 @@
 #define FREE 255
 #define BLOATED 100
 
-PlannerNode::PlannerNode(ros::NodeHandle *nodehandle, string map_file, double goal_x_, double goal_y_)
-    : nh(*nodehandle), goal_x(goal_x_), goal_y(goal_y_)
+PlannerNode::PlannerNode(ros::NodeHandle *nodehandle, string map_file)
+    : nh(*nodehandle)
 {
     ROS_INFO("Initializing Planner Node...");
     if (initOccupancyGridMap(map_file) < 0)
@@ -46,6 +46,12 @@ void PlannerNode::set_start_indices(int x_idx_, int y_idx_)
 {
     start_x_idx = x_idx_;
     start_y_idx = y_idx_;
+}
+
+void PlannerNode::set_goal_indices(int x_idx_, int y_idx_)
+{
+    goal_x_idx = x_idx_;
+    goal_y_idx = y_idx_;
 }
 
 int PlannerNode::initOccupancyGridMap(string map_file)
@@ -137,6 +143,8 @@ void PlannerNode::initializeSubscribers()
     odom_sub = nh.subscribe("/suitbot/odom", 1, &PlannerNode::subscriberCallback, this);
     ctrl_sub = nh.subscribe("/suitbot/ctrl/velocity", 1, &PlannerNode::controlCallback, this);
     waypoint_cli = nh.serviceClient<suitbot_ros::SetCourse>("/suitbot/reset_course");
+
+    path_cmd_sub = nh.subscribe("/suitbot/audio/cmd_in", 1, &PlannerNode::callback_path_cmd, this);
 }
 
 void PlannerNode::initializePublishers()
@@ -311,6 +319,18 @@ void PlannerNode::updateVisualization()
     planned_path_pub.publish(planned_path_marker);
 }
 
+
+void PlannerNode::callback_path_cmd(const std_msgs::Int32 &msg_in)
+{
+    if (counter_cmd == 0)
+    {
+        int cmd = msg_in.data;
+        path_cmd = cmd - 2;
+        counter_cmd += 1;
+    }
+}
+
+
 int main(int argc, char **argv)
 {
     // ROS set-ups:
@@ -318,39 +338,46 @@ int main(int argc, char **argv)
 
     ros::NodeHandle nh("~");
 
-    string map_file;
-    double goal_x, goal_y;
-    ROS_INFO("Planner Node: Getting parameters from launch file");
-    /*
-    if (!ros::param::get("map_file", map_file))
-    {
-        ROS_ERROR("Planner Node: Cannot get the value of map_file from launch file");
-        // TODO error handling
-    }
-    if (!ros::param::get("goal_x", goal_x))
-    {
-        ROS_ERROR("Planner Node: Cannot get the value of goal_x from launch file");
-        // TODO error handling
-    }
-    if (!ros::param::get("goal_y", goal_y))
-    {
-        ROS_ERROR("Planner Node: Cannot get the value of map_file from launch file");
-        // TODO error handling
-    }
-    */
-    nh.getParam("map_file", map_file);
-    nh.getParam("goal_x", goal_x);
-    nh.getParam("goal_y", goal_y);
-    cout << map_file << endl;
+    double goal_x, goal_y, start_x, start_y;
+    ROS_INFO("Planner Node: waiting for parameters to be set");
+
+
+    while(!parameter_set);
+    cout << "map_file: " << map_file << endl;
+
     ROS_INFO("Planner Node: Instantiating...");
-    PlannerNode plannerNode(&nh, map_file, goal_x, goal_y);
+    PlannerNode plannerNode(&nh, map_file);
+
+    ros::Rate loop_rate(1);
+
+    // left mid right
+    // mid: first turns right, then go straight, then turn left
+    double start_xs[3] = {23.5, 27.0, 30.0}; // x idx = 50   46
+    double start_ys[3] = {64.0, 87.5, 71.0}; // y idx = 31   132
+    double goal_xs[3] = {30.0, 27.0, 23.5};
+    double goal_ys[3] = {71.0, 75.0, 64.0};
+
+    while (plannerNode.path_cmd == -1 && ros::ok())
+    {
+        ros::spinOnce();
+        loop_rate.sleep();
+        continue;
+    }
+
+    std::cout << "plan idx: " << plannerNode.path_cmd << std::endl;
 
     // for testing purpose
-    int x_idx = 0, y_idx = 0;
-    double start_x = 23.0; // x idx = 50   46
-    double start_y = 66.0; // y idx = 31   132
+    int x_idx = 0, y_idx = 0, x_goal_idx = 0, y_goal_idx = 0;
+    start_x = start_xs[plannerNode.path_cmd];
+    start_y = start_ys[plannerNode.path_cmd];
+    goal_x = goal_xs[plannerNode.path_cmd];
+    goal_y = goal_ys[plannerNode.path_cmd];
+    cout << start_x << ", " << start_y << ", " << goal_x << ", " << goal_y << endl;
+
     plannerNode.coord_to_idx(start_x, start_y, x_idx, y_idx);
+    plannerNode.coord_to_idx(goal_x, goal_y, x_goal_idx, y_goal_idx);
     plannerNode.set_start_indices(x_idx, y_idx);
+    plannerNode.set_goal_indices(x_goal_idx, y_goal_idx);
 
     bool no_course = true;
 
@@ -362,13 +389,13 @@ int main(int argc, char **argv)
     }
     ROS_INFO("Planning time: %f ms", t.toc());
 
-    ros::Rate loop_rate(1);
     while (ros::ok())
     {
         plannerNode.updateVisualization();
         if (no_course) 
         {
             suitbot_ros::SetCourse srv;
+            srv.request.path_cmd = plannerNode.path_cmd;
             for (int i = 0; i < plannerNode.planned_path_marker.points.size(); i++)
             {
                 geometry_msgs::Point pt = plannerNode.planned_path_marker.points[i];

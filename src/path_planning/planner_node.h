@@ -20,6 +20,9 @@
 #include <iostream>
 #include "ros/ros.h"
 #include "ros/package.h"
+
+#include <std_msgs/Int32.h>
+
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -35,18 +38,22 @@
 #include <chrono>
 #include "suitbot_ros/SetCourse.h"
 
+#include "../parameters.h"
+
 using namespace std;
 
 class PlannerNode
 {
 public:
 
-    PlannerNode(ros::NodeHandle *nodehandle, string map_file, double goal_x_, double goal_y_); 
+    PlannerNode(ros::NodeHandle *nodehandle, string map_file); 
 
 
     int a_star_planner();
 
     void set_start_indices(int x_idx_, int y_idx_);
+
+    void set_goal_indices(int x_idx_, int y_idx_);
 
     void coord_to_idx(const double &coord_x, const double &coord_y, int &idx_x,  int &idx_y);
 
@@ -67,6 +74,8 @@ public:
 
     tf2_ros::TransformBroadcaster br;
 
+    ros::Subscriber path_cmd_sub;
+
     double goal_x, goal_y, start_x, start_y;
     int goal_x_idx, goal_y_idx, start_x_idx, start_y_idx;
 
@@ -80,6 +89,9 @@ public:
 
     int rows = 0, cols = 0;
 
+    int path_cmd = -1;
+    int counter_cmd = 0;
+
 
     int initOccupancyGridMap(string map_file);
     void initializeSubscribers(); 
@@ -87,6 +99,8 @@ public:
     
     void subscriberCallback(const nav_msgs::Odometry &odom_in); 
     void controlCallback(const nav_msgs::Odometry &ctrl_in);
+
+    void callback_path_cmd(const std_msgs::Int32 &msg_in);
 
     // visualization
     void initVisualization();
@@ -104,6 +118,7 @@ public:
 
     void backtrack(Node *goal_node);
 
-}; 
+};
+
 
 #endif /* INITIALIZATION_H_ */

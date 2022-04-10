@@ -1,0 +1,42 @@
+# topics
+speech_service: "/suitbot/audio/speech_output"
+listening_service: "/suitbot/audio/set_listening"
+usr_cmd_topic: "/suitbot/audio/cmd_in"
+
+ctrl_topic: "/suitbot/ctrl/velocity"
+force_topic: "/suitbot/handle/force"
+encoder_topic: "/suitbot/mobility/velocity"
+
+reset_path_service: "/suitbot/ctrl/reset_course"
+planner_arrow_topic: "/suitbot/planner/arrow"
+global_map_topic: "/suitbot/planner/global_map"
+planned_path_topic: "/suitbot/planner/planned_path"
+
+
+# for user cmd
+states_map:
+  - key: 0 
+    name: "cancel"
+    pos: [0,0,0]
+  - key: 2
+    name: "left"
+    pos: [0,0,0]
+  - key: 3
+    name: "middle" 
+    pos: [0,0,0]
+  - key: 4
+    name: "right" 
+    pos: [0,0,0]
+  - key: 5
+    name: "nothing"
+    pos: [0,0,0]
+
+keywords_map:
+  - left
+  - middle
+  - right
+  - nothing
+  - cancel
+  - terminate 
+  - end
+  - stop

@@ -47,6 +47,7 @@ typedef enum state_num {
     ERROR
 } state_t;
 
+
 class JobManager
 {
 public:
@@ -65,6 +66,8 @@ public:
     ros::ServiceClient speech_cli;
 
     state_t state = IDLE;
+
+    int direction = NOTHING;
 
     // TODO A planner node
 

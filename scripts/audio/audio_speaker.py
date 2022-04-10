@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from inspect import Parameter
 from gtts import gTTS
 
 import sounddevice as sd
@@ -13,6 +14,14 @@ import rospy
 from suitbot_ros.srv import SpeechSrv
 import random
 
+import sys, os.path
+script_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(script_dir)
+from parameters import Parameters
+
+import time
+
+
 MAX_NUM = 10000000
 
 class S:
@@ -25,7 +34,7 @@ class S:
         volume_norm = np.linalg.norm(indata)*5
         self.totalCount += 1
         self.totalSound += volume_norm
-        print ("|" * int(volume_norm))
+        #print ("|" * int(volume_norm))
 
     def okay(self):
         with sd.Stream(callback=self.print_sound):
@@ -36,16 +45,16 @@ class S:
 
 class AudioSpeaker:
     def __init__(self):
-        self.b = S(2)
-        self.b.okay()
-        self.text_sub = rospy.Service("/suitbot/audio/speech_output", SpeechSrv, self.callback_text)
+        #self.b = S(2)
+        #self.b.okay()
+        self.text_sub = rospy.Service(parameters.speech_service, SpeechSrv, self.callback_text)
 
     def getSound(self, wavFile):
-        print(self.b.totalSound, self.b.totalCount)
-        noise = self.b.totalSound / self.b.totalCount
-        print("environment noise:", self.b.totalSound / self.b.totalCount)
+        #print(self.b.totalSound, self.b.totalCount)
+        #noise = self.b.totalSound / self.b.totalCount
+        #print("environment noise:", self.b.totalSound / self.b.totalCount)
 
-        weight = noise / 10
+        weight = 0.7
         data, fs = sf.read(wavFile)
         sd.play(weight*data, fs)
         sd.wait()
@@ -72,16 +81,19 @@ class AudioSpeaker:
         
     def callback_text(self, req):
         text = req.data
+        rospy.loginfo("Audio Speaker: received text - " + text)
         self.stringtoSpeech(text)
         return True
         
 
 
 if __name__ == '__main__':
-    print("Audio Speaker node starting")
+    parameters = Parameters()
+    parameters.initParameters()
+    rospy.loginfo("Audio Speaker: node starting")
     rospy.init_node('audio_speaker')
     speaker = AudioSpeaker()
-    print("Audio Speaker going into spin...")
+    #speaker.stringtoSpeech("Tina is tired")
+    rospy.loginfo("Audio Speaker: node going into spin")
     rospy.spin()
 
-#stringtoSpeech("Tina likes functions")

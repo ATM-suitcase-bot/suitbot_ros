@@ -2,10 +2,9 @@
 
 ''' From https://github.com/ATM-suitcase-bot/Audio/blob/main/realTime.py'''
 
-from vosk import Model, KaldiRecognizer
+from vosk import Model, KaldiRecognizer, SetLogLevel
 import pyaudio
 from difflib import SequenceMatcher
-
 
 
 def findMatchingKeyword(keywords_map, inputSentence):
@@ -44,28 +43,36 @@ def similar(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
 
-def speechRecog(keywords_map):
-    model = Model('/home/atm/catkin_ws/src/suitbot_ros/scripts/audio/vosk-model-small-en-us-0.15')
-    # read the model
+class SpeechRecognizer:
+    def __init__(self, model_path_name):
+        SetLogLevel(-1)
+        self.model = Model(model_path_name)
+        self.recognizer = KaldiRecognizer(self.model, 16000)
 
-    recognizer = KaldiRecognizer(model, 16000)
 
-    # Recognize from the microphone
-    cap = pyaudio.PyAudio()
-    stream = cap.open(format=pyaudio.paInt16, channels = 1, rate = 16000, input = True, frames_per_buffer = 8192)
-    stream.start_stream()
+    # param in: keywords_map a list of keywords
+    # return:   the keyword that matches the audio
+    def speechRecog(self, keywords_map):
+        # Recognize from the microphone
+        cap = pyaudio.PyAudio()
+        stream = cap.open(format=pyaudio.paInt16, channels = 1, rate = 16000, input = True, frames_per_buffer = 8192)
+        stream.start_stream()
 
-    while True:
-        data = stream.read(4096) # 4 bytes
-        # if len(data) == 0:
-        #     break
+        while True:
+            data = stream.read(4096) # 4 bytes
+            # if len(data) == 0:
+            #     break
 
-        if recognizer.AcceptWaveform(data):
-            input = recognizer.Result()
-            print(input, '\n')
-            similarity, matchedWord = findMatchingKeyword(keywords_map, input)
-            print(similarity, matchedWord, '\n')
-            if similarity > 0.5:
-                break
-   # print(keywords.index(matchedWord), '\n')
-    return keywords_map[matchedWord]
+            if self.recognizer.AcceptWaveform(data):
+                input = self.recognizer.Result()
+                #print(input, '\n')
+                similarity, matchedWord = findMatchingKeyword(keywords_map, input)
+                #print(similarity, matchedWord, '\n')
+                if similarity > 0.5:
+                    break
+        # print(keywords.index(matchedWord), '\n')
+        stream.stop_stream()
+        stream.close()
+        cap.terminate()
+        return keywords_map.index[matchedWord]
+
