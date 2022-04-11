@@ -11,23 +11,21 @@
 #include "job_management.h"
 
 
-JobManager::JobManager(ros::NodeHandle *nodehandle) : nh(*nodehandle)
+JobManager::JobManager(ros::NodeHandle *nodehandle, parameters_t &_params) : nh(*nodehandle), params(_params)
 {
     ROS_INFO("Initializing Job Manager...");
     initializeSubscribers();
     initializePublishers();
     initializeServices();
 
-    // initialize variables here, as needed
-    val_to_remember_ = 0.0;
-
-    // can also do tests/waits to make sure all required services, topics, etc are alive
+    
+    direction = params.NOTHING;
 }
 
 void JobManager::initializeSubscribers()
 {
     ROS_INFO("Initializing Subscribers");
-    audio_sub = nh.subscribe("/suitbot/audio/cmd_in", 1, &JobManager::audio_cmd_subscriber_callback, this);
+    audio_sub = nh.subscribe(params.USR_CMD_TOPIC, 1, &JobManager::audio_cmd_subscriber_callback, this);
     odom_sub = nh.subscribe("odom_topic", 1, &JobManager::localization_callback, this);
     // add more subscribers here, as needed
 }
@@ -38,8 +36,8 @@ void JobManager::initializeServices()
     //minimal_service_ = nh.advertiseService("example_minimal_service", &JobManager::serviceCallback, this);
     // add more services here, as needed
     //initialization_cli = nh.serviceClient<suitbot_ros::InitializationSrvMsg>("init_pose");
-    audio_cli = nh.serviceClient<std_srvs::SetBool>("/suitbot/audio/set_listening");
-    speech_cli = nh.serviceClient<suitbot_ros::SpeechSrv>("/suitbot/audio/speech_output");
+    audio_cli = nh.serviceClient<std_srvs::SetBool>(params.LISTENING_SERVICE);
+    speech_cli = nh.serviceClient<suitbot_ros::SpeechSrv>(params.SPEECH_SERVICE);
 }
 
 void JobManager::initializePublishers()
@@ -64,7 +62,7 @@ void JobManager::audio_cmd_subscriber_callback(const std_msgs::Int32 &msg_in)
     if (state == IDLE)
     {
         
-        if (msg_in.data != CANCEL_JOB && msg_in.data != NOTHING)
+        if (msg_in.data != params.CANCEL_JOB && msg_in.data != params.NOTHING)
         {
             //get_goal_coordinate(msg_in.goal, goal_x, goal_y);
             state = GUIDING;
@@ -76,7 +74,7 @@ void JobManager::audio_cmd_subscriber_callback(const std_msgs::Int32 &msg_in)
     // elif it's in INITIALIZATION or GUIDING state, possibly go to complete state
     else
     {
-        if (msg_in.data == CANCEL_JOB)
+        if (msg_in.data == params.CANCEL_JOB)
         {
             // cancel current job
 
@@ -136,10 +134,11 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "job_management");
     ros::NodeHandle nh;
 
-    readParameters(nh);
+    parameters_t params;
+    params.readParameters(nh);
 
-    ROS_INFO("main: instantiating an object of type JobManager");
-    JobManager jobManager(&nh);
+    ROS_INFO_STREAM("main: instantiating an object of type JobManager");
+    JobManager jobManager(&nh, params);
 
 
     bool mic_enabled = false;
@@ -178,15 +177,15 @@ int main(int argc, char **argv)
         {
             std::cout << "guiding! direction: " << int(jobManager.direction) << std::endl;
             std::string dir;
-            if (jobManager.direction == LEFT)
+            if (jobManager.direction == params.LEFT)
                 dir = "left";
-            else if (jobManager.direction == MIDDLE)
+            else if (jobManager.direction == params.MIDDLE)
                 dir = "middle";
-            else if (jobManager.direction == RIGHT)
+            else if (jobManager.direction == params.RIGHT)
                 dir = "right";
             speech.request.data = "Received command. Going " + dir;
             if (jobManager.speech_cli.call(speech)){
-                ROS_INFO("Spoken successfully: %s", speech.request.data);
+                ROS_INFO("Spoken successfully: %s", speech.request.data.c_str());
             }
             else {
                 ROS_INFO("fail to speak");

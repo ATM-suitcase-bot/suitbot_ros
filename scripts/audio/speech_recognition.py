@@ -74,5 +74,5 @@ class SpeechRecognizer:
         stream.stop_stream()
         stream.close()
         cap.terminate()
-        return keywords_map.index[matchedWord]
+        return keywords_map.index(matchedWord)
 

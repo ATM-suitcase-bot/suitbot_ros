@@ -9,7 +9,6 @@ Panels:
         - /MarkerArray1
         - /Marker1
         - /Marker2
-        - /Marker2/Status1
       Splitter Ratio: 0.5
     Tree Height: 549
   - Class: rviz/Selection
@@ -58,7 +57,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /suitbot/map
+      Marker Topic: /suitbot/planner/global_map
       Name: MarkerArray
       Namespaces:
         planner_node: true
@@ -66,7 +65,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /suitbot/planned_path
+      Marker Topic: /suitbot/planner/planned_path
       Name: Marker
       Namespaces:
         planner_node: true
@@ -74,7 +73,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /suitbot/arrow
+      Marker Topic: /suitbot/planner/arrow
       Name: Marker
       Namespaces:
         planner_node: true
@@ -108,7 +107,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 71.58879852294922
+      Distance: 112.64636993408203
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1

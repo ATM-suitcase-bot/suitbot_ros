@@ -51,8 +51,9 @@ typedef enum state_num {
 class JobManager
 {
 public:
-    JobManager(ros::NodeHandle* nodehandle); 
+    JobManager(ros::NodeHandle* nodehandle, parameters_t &_params); 
     
+    parameters_t params;
 
     ros::NodeHandle nh; 
     ros::Subscriber audio_sub;
@@ -67,7 +68,7 @@ public:
 
     state_t state = IDLE;
 
-    int direction = NOTHING;
+    int direction;
 
     // TODO A planner node
 

@@ -37,6 +37,8 @@ class AudioListener:
     def loop(self):
         global cancel_words
         keywords_map = parameters.keywords_map
+        print(type(keywords_map))
+        print(keywords_map)
         states_map = parameters.states_map
         rospy.loginfo("Audio Listener: entering loop")
         while not rospy.is_shutdown():

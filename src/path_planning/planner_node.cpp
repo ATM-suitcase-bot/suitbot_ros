@@ -17,11 +17,11 @@
 #define FREE 255
 #define BLOATED 100
 
-PlannerNode::PlannerNode(ros::NodeHandle *nodehandle, string map_file)
-    : nh(*nodehandle)
+PlannerNode::PlannerNode(ros::NodeHandle *nodehandle, parameters_t &_params)
+    : nh(*nodehandle), params(_params)
 {
     ROS_INFO("Initializing Planner Node...");
-    if (initOccupancyGridMap(map_file) < 0)
+    if (initOccupancyGridMap(params.map_file) < 0)
     {
         ROS_ERROR("Failed to initialize Planner Node, exiting");
         // TODO error handling
@@ -141,17 +141,17 @@ void PlannerNode::initializeSubscribers()
 {
     ROS_INFO("Planner Node: Initializing Subscribers");
     odom_sub = nh.subscribe("/suitbot/odom", 1, &PlannerNode::subscriberCallback, this);
-    ctrl_sub = nh.subscribe("/suitbot/ctrl/velocity", 1, &PlannerNode::controlCallback, this);
-    waypoint_cli = nh.serviceClient<suitbot_ros::SetCourse>("/suitbot/reset_course");
+    ctrl_sub = nh.subscribe(params.CTRL_TOPIC, 1, &PlannerNode::controlCallback, this);
+    waypoint_cli = nh.serviceClient<suitbot_ros::SetCourse>(params.RESET_PATH_SERVICE);
 
-    path_cmd_sub = nh.subscribe("/suitbot/audio/cmd_in", 1, &PlannerNode::callback_path_cmd, this);
+    path_cmd_sub = nh.subscribe(params.USR_CMD_TOPIC, 1, &PlannerNode::callback_path_cmd, this);
 }
 
 void PlannerNode::initializePublishers()
 {
     ROS_INFO("Planner Node: Initializing Publishers");
     initVisualization();
-    arrow_pub = nh.advertise<visualization_msgs::Marker>("/suitbot/arrow", 1);
+    arrow_pub = nh.advertise<visualization_msgs::Marker>(params.PLANNER_ARROW_TOPIC, 1);
 }
 
 
@@ -229,7 +229,7 @@ void PlannerNode::initVisualization()
     }
     num_occupied_cells = count;
 
-    grid_map_pub = nh.advertise<visualization_msgs::MarkerArray>("/suitbot/map", 1);
+    grid_map_pub = nh.advertise<visualization_msgs::MarkerArray>(params.GLOBAL_MAP_TOPIC, 1);
     grid_map_marker_array.markers = vector<visualization_msgs::Marker>(count);
 
     int i = 0;
@@ -274,7 +274,7 @@ void PlannerNode::initVisualization()
     }
     grid_map_pub.publish(grid_map_marker_array);
 
-    planned_path_pub = nh.advertise<visualization_msgs::Marker>("/suitbot/planned_path", 1);
+    planned_path_pub = nh.advertise<visualization_msgs::Marker>(params.PLANNED_PATH_TOPIC, 1);
     planned_path_marker.type = visualization_msgs::Marker::LINE_LIST;
     planned_path_marker.action = visualization_msgs::Marker::ADD;
     planned_path_marker.pose.position.x = 0;
@@ -336,17 +336,16 @@ int main(int argc, char **argv)
     // ROS set-ups:
     ros::init(argc, argv, "planne_node");
 
-    ros::NodeHandle nh("~");
+    ros::NodeHandle nh;
 
     double goal_x, goal_y, start_x, start_y;
-    ROS_INFO("Planner Node: waiting for parameters to be set");
+    ROS_INFO_STREAM("Planner Node: waiting for parameters to be set");
 
-
-    while(!parameter_set);
-    cout << "map_file: " << map_file << endl;
+    parameters_t params;
+    params.readParameters(nh);
 
     ROS_INFO("Planner Node: Instantiating...");
-    PlannerNode plannerNode(&nh, map_file);
+    PlannerNode plannerNode(&nh, params);
 
     ros::Rate loop_rate(1);
 

@@ -166,6 +166,7 @@ class SerialHandler:
 def serialLoop():
     global port
     serial_handler = SerialHandler(port)
+    rospy.loginfo("Embedded device driver: entering serial loop")
     while not rospy.is_shutdown():
         msg, msg_type = serial_handler.readData()
         if msg_type == IN_FORCE:
@@ -180,6 +181,7 @@ def serialLoop():
 if __name__ == '__main__':
     parameters = Parameters()
     parameters.initParameters()
+    print("Embedded device driver: topic ", parameters.ctrl_topic)
     rospy.loginfo("Embedded device driver: node starting")
     rospy.init_node('embedded_device_driver')
     t_stamp = Thread(target=serialLoop)

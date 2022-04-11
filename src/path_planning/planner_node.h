@@ -46,7 +46,7 @@ class PlannerNode
 {
 public:
 
-    PlannerNode(ros::NodeHandle *nodehandle, string map_file); 
+    PlannerNode(ros::NodeHandle *nodehandle, parameters_t &_params); 
 
 
     int a_star_planner();
@@ -61,6 +61,7 @@ public:
 
     void publish_pose();
     
+    parameters_t params;
 
     ros::NodeHandle nh; 
     ros::Subscriber odom_sub; 
