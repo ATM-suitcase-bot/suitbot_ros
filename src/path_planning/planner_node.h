@@ -90,7 +90,7 @@ public:
 
     int rows = 0, cols = 0;
 
-    int path_cmd = -1;
+    int path_cmd = -2;
     int counter_cmd = 0;
 
 

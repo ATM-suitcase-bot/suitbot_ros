@@ -58,6 +58,8 @@ void JobManager::get_goal_coordinate(int goal, double &goal_x, double &goal_y) {
 
 void JobManager::audio_cmd_subscriber_callback(const std_msgs::Int32 &msg_in)
 {
+    if (state == MANUAL_MODE)
+        return;
     // if it's in idle state, go to initialization state
     if (state == IDLE)
     {
@@ -149,25 +151,30 @@ int main(int argc, char **argv)
     // wait for 5 seconds til all nodes are up
     sleep(4);
 
-    // say something
-    suitbot_ros::SpeechSrv speech;
-    speech.request.data = "Robot initialized, where do you want to go?";
-    if (jobManager.speech_cli.call(speech)){
-        ROS_INFO("Spoken successfully: %s", speech.request.data.c_str());
+    if (params.manual_control == false && params.use_audio == true) {
+        // say something
+        suitbot_ros::SpeechSrv speech;
+        speech.request.data = "Robot initialized, where do you want to go?";
+        if (jobManager.speech_cli.call(speech)){
+            ROS_INFO("Spoken successfully: %s", speech.request.data.c_str());
+        }
+        else {
+            ROS_INFO("fail to speak");
+        }
+        // enable audio listening
+        std_srvs::SetBool srv_mic;
+        srv_mic.request.data = true;
+        if (jobManager.audio_cli.call(srv_mic))
+        {
+            ROS_INFO("Audio listener enabled");
+            mic_enabled = true;
+        }
+        else {
+            ROS_INFO("fail to enable listening");
+        }
     }
-    else {
-        ROS_INFO("fail to speak");
-    }
-    // enable audio listening
-    std_srvs::SetBool srv_mic;
-    srv_mic.request.data = true;
-    if (jobManager.audio_cli.call(srv_mic))
-    {
-        ROS_INFO("Audio listener enabled");
-        mic_enabled = true;
-    }
-    else {
-        ROS_INFO("fail to enable listening");
+    else if (params.manual_control == true) { // manual control, we set the state to MANUAL. no audio
+        jobManager.state = MANUAL_MODE;
     }
 
     while (ros::ok())
@@ -183,23 +190,31 @@ int main(int argc, char **argv)
                 dir = "middle";
             else if (jobManager.direction == params.RIGHT)
                 dir = "right";
-            speech.request.data = "Received command. Going " + dir;
-            if (jobManager.speech_cli.call(speech)){
-                ROS_INFO("Spoken successfully: %s", speech.request.data.c_str());
-            }
-            else {
-                ROS_INFO("fail to speak");
+
+            if (params.use_audio)
+            {
+                suitbot_ros::SpeechSrv speech;
+                speech.request.data = "Received command. Going " + dir;
+                if (jobManager.speech_cli.call(speech)){
+                    ROS_INFO("Spoken successfully: %s", speech.request.data.c_str());
+                }
+                else {
+                    ROS_INFO("fail to speak");
+                }
             }
             counter_state += 1;
-
-            srv_mic.request.data = false;
-            if (jobManager.audio_cli.call(srv_mic))
+            if (params.use_audio)
             {
-                ROS_INFO("Audio listener disabled");
-                mic_enabled = true;
-            }
-            else {
-                ROS_INFO("fail to enable listening");
+                std_srvs::SetBool srv_mic;
+                srv_mic.request.data = false;
+                if (jobManager.audio_cli.call(srv_mic))
+                {
+                    ROS_INFO("Audio listener disabled");
+                    mic_enabled = true;
+                }
+                else {
+                    ROS_INFO("fail to enable listening");
+                }
             }
         }
         ros::spinOnce();

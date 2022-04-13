@@ -27,4 +27,11 @@ class Parameters:
         self.model_path = rospy.get_param("model_path")
         self.map_file = rospy.get_param("map_file")
 
+        self.manual_control = rospy.get_param("manual_control")
+        self.init_x = rospy.get_param("init_x")
+        self.init_y = rospy.get_param("init_y")
+        self.init_theta = rospy.get_param("init_theta")
+
+        self.use_audio = rospy.get_param("use_audio")
+
         self.parameter_set = True

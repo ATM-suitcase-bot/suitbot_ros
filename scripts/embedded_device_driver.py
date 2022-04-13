@@ -38,6 +38,8 @@ class SerialHandler:
         self.r = rospy.Rate(50)
 
     def callback_ctrl(self, msg_in):
+        if (parameters.manual_control == True):
+            return
         ai = msg_in.twist.twist.linear.x
         di = msg_in.twist.twist.angular.z
         ai_str = str(round(ai, 4))

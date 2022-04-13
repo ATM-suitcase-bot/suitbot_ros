@@ -12,6 +12,16 @@ planner_arrow_topic: "/suitbot/planner/arrow"
 global_map_topic: "/suitbot/planner/global_map"
 planned_path_topic: "/suitbot/planner/planned_path"
 
+manual_control: 0
+init_x: 0.0
+init_y: 0.0
+init_theta: 0.0
+
+
+use_audio: 1
+
+# for testing, decoupling audio
+course_idx: 0
 
 # for user cmd
 states_map:

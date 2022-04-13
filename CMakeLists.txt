@@ -21,6 +21,8 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(OpenCV 3.2 REQUIRED)
+# find_package(PCL REQUIRED)
+# find_package(Eigen3 REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
@@ -58,7 +60,13 @@ catkin_package(
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  # ${EIGEN3_INCLUDE_DIRS}
+  # ${PCL_INCLUDE_DIRS}
 )
+
+# link_directories(${PCL_LIBRARY_DIRS})
+# add_definitions(${PCL_DEFINITIONS})
+
 catkin_package()
 
 
@@ -69,11 +77,18 @@ add_executable(job_management
 target_link_libraries(job_management ${catkin_LIBRARIES})
 
 
-# add_executable(initialization_node
-#   src/localization/initialization.cpp
+# add_executable(localization_node
+#   src/localization/localization_node.cpp
 # )
 
-# target_link_libraries(initialization_node ${catkin_LIBRARIES})
+# target_link_libraries(localization_node 
+#   ${catkin_LIBRARIES} 
+#   ${PCL_LIBRARIES} 
+#   ${PCL_COMMON_LIBRARIES} 
+#   ${PCL_IO_LIBRARIES} 
+#   ${PCL_VISUALIZATION_LIBRARIES}
+#   ${OpenCV_LIBS}
+# )
 
 
 add_executable(planner_node 

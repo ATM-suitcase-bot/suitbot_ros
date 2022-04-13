@@ -152,6 +152,8 @@ void PlannerNode::initializePublishers()
     ROS_INFO("Planner Node: Initializing Publishers");
     initVisualization();
     arrow_pub = nh.advertise<visualization_msgs::Marker>(params.PLANNER_ARROW_TOPIC, 1);
+    planned_path_pub = nh.advertise<visualization_msgs::Marker>(params.PLANNED_PATH_TOPIC, 1);
+    grid_map_pub = nh.advertise<visualization_msgs::MarkerArray>(params.GLOBAL_MAP_TOPIC, 1);
 }
 
 
@@ -229,7 +231,6 @@ void PlannerNode::initVisualization()
     }
     num_occupied_cells = count;
 
-    grid_map_pub = nh.advertise<visualization_msgs::MarkerArray>(params.GLOBAL_MAP_TOPIC, 1);
     grid_map_marker_array.markers = vector<visualization_msgs::Marker>(count);
 
     int i = 0;
@@ -274,7 +275,10 @@ void PlannerNode::initVisualization()
     }
     grid_map_pub.publish(grid_map_marker_array);
 
-    planned_path_pub = nh.advertise<visualization_msgs::Marker>(params.PLANNED_PATH_TOPIC, 1);
+
+    if (params.manual_control)
+        return;
+        
     planned_path_marker.type = visualization_msgs::Marker::LINE_LIST;
     planned_path_marker.action = visualization_msgs::Marker::ADD;
     planned_path_marker.pose.position.x = 0;
@@ -298,6 +302,10 @@ void PlannerNode::updateVisualization()
     publish_pose();
     grid_map_pub.publish(grid_map_marker_array);
     planned_path_marker.points.clear();
+
+    if (params.manual_control)
+        return;
+
     if (banked_steps.size() < 2)
         return;
     int p = 0;
@@ -356,42 +364,51 @@ int main(int argc, char **argv)
     double goal_xs[3] = {30.0, 27.0, 23.5};
     double goal_ys[3] = {71.0, 75.0, 64.0};
 
-    while (plannerNode.path_cmd == -1 && ros::ok())
+    if (params.manual_control == false)
     {
-        ros::spinOnce();
-        loop_rate.sleep();
-        continue;
+        if (params.use_audio == false)
+            plannerNode.path_cmd = params.course_idx;
+            
+        while (plannerNode.path_cmd == -2 && ros::ok())
+        {
+            ros::spinOnce();
+            loop_rate.sleep();
+            continue;
+        }
+        std::cout << "Planner Node: Use plan idx: " << plannerNode.path_cmd << std::endl;
+    
+
+        // for testing purpose
+        int x_idx = 0, y_idx = 0, x_goal_idx = 0, y_goal_idx = 0;
+        start_x = start_xs[plannerNode.path_cmd];
+        start_y = start_ys[plannerNode.path_cmd];
+        goal_x = goal_xs[plannerNode.path_cmd];
+        goal_y = goal_ys[plannerNode.path_cmd];
+        cout << start_x << ", " << start_y << ", " << goal_x << ", " << goal_y << endl;
+
+        plannerNode.coord_to_idx(start_x, start_y, x_idx, y_idx);
+        plannerNode.coord_to_idx(goal_x, goal_y, x_goal_idx, y_goal_idx);
+        plannerNode.set_start_indices(x_idx, y_idx);
+        plannerNode.set_goal_indices(x_goal_idx, y_goal_idx);
     }
-
-    std::cout << "plan idx: " << plannerNode.path_cmd << std::endl;
-
-    // for testing purpose
-    int x_idx = 0, y_idx = 0, x_goal_idx = 0, y_goal_idx = 0;
-    start_x = start_xs[plannerNode.path_cmd];
-    start_y = start_ys[plannerNode.path_cmd];
-    goal_x = goal_xs[plannerNode.path_cmd];
-    goal_y = goal_ys[plannerNode.path_cmd];
-    cout << start_x << ", " << start_y << ", " << goal_x << ", " << goal_y << endl;
-
-    plannerNode.coord_to_idx(start_x, start_y, x_idx, y_idx);
-    plannerNode.coord_to_idx(goal_x, goal_y, x_goal_idx, y_goal_idx);
-    plannerNode.set_start_indices(x_idx, y_idx);
-    plannerNode.set_goal_indices(x_goal_idx, y_goal_idx);
 
     bool no_course = true;
 
     // replan
-    TicToc t;
-    if (plannerNode.a_star_planner() < 0)
+    if (params.manual_control == false)
     {
-        ROS_WARN("Planner Node: No Path Found!");
+        TicToc t;
+        if (plannerNode.a_star_planner() < 0)
+        {
+            ROS_WARN("Planner Node: No Path Found!");
+        }
+        ROS_INFO("Planning time: %f ms", t.toc());
     }
-    ROS_INFO("Planning time: %f ms", t.toc());
 
     while (ros::ok())
     {
         plannerNode.updateVisualization();
-        if (no_course) 
+        if (no_course && params.manual_control == false) 
         {
             suitbot_ros::SetCourse srv;
             srv.request.path_cmd = plannerNode.path_cmd;

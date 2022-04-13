@@ -80,6 +80,18 @@ class State:
         self.rear_x = self.x
         self.rear_y = self.y
 
+        if (parameters.manual_control == True):
+            msg_out = Odometry()
+            pt = Point(self.state.x, self.state.y, 0)
+            # np array of x y z w
+            q = quaternion_about_axis(self.state.yaw, (0,0,1))
+            ang = Quaternion(q[0], q[1], q[2], q[3])
+            msg_out.pose.pose = Pose(pt, ang)
+            linear = Vector3(0.0, 0.0, 0.0)
+            angular = Vector3(0.0, 0.0, 0.0)
+            msg_out.twist.twist = Twist(linear, angular)
+            self.ctrl_pub.publish(msg_out)
+
 
 
 
@@ -203,6 +215,8 @@ class TrackingSimulator:
         self.target_course = None
         self.time = 0.0
         self.state = None
+        if (parameters.manual_control == True):
+            self.state = State(x=parameters.init_x, y=parameters.init_y, yaw=parameters.init_theta, v=0.0)
         self.states = States()
         self.target_ind = None
         self.lastIndex = None
@@ -237,6 +251,8 @@ class TrackingSimulator:
 
     def callback_reset_course(self, req):
         rospy.loginfo("Tracking simulator: Resetting course..")
+        if (parameters.manual_control == True):
+            return True
         l = len(req.points)
         cx = np.zeros(l)
         cy = np.zeros(l)
@@ -252,10 +268,10 @@ class TrackingSimulator:
             self.state = State(x=cx[0], y=cy[0], yaw=1.57, v=0.0)
         elif path_cmd == 1:
             self.state = State(x=cx[0], y=cy[0], yaw=-1.57, v=0.0)
-        else:
+        elif path_cmd == 2:
             self.state = State(x=cx[0], y=cy[0], yaw=3.14, v=0.0)
 
-        self.states.append(self.time, self.state)
+        #self.states.append(self.time, self.state)
 
         self.target_ind, _ = self.target_course.search_target_index(self.state)
         self.lastIndex = l - 1
@@ -265,46 +281,49 @@ class TrackingSimulator:
 
     def loop(self):
         rospy.loginfo("Tracking simulator: entering loop")
-        while self.target_course == None and not rospy.is_shutdown():
+        while parameters.manual_control == False and self.target_course == None and not rospy.is_shutdown():
             self.r.sleep()
         rospy.loginfo("Tracking simulator: start simulator")
-        t_init = rospy.Time.now().to_sec()
-        t_cur = t_init
-        while t_cur - t_init <= self.T and self.target_ind < self.lastIndex and not rospy.is_shutdown():
-            # Calc control cmd
-            ai = pid_control(self.target_speed, self.state.v, self.dt)
-            di, self.target_ind = pure_pursuit_steer_control(
-                self.state, self.target_course, self.target_ind)
 
-            # TODO add noise to the control
-            #self.state.update(ai, di)  # Execute control and update vehicle state
+       
+        if (parameters.manual_control == False): # not manually controlling
+            t_init = rospy.Time.now().to_sec()
+            t_cur = t_init
+            while t_cur - t_init <= self.T and self.target_ind < self.lastIndex and not rospy.is_shutdown():
+                # Calc control cmd
+                ai = pid_control(self.target_speed, self.state.v, self.dt)
+                di, self.target_ind = pure_pursuit_steer_control(
+                    self.state, self.target_course, self.target_ind)
 
-            msg_out = Odometry()
-            pt = Point(self.state.x, self.state.y, 0)
-            # np array of x y z w
-            q = quaternion_about_axis(self.state.yaw, (0,0,1))
-            ang = Quaternion(q[0], q[1], q[2], q[3])
-            msg_out.pose.pose = Pose(pt, ang)
-            linear = Vector3(ai, 0.0, 0.0)
-            angular = Vector3(0.0, 0.0, di)
-            msg_out.twist.twist = Twist(linear, angular)
-            self.ctrl_pub.publish(msg_out)
-            
-            self.r.sleep()
-            t_cur = rospy.Time.now().to_sec()
-            self.states.append(t_cur, self.state)
+                # TODO add noise to the control
+                #self.state.update(ai, di)  # Execute control and update vehicle state
 
-        if self.lastIndex >= self.target_ind:
-            msg_out = Odometry()
-            pt = Point(self.state.x, self.state.y, 0)
-            # np array of x y z w
-            q = quaternion_about_axis(self.state.yaw, (0,0,1))
-            ang = Quaternion(q[0], q[1], q[2], q[3])
-            msg_out.pose.pose = Pose(pt, ang)
-            linear = Vector3(0.0, 0.0, 0.0)
-            angular = Vector3(0.0, 0.0, 0.0)
-            msg_out.twist.twist = Twist(linear, angular)
-            self.ctrl_pub.publish(msg_out)
+                msg_out = Odometry()
+                pt = Point(self.state.x, self.state.y, 0)
+                # np array of x y z w
+                q = quaternion_about_axis(self.state.yaw, (0,0,1))
+                ang = Quaternion(q[0], q[1], q[2], q[3])
+                msg_out.pose.pose = Pose(pt, ang)
+                linear = Vector3(ai, 0.0, 0.0)
+                angular = Vector3(0.0, 0.0, di)
+                msg_out.twist.twist = Twist(linear, angular)
+                self.ctrl_pub.publish(msg_out)
+                
+                self.r.sleep()
+                t_cur = rospy.Time.now().to_sec()
+                #self.states.append(t_cur, self.state)
+
+            if self.lastIndex >= self.target_ind:
+                msg_out = Odometry()
+                pt = Point(self.state.x, self.state.y, 0)
+                # np array of x y z w
+                q = quaternion_about_axis(self.state.yaw, (0,0,1))
+                ang = Quaternion(q[0], q[1], q[2], q[3])
+                msg_out.pose.pose = Pose(pt, ang)
+                linear = Vector3(0.0, 0.0, 0.0)
+                angular = Vector3(0.0, 0.0, 0.0)
+                msg_out.twist.twist = Twist(linear, angular)
+                self.ctrl_pub.publish(msg_out)
 
 
 if __name__ == '__main__':

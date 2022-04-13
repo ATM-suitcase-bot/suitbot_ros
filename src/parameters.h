@@ -38,6 +38,11 @@ typedef struct params
 
     string map_file;
 
+    bool manual_control;
+    bool use_audio;
+
+    int course_idx;
+
     // command types
     int CANCEL_JOB;
     int LEFT;
@@ -56,6 +61,49 @@ typedef struct params
     string PLANNER_ARROW_TOPIC;
     string GLOBAL_MAP_TOPIC;
     string PLANNED_PATH_TOPIC;
+
+
+
+
+    // for localization
+    // string base_frame_id;   /*!< Name of the robot TF */
+    // string odom_frame_id;   /*!< Name of the flight origin of the robot TF */
+    // string global_frame_id; /*!< Name of the test-bed origin TF */
+    // string map_path;        /*!< Route to the localization of the environment map  */
+
+    // bool set_initial_pose; /*!< Flag to indicate if t he initial pose has been received */
+
+    // double init_x; /*!< Start x-axis position */
+    // double init_y; /*!< Start y-axis position */
+    // double init_z; /*!< Start z-axis position */
+    // double init_a; /*!< Start yaw angle */
+
+    // double init_x_dev; /*!< Thresholds x-axis position in initialization*/
+    // double init_y_dev; /*!< Thresholds y-axis position in initialization*/
+    // double init_z_dev; /*!< Thresholds z-axis position in initialization*/
+    // double init_a_dev; /*!< Thresholds yaw angle in initialization*/
+
+    // double grid_slice_z;             /*!< Height of grid slice */
+    // double publish_point_cloud_rate; /*!< Map point cloud publishing rate */
+    // double publish_grid_slice_rate;  /*!< map grid slice publishing rate */
+
+    // double sensor_dev;   /*!< Desviation of 3D point cloud sensor */
+    // double sensor_range; /*!< Desviation of measurement of radio-range sensor */
+    // double voxel_size;   /*!< Size of voxel grid filter */
+
+    // int num_particles; /*!< Particle number in the filter */
+
+    // double odom_x_mod; /*!< Thresholds x-axis position in the prediction */
+    // double odom_y_mod; /*!< Thresholds y-axis position in the prediction */
+    // double odom_z_mod; /*!< Thresholds z-axis position in the prediction */
+    // double odom_a_mod; /*!< Thresholds yaw angle in the prediction */
+
+    // int resample_interval; /*!< Resampling control */
+
+    // double update_rate; /*!< Filter updating frequency */
+    // double d_th;        /*!< Threshold in the distance for the update */
+    // double a_th;        /*!< Threshold in yaw angle for the update */
+
 
 
     void readParameters(ros::NodeHandle &n)
@@ -98,6 +146,12 @@ typedef struct params
         } 
 
         map_file = readParam<string>(n, "map_file");
+
+        manual_control = readParam<bool>(n, "manual_control");
+
+        use_audio = readParam<bool>(n, "use_audio");
+
+        course_idx = readParam<int>(n, "course_idx");
     }
 
 } parameters_t;

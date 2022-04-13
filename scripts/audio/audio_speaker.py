@@ -90,6 +90,9 @@ class AudioSpeaker:
 if __name__ == '__main__':
     parameters = Parameters()
     parameters.initParameters()
+    if parameters.manual_control == True or parameters.use_audio == False:
+        rospy.loginfo("Audio Listener: will not start")
+        quit()
     rospy.loginfo("Audio Speaker: node starting")
     rospy.init_node('audio_speaker')
     speaker = AudioSpeaker()

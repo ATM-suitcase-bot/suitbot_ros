@@ -41,6 +41,7 @@
 
 
 typedef enum state_num {
+    MANUAL_MODE,
     IDLE,
     INITIALIZATION,
     GUIDING,
