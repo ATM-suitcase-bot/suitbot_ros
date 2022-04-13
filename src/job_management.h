@@ -37,7 +37,7 @@
 #include <suitbot_ros/InitializationSrvMsg.h>
 #include <suitbot_ros/SpeechSrv.h>
 
-#include "localization/initialization.h"
+//#include "localization/initialization.h"
 
 
 typedef enum state_num {

@@ -150,10 +150,10 @@ void PlannerNode::initializeSubscribers()
 void PlannerNode::initializePublishers()
 {
     ROS_INFO("Planner Node: Initializing Publishers");
-    initVisualization();
     arrow_pub = nh.advertise<visualization_msgs::Marker>(params.PLANNER_ARROW_TOPIC, 1);
     planned_path_pub = nh.advertise<visualization_msgs::Marker>(params.PLANNED_PATH_TOPIC, 1);
     grid_map_pub = nh.advertise<visualization_msgs::MarkerArray>(params.GLOBAL_MAP_TOPIC, 1);
+    initVisualization();
 }
 
 
