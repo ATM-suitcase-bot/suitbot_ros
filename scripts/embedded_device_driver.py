@@ -32,19 +32,30 @@ class SerialHandler:
         self.ctrl_sub = rospy.Subscriber(parameters.ctrl_topic, Odometry, self.callback_ctrl)
         self.force_pub = rospy.Publisher(parameters.force_topic, TwoFloats, queue_size=50)
         self.twist_pub = rospy.Publisher(parameters.encoder_topic, TwistStamped, queue_size=50)
+        self.voltage_pub = rospy.Publisher(parameters.voltage_topic, Float64, queue_size=50)
         self.time_offset = None # machine time - device time
         #self.initTimestamp()
         #print("offset: ", self.time_offset)
         self.r = rospy.Rate(50)
+        self.debug_time_start = None
 
     def callback_ctrl(self, msg_in):
-        if (parameters.manual_control == True):
-            return
         ai = msg_in.twist.twist.linear.x
         di = msg_in.twist.twist.angular.z
+        #print("here", parameters.manual_control)
+        if (parameters.debug_odometry == True):
+            if self.debug_time_start == None:
+                self.debug_time_start = time.time()
+            if time.time() - self.debug_time_start < parameters.debug_time:
+                ai = parameters.debug_linear
+                di = parameters.debug_angular
+            else:
+                ai = 0.0
+                di = 0.0
         ai_str = str(round(ai, 4))
         di_str = str(round(di, 4))
-        msg_to_mcu = ai_str + "\t" + di_str
+        mode_str = "0" if parameters.manual_control == False else "1"
+        msg_to_mcu = ai_str + "\t" + di_str + "\t" + mode_str
         self.write_data(msg_to_mcu)
 
     def write_data(self, str_out):
@@ -60,7 +71,8 @@ class SerialHandler:
         values_str = line.decode()
         values = values_str.split('\t')
         #assert(self.time_offset != None)
-        assert(len(values) > 3)
+        if(len(values) <= 3):
+            return msg, msg_type
         # format: msg_type, secs, nsecs, value0, value1, ..
         secs = int(values[1])
         nsecs = int(values[2])
@@ -115,7 +127,7 @@ class SerialHandler:
         return t_sec
 
     def close(self):
-        rospy.logwarn("Embedded device driver: trying to stop MCU")
+        rospy.logwarn("Embedded device driver: trying to stop robot motion")
         t_stop = time.time()
         self.write_data("0.0\t0.0")
         # after SIGINT, wait 2 seconds to confirm hardware has stopped
@@ -175,6 +187,8 @@ def serialLoop():
             serial_handler.force_pub.publish(msg)
         elif msg_type == IN_VELOCITY:
             serial_handler.twist_pub.publish(msg)
+        elif msg_type == IN_VOLTAGE:
+            serial_handler.voltage_pub.publish(msg)
             #self.r.sleep()
     serial_handler.close()
     rospy.loginfo("Embedded device driver: closing")

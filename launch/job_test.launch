@@ -6,6 +6,16 @@
     <arg name="manual_control"        default="false"/> 
     <param name="manual_control"      type="bool"   value="$(arg manual_control)"/>
 
+    <arg name="debug_odometry"        default="false"/> 
+    <param name="debug_odometry"      type="bool"   value="$(arg debug_odometry)"/>
+    <arg name="debug_time"            default="1.0"/> 
+    <param name="debug_time"          type="double"   value="$(arg debug_time)"/>
+
+        <arg name="debug_linear"          default="0.5"/> 
+        <param name="debug_linear"        type="double"   value="$(arg debug_linear)"/>
+        <arg name="debug_angular"         default="0.0"/> 
+        <param name="debug_angular"              type="double"   value="$(arg debug_angular)"/>
+
         <arg name="init_x"                default="0.0"/> 
         <param name="init_x"              type="double"   value="$(arg init_x)"/>
         <arg name="init_y"                default="0.0"/> 

@@ -80,18 +80,6 @@ class State:
         self.rear_x = self.x
         self.rear_y = self.y
 
-        if (parameters.manual_control == True):
-            msg_out = Odometry()
-            pt = Point(self.state.x, self.state.y, 0)
-            # np array of x y z w
-            q = quaternion_about_axis(self.state.yaw, (0,0,1))
-            ang = Quaternion(q[0], q[1], q[2], q[3])
-            msg_out.pose.pose = Pose(pt, ang)
-            linear = Vector3(0.0, 0.0, 0.0)
-            angular = Vector3(0.0, 0.0, 0.0)
-            msg_out.twist.twist = Twist(linear, angular)
-            self.ctrl_pub.publish(msg_out)
-
 
 
 
@@ -215,7 +203,7 @@ class TrackingSimulator:
         self.target_course = None
         self.time = 0.0
         self.state = None
-        if (parameters.manual_control == True):
+        if (parameters.manual_control == True or parameters.debug_odometry == True):
             self.state = State(x=parameters.init_x, y=parameters.init_y, yaw=parameters.init_theta, v=0.0)
         self.states = States()
         self.target_ind = None
@@ -246,6 +234,19 @@ class TrackingSimulator:
             d_t = t_cur - self.t_prev
             self.t_prev = t_cur
             self.state.update_actual(v, w, d_t)
+            if (parameters.manual_control == True or parameters.debug_odometry == True):
+                msg_out = Odometry()
+                pt = Point(self.state.x, self.state.y, 0)
+                if (parameters.debug_odometry == True):
+                    pt = Point(self.state.x - self.target_course.cx[0], self.state.y - self.target_course.cy[0], 0)
+                # np array of x y z w
+                q = quaternion_about_axis(self.state.yaw, (0,0,1))
+                ang = Quaternion(q[0], q[1], q[2], q[3])
+                msg_out.pose.pose = Pose(pt, ang)
+                linear = Vector3(0.0, 0.0, 0.0)
+                angular = Vector3(0.0, 0.0, 0.0)
+                msg_out.twist.twist = Twist(linear, angular)
+                self.ctrl_pub.publish(msg_out)
         except:
             rospy.logwarn_throttle_identical(5, "Tracking simulator: bad update_callback")
 
@@ -264,6 +265,7 @@ class TrackingSimulator:
 
         path_cmd = req.path_cmd
         # initial state
+        
         if path_cmd == 0:
             self.state = State(x=cx[0], y=cy[0], yaw=1.57, v=0.0)
         elif path_cmd == 1:
@@ -286,7 +288,7 @@ class TrackingSimulator:
         rospy.loginfo("Tracking simulator: start simulator")
 
        
-        if (parameters.manual_control == False): # not manually controlling
+        if (parameters.manual_control == False and parameters.debug_odometry == False): # not manually controlling
             t_init = rospy.Time.now().to_sec()
             t_cur = t_init
             while t_cur - t_init <= self.T and self.target_ind < self.lastIndex and not rospy.is_shutdown():

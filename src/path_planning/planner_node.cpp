@@ -352,7 +352,7 @@ int main(int argc, char **argv)
     parameters_t params;
     params.readParameters(nh);
 
-    ROS_INFO("Planner Node: Instantiating...");
+    ROS_INFO_STREAM("Planner Node: Instantiating...");
     PlannerNode plannerNode(&nh, params);
 
     ros::Rate loop_rate(1);

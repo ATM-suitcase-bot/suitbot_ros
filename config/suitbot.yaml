@@ -6,6 +6,7 @@ usr_cmd_topic: "/suitbot/audio/cmd_in"
 ctrl_topic: "/suitbot/ctrl/velocity"
 force_topic: "/suitbot/handle/force"
 encoder_topic: "/suitbot/mobility/velocity"
+voltage_topic: "/suitbot/voltage"
 
 reset_path_service: "/suitbot/ctrl/reset_course"
 planner_arrow_topic: "/suitbot/planner/arrow"
