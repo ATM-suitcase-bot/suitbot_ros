@@ -13,6 +13,8 @@ planner_arrow_topic: "/suitbot/planner/arrow"
 global_map_topic: "/suitbot/planner/global_map"
 planned_path_topic: "/suitbot/planner/planned_path"
 
+lidar_original_topic: "/livox/lidar"
+lidar_sync_topic: "/suitbot/lidar"
 
 # for testing, decoupling audio
 course_idx: 1

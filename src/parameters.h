@@ -62,7 +62,7 @@ typedef struct params
     string GLOBAL_MAP_TOPIC;
     string PLANNED_PATH_TOPIC;
 
-
+    string LIDAR_SYNC_TOPIC;
 
 
     // for localization
@@ -121,6 +121,8 @@ typedef struct params
         PLANNER_ARROW_TOPIC = readParam<string>(n, "planner_arrow_topic");
         GLOBAL_MAP_TOPIC = readParam<string>(n, "global_map_topic");
         PLANNED_PATH_TOPIC = readParam<string>(n, "planned_path_topic");
+
+        LIDAR_SYNC_TOPIC = readParam<string>(n, "lidar_sync_topic");
 
         // command types
         auto state_map = readParam<XmlRpc::XmlRpcValue>(n, "states_map");

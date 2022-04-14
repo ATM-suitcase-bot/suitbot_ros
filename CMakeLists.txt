@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   std_msgs
   geometry_msgs
+  sensor_msgs
   nav_msgs
   tf
   tf2_ros
@@ -52,6 +53,7 @@ catkin_package(
                   message_runtime
                   std_msgs 
                   geometry_msgs
+                  sensor_msgs
                   nav_msgs
                   tf2_ros
                   visualization_msgs

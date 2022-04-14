@@ -27,7 +27,7 @@ Kp = 1.0  # speed proportional gain
 Ki = 0.0  # speed integral gain
 Kd = 0.0  # speed differential gain
 dt = 0.1  # [s] time tick
-WB = 0.2  # [m] wheel base of vehicle
+WB = 0.23  # [m] wheel base of vehicle
 
 show_animation = True
 
@@ -208,8 +208,8 @@ class TrackingSimulator:
         self.states = States()
         self.target_ind = None
         self.lastIndex = None
-        self.dt = 1
-        self.r = rospy.Rate(self.dt)
+        self.dt = 0.1
+        self.r = rospy.Rate(1.0/self.dt)
         self.target_speed = 0.5  # [m/s]
         self.T = 10000.0  # max simulation time
         self.t_prev = rospy.Time.now().to_sec()
@@ -236,6 +236,7 @@ class TrackingSimulator:
             self.state.update_actual(v, w, d_t)
             if (parameters.manual_control == True or parameters.debug_odometry == True):
                 msg_out = Odometry()
+                msg_out.header.stamp = msg_in.header.stamp
                 pt = Point(self.state.x, self.state.y, 0)
                 if (parameters.debug_odometry == True):
                     pt = Point(self.state.x - self.target_course.cx[0], self.state.y - self.target_course.cy[0], 0)
@@ -301,6 +302,7 @@ class TrackingSimulator:
                 #self.state.update(ai, di)  # Execute control and update vehicle state
 
                 msg_out = Odometry()
+                msg_out.header.stamp = rospy.Time.now()
                 pt = Point(self.state.x, self.state.y, 0)
                 # np array of x y z w
                 q = quaternion_about_axis(self.state.yaw, (0,0,1))

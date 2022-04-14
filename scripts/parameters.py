@@ -26,6 +26,9 @@ class Parameters:
         self.global_map_topic = rospy.get_param('global_map_topic')
         self.planned_path_topic = rospy.get_param('planned_path_topic')
 
+        self.lidar_original_topic = rospy.get_param('lidar_original_topic')
+        self.lidar_sync_topic = rospy.get_param('lidar_sync_topic')
+
         self.model_path = rospy.get_param("model_path")
         self.map_file = rospy.get_param("map_file")
 

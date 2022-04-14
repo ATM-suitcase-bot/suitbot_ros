@@ -37,6 +37,7 @@
     <node name="audio_speaker" pkg="suitbot_ros" type="audio_speaker.py" output="screen"/>
     
     <node name="tracking_simulator" pkg="suitbot_ros" type="tracking_simulator.py" output="screen"/>
+    <node name="lidar_driver" pkg="suitbot_ros" type="lidar_driver.py" output="screen"/>
     <node name="embedded_device_driver" pkg="suitbot_ros" type="embedded_device_driver.py" output="screen"/>
     <node name="planner_node" pkg="suitbot_ros" type="planner_node" output="screen"/>
 
