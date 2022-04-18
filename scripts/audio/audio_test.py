@@ -6,12 +6,14 @@ from gtts import gTTS
 # This module is imported so that we can
 # play the converted audio
 import os
-
+import subprocess
 
 from os import path
 from pydub import AudioSegment
+from pydub.playback import play
+from playsound import playsound
 
-
+import time
 
 def stringtoSpeech(mytext):
 # The text that you want to convert to audio
@@ -31,8 +33,16 @@ def stringtoSpeech(mytext):
     myobj.save("welcome.mp3")
 
     # Playing the converted file
-    #os.system("welcome.mp3")
-
+    arguments = "..."
+    proc = os.popen('xdg-open welcome.mp3')
+    #time.sleep(1.5)
+    #proc.terminate()
+    #os.system("xdg-open welcome.mp3")
+    #return_code = subprocess.call("./play_audio.sh")
+    #print(return_code)
+    quit()
+    playsound("welcome.mp3")
+    
     ####
 
     # files
@@ -41,8 +51,9 @@ def stringtoSpeech(mytext):
 
     # convert wav to mp3
     sound = AudioSegment.from_mp3(src)
-    sound.export(dst, format="wav")
-    getSound()
+    play(sound)
+    #sound.export(dst, format="wav")
+    #getSound()
 
 
 ####
@@ -115,6 +126,7 @@ def getSound():
     weight = 0.5
     print(weight)
     data, fs = sf.read(wavFile)
+    print(data.shape)
     sd.play(weight*data, fs)
     sd.wait()
 
@@ -123,4 +135,4 @@ def getSound():
     # sd.wait()
 
 
-stringtoSpeech("Tina is tired")
+stringtoSpeech("This is a test")
