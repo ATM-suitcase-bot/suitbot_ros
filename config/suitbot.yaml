@@ -17,7 +17,7 @@ lidar_original_topic: "/livox/lidar"
 lidar_sync_topic: "/suitbot/lidar"
 
 # for testing, decoupling audio
-course_idx: 1
+course_idx: 2
 
 # for user cmd
 states_map:
