@@ -61,16 +61,16 @@ class State:
         k01 = self.v * math.sin(self.yaw)
         k02 = w 
 
-        k10 = k00 + self.v * d_t / 2.0 * k02
-        k11 = k01 + self.v * d_t / 2.0 * k02
+        k10 = self.v * math.cos(self.yaw + k02*d_t/2.0)
+        k11 = self.v * math.sin(self.yaw + k02*d_t/2.0)
         k12 = w
 
         k20 = k10
         k21 = k11
         k22 = w
 
-        k30 = k00 + self.v * d_t * k22
-        k31 = k00 + self.v * d_t * k22
+        k30 = self.v * math.cos(self.yaw+d_t * k22)
+        k31 = self.v * math.sin(self.yaw+d_t * k22)
         k32 = w
 
         self.x += d_t / 6.0 * (k00 + 2 * (k10 + k20) + k30)

@@ -21,7 +21,7 @@ pf_particles_topic: "/suitbot/localization/particles"
 local_map_tooic: "/suitbot/planner/local_map"
 
 # for testing, decoupling audio
-course_idx: 1
+course_idx: 2
 
 # for user cmd
 states_map:
