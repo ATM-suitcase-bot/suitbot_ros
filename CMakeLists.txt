@@ -17,13 +17,15 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   tf
   tf2_ros
+  tf_conversions
+  eigen_conversions
   visualization_msgs
   cv_bridge
 )
 
 find_package(OpenCV 3.2 REQUIRED)
-# find_package(PCL REQUIRED)
-# find_package(Eigen3 REQUIRED)
+find_package(PCL REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
@@ -35,6 +37,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 add_message_files(FILES
   CmdMsg.msg
   TwoFloats.msg
+  LocalMapMsg.msg
 )
 
 add_service_files(FILES
@@ -56,18 +59,21 @@ catkin_package(
                   sensor_msgs
                   nav_msgs
                   tf2_ros
+                  tf
+                  tf_conversions
+                  eigen_conversions
                   visualization_msgs
 )
 
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
-  # ${EIGEN3_INCLUDE_DIRS}
-  # ${PCL_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
 
-# link_directories(${PCL_LIBRARY_DIRS})
-# add_definitions(${PCL_DEFINITIONS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 catkin_package()
 
@@ -97,9 +103,33 @@ add_executable(planner_node
   src/path_planning/planner_node.cpp
   src/path_planning/planner.cpp
   src/path_planning/a_star.cpp
+  src/occupancy_map.cpp
+  src/utility/pcl_utils.cpp
 )
 
-target_link_libraries(planner_node ${catkin_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries(planner_node 
+${catkin_LIBRARIES}
+${PCL_LIBRARIES} 
+${PCL_COMMON_LIBRARIES} 
+${PCL_IO_LIBRARIES} 
+${PCL_VISUALIZATION_LIBRARIES} 
+${OpenCV_LIBS})
+
+
+add_executable(local_map_generator 
+  src/local_map_generation.cpp
+  src/occupancy_map.cpp
+  src/lidar.cpp
+  src/utility/pcl_utils.cpp
+)
+
+target_link_libraries(local_map_generator
+${catkin_LIBRARIES} 
+${PCL_LIBRARIES} 
+${PCL_COMMON_LIBRARIES} 
+${PCL_IO_LIBRARIES} 
+${PCL_VISUALIZATION_LIBRARIES}
+${OpenCV_LIBS})
 
 
 

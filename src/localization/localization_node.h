@@ -28,6 +28,7 @@
 #include <geometry_msgs/Vector3.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/Image.h>
+#include <nav_msgs/Odometry.h>
 #include <visualization_msgs/Marker.h>
 #include <tf/transform_broadcaster.h>
 
@@ -36,7 +37,7 @@
 
 #include <Eigen/Dense>
 #include "../parameters.h"
-#include "lidar.h"
+#include "../lidar.h"
 
 #include "particle_filter.h"
 
@@ -52,6 +53,7 @@ public:
     ros::NodeHandle nh; 
     ros::Subscriber point_sub;
     ros::Subscriber odom_sub;  
+    ros::Publisher particles_pose_pub;
     
     parameters_t params;
 
@@ -61,11 +63,20 @@ public:
     Particle mean_p;              /*!< Instance of the Particle struct for particles of filter */
     Particle lastmean_p;          /*!< Instance of the Particle struct for previous update particles of filter */
 
-    ros::Time nextupdate_time_; /*!< Timer for the next update  */
+    ros::Time nextupdate_time; /*!< Timer for the next update  */
+    //ros::Publisher cloud_filter_pub;   /*!< Filtered point cloud publisher */
+
+    tf::Transform base_2_odom_tf;              /*!< Base-odom Transformation */
+
+    Eigen::Vector3f prev_odom;
+    Eigen::Vector3f cur_odom;
 
     // 2D map, discretized with resolution of 50cm
+    
 
     // 3D point cloud map
+
+    bool is_odom{ false };  /*!< Flag to know the initialize of odometry */
     
     void initializeSubscribers(); 
     void initializePublishers();
@@ -75,7 +86,9 @@ public:
 
     void pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr &msg);
 
-    void odomCallback(const geometry_msgs::TransformStampedConstPtr &msg);
+    void odomCallback(const nav_msgs::Odometry &ctrl_in);
+
+    void publishParticles();
 
     bool checkUpdateThresholds();
 

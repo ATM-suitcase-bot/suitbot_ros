@@ -198,6 +198,9 @@ if __name__ == '__main__':
     parameters = Parameters()
     parameters.initParameters()
     print("Embedded device driver: topic ", parameters.ctrl_topic)
+    if parameters.use_serial == False:
+        rospy.loginfo("Embedded device driver: node will not start")
+        quit()
     rospy.loginfo("Embedded device driver: node starting")
     rospy.init_node('embedded_device_driver')
     t_stamp = Thread(target=serialLoop)

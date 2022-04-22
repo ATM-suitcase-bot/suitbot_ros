@@ -7,6 +7,7 @@
 
 float ParticleFilter::ranGaussian(const double mean, const double sigma)
 {
+
     std::normal_distribution<float> distribution(mean, sigma);
     return distribution(generator_);
 }
@@ -17,114 +18,167 @@ float ParticleFilter::rngUniform(const float range_from, const float range_to)
     return distribution(generator_);
 }
 
-// Initializes particle filter by initializing particles to
-// Gaussian distribution around first position and all the weights set to 1.
-void ParticleFilter::init(double x, double y, double theta, double std[])
+void ParticleFilter::sampleParticlesUniform(const float from_x, const float from_y,
+                                            const float to_x, const float to_y,
+                                            const int num, vector<Particle> &out_particles)
 {
-    // NOTE: The number of particles needs to be tuned
-    num_particles = 200;
 
-    // Object of random number engine class that generate pseudo-random numbers
-    default_random_engine gen;
-
-    // Standard deviations for x, y, and theta
-    double std_x, std_y, std_theta;
-
-    // Set standard deviations for x, y, and theta.
-    std_x = std[0];
-    std_y = std[1];
-    std_theta = std[2];
-
-    // Create a normal (Gaussian) distribution for position along x.
-    normal_distribution<double> dist_x(x, std_x);
-    // Create a normal (Gaussian) distribution for position along y.
-    normal_distribution<double> dist_y(y, std_y);
-    // Create a normal (Gaussian) distribution for heading of the car.
-    normal_distribution<double> dist_theta(theta, std_theta);
-
-    // Add random Gaussian noise to each particle.
-    for (int par_index = 0; par_index < num_particles; ++par_index)
+    for (int i = 0; i < num; i++)
     {
-        double sample_x, sample_y, sample_theta;
-
-        // Sample from these normal distrubtions for x, y and theta
-        // NOTE 1: "gen" is the random engine initialized earlier
-        // NOTE 2: The generator object (g) supplies uniformly-distributed random
-        //         integers through its operator() member function.
-        //         The normal_distribution object transforms the values obtained
-        //         this way so that successive calls to this member function with
-        //         the same arguments produce floating-point values that follow a
-        //         Normal distribution with the appropriate parameters.
-        // NOTE 3: dist_x's constructor is overloaded with a member function of the
-        //         same name.
-        sample_x = dist_x(gen);
-        sample_y = dist_y(gen);
-        sample_theta = dist_theta(gen);
-
-        // Variable of type Particle to store values before being appended to
-        // the vector of particles
-        Particle new_particle;
-
-        // Set the id of the particle to be the same as the current index
-        new_particle.id = par_index;
-        // Set the particle position in x, y and angle theta from the individual
-        // samples from the distribution of the respective means and sigmas
-        new_particle.x = sample_x;
-        new_particle.y = sample_y;
-        new_particle.theta = sample_theta;
-
-        // The weight needs to be set to 1.0 initially
-        new_particle.weight = 1.0;
-
-        // Append the new particle to the vector
-        particles.push_back(new_particle);
+        float rand_x = rngUniform(from_x, to_x);
+        float rand_y = rngUniform(from_y, to_y);
+        float rand_theta = rngUniform(-M_PI, M_PI);
+        Particle ptc(rand_x, rand_y, rand_theta, 1.0); 
+        out_particles.push_back(ptc);
     }
+}
 
-    // Since this function is called only once(first measurement), set to True
+void ParticleFilter::set_params(string map_file, string pcd_file, float resolution,
+				   float fixed_height_, int init_num_per_grid, int init_num_total)
+{
+    fixed_height = fixed_height_; 
+    initial_num_particles_per_grid = init_num_per_grid; 
+    initial_num_particles_total = init_num_total;
+    int res = grid_map.initOccupancyGridMap(map_file, resolution);
+    if (res < 0)
+    {
+        std::cerr << "ERROR: Cannot create occupancy map! Exiting." << endl;
+        exit(1);
+    }
+    loadPCDMap(pcd_file, point_cloud_map);
+    kdtree.setInputCloud(point_cloud_map);
+}
+
+
+void ParticleFilter::init()
+{
+    int particle_per_grid = std::max(1, std::min(initial_num_particles_per_grid, (int)((double)initial_num_particles_total / (double)grid_map.num_free_cells)));
+
+    int num_particles = 0;
+
+    // sample in free space
+    for (int r = 0; r < grid_map.rows; r++)
+    {
+        for (int c = 0; c < grid_map.cols; c++)
+        {
+            if (grid_map.occupancy_map[r][c] == FREE)
+            {
+                float start_x, start_y, end_x, end_y;
+                grid_map.idx_to_coord(c, r, start_x, start_y);
+                start_x -= grid_map.resolution*0.5;
+                start_y -= grid_map.resolution*0.5;
+                end_x = start_x + grid_map.resolution * 1.5;
+                end_y = end_y + grid_map.resolution * 1.5;
+                sampleParticlesUniform(start_x, start_y, end_x, end_y, particle_per_grid, particles);
+                num_particles += particle_per_grid;
+            }
+        } 
+    }
+    std::uniform_real_distribution<int> idx_distrib(0, num_particles);
+    int idx_rand = idx_distrib(generator_);
+    mean_ = particles[idx_rand]; // just a random particle from the set
+
     initialized_ = true;
 }
 
-// from amcl3d
-void ParticleFilter::init(const int num_particles, const float x_init, const float y_init, const float z_init,
-                          const float a_init, const float x_dev, const float y_dev, const float z_dev,
-                          const float a_dev)
+
+
+void ParticleFilter::predict(const double delta_x, const double delta_y, const double delta_theta)
 {
-    /*  Resize particle set */
-    p_.resize(abs(num_particles));
+    /*
+    const double x_dev = fabs(delta_x * odom_x_mod);
+    const double y_dev = fabs(delta_y * odom_y_mod);
+    const double theta_dev = fabs(delta_theta * odom_theta_mod);
+    */
 
-    /*  Sample the given pose */
-    const float dev = std::max(std::max(x_dev, y_dev), z_dev);
-    const float gauss_const_1 = 1. / (dev * sqrt(2 * M_PI));
-    const float gauss_const_2 = 1. / (2 * dev * dev);
-
-    p_[0].x = x_init;
-    p_[0].y = y_init;
-    p_[0].z = z_init;
-    p_[0].a = a_init;
-    p_[0].w = gauss_const_1;
-
-    float wt = p_[0].w;
-    float dist;
-
-    for (uint32_t i = 1; i < p_.size(); ++i)
+    /*  Make a prediction for all particles according to the odometry */
+    //float sa, ca, rand_x, rand_y;
+    for (int i = 0; i < particles.size(); i++)
     {
-        p_[i].x = p_[0].x + ranGaussian(0, x_dev);
-        p_[i].y = p_[0].y + ranGaussian(0, y_dev);
-        p_[i].z = p_[0].z + ranGaussian(0, z_dev);
-        p_[i].a = p_[0].a + ranGaussian(0, a_dev);
+        /*
+        sa = sin(particles[i].theta);
+        ca = cos(particles[i].theta);
+        rand_x = delta_x + ranGaussian(0, x_dev);
+        rand_y = delta_y + ranGaussian(0, y_dev);
+        particles[i].x += ca * rand_x - sa * rand_y;
+        particles[i].y += sa * rand_x + ca * rand_y;
+        particles[i].theta += delta_theta + ranGaussian(0, theta_dev);
+        */
+        double d_theta = warpAngle(delta_theta);
 
-        dist = sqrt((p_[i].x - p_[0].x) * (p_[i].x - p_[0].x) + (p_[i].y - p_[0].y) * (p_[i].y - p_[0].y) +
-                    (p_[i].z - p_[0].z) * (p_[i].z - p_[0].z));
+        double d_rot1 = atan2(delta_y, delta_x) - particles[i].theta;
+        double d_trans = sqrt(delta_x * delta_x + delta_y * delta_y);
+        double d_rot2 = d_theta - d_rot1;
 
-        p_[i].w = gauss_const_1 * exp(-dist * dist * gauss_const_2);
+        d_rot1 = warpAngle(d_rot1);
+        d_rot2 = warpAngle(d_rot2);
 
-        wt += p_[i].w;
+        double hd_rot1 = d_rot1 - ranGaussian(0.0, sqrt(alpha1 * d_rot1*d_rot1 + alpha2 * d_trans*d_trans));
+        double hd_trans = d_trans - ranGaussian(0.0, sqrt(alpha3 * d_trans*d_trans + alpha4 * (d_rot1*d_rot1 + d_rot2*d_rot2)));
+        double hd_rot2 = d_rot2 - ranGaussian(0.0, sqrt(alpha1 * d_rot2*d_rot2 + alpha2 * d_trans*d_trans));
+
+        // update partical coord
+        particles[i].x = particles[i].x + hd_trans * cos(particles[i].theta + hd_rot1);
+        particles[i].y = particles[i].y + hd_trans * sin(particles[i].theta + hd_rot1);
+        particles[i].theta = warpAngle(particles[i].theta + hd_rot1 + hd_rot2);
+    }
+}
+
+
+// based on p2p distance
+void ParticleFilter::update(LidarPointCloudConstPtr cloud_in)
+{
+    /*  Incorporate measurements */
+    float sum_weights = 0.0;
+
+    vector<float> measurements;
+    for (int i = 0; i < cloud_in->points.size(); i++)
+    {
+        Eigen::Vector3f p_meas(cloud_in->points[i].x, cloud_in->points[i].y, cloud_in->points[i].z);
+        measurements.push_back(p_meas.norm());
     }
 
+    TicToc tic_toc;
+    for (int i = 0; i < particles.size(); i++)
+    {
+        /*  Get particle information */
+        float px = particles[i].x;
+        float py = particles[i].y;
+        float pth = particles[i].theta;
+
+        /*  Check the particle is in the map */
+        if (grid_map.isInMap(px, py))
+        {
+            particles[i].weight = 0;
+            continue;
+        }
+
+        /*  Evaluate the weight of the point cloud */
+        particles[i].weight = computeCloudWeight(cloud_in, measurements, px, py, pth);
+
+        /*  Increase the summatory of weights */
+        sum_weights += particles[i].weight;
+    }
+    cout << "Update time: " <<  tic_toc.toc() << "ms" << endl;
+
+    /*  Normalize all weights */
+    float wt = 0;
+    for (int i = 0; i < particles.size(); i++)
+    {
+        if (sum_weights > 0)
+            particles[i].weight /= sum_weights;
+        else
+            particles[i].weight = 0;
+    }
+/*
+    // instead of this, we do non maximum supression
     Particle mean_p;
     for (uint32_t i = 0; i < p_.size(); ++i)
     {
+        if (wt > 0)
         p_[i].w /= wt;
+        else
+        p_[i].w = 0;
 
         mean_p.x += p_[i].w * p_[i].x;
         mean_p.y += p_[i].w * p_[i].y;
@@ -132,338 +186,80 @@ void ParticleFilter::init(const int num_particles, const float x_init, const flo
         mean_p.a += p_[i].w * p_[i].a;
     }
     mean_ = mean_p;
-
-    initialized_ = true;
+    */
 }
 
-
-void ParticleFilter::predict(const double odom_x_mod, const double odom_y_mod, const double odom_z_mod,
-                             const double odom_a_mod, const double delta_x, const double delta_y, const double delta_z,
-                             const double delta_a)
+void ParticleFilter::resample(int num_to_sample)
 {
-  const double x_dev = fabs(delta_x * odom_x_mod);
-  const double y_dev = fabs(delta_y * odom_y_mod);
-  const double z_dev = fabs(delta_z * odom_z_mod);
-  const double a_dev = fabs(delta_a * odom_a_mod);
-
-  /*  Make a prediction for all particles according to the odometry */
-  float sa, ca, rand_x, rand_y;
-  for (uint32_t i = 0; i < p_.size(); ++i)
-  {
-    sa = sin(p_[i].a);
-    ca = cos(p_[i].a);
-    rand_x = delta_x + ranGaussian(0, x_dev);
-    rand_y = delta_y + ranGaussian(0, y_dev);
-    p_[i].x += ca * rand_x - sa * rand_y;
-    p_[i].y += sa * rand_x + ca * rand_y;
-    p_[i].z += delta_z + ranGaussian(0, z_dev);
-    p_[i].a += delta_a + ranGaussian(0, a_dev);
-  }
-}
-
-void ParticleFilter::update(const Grid3d& grid3d, const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
-                            const std::vector<Range>& range_data, const double alpha, const double sigma,
-                            const double roll, const double pitch)
-{
-  /*  Incorporate measurements */
-  float wtp = 0, wtr = 0;
-
-  clock_t begin_for1 = clock();
-  for (uint32_t i = 0; i < p_.size(); ++i)
-  {
-    /*  Get particle information */
-    float tx = p_[i].x;
-    float ty = p_[i].y;
-    float tz = p_[i].z;
-
-    /*  Check the particle is into the map */
-    if (!grid3d.isIntoMap(tx, ty, tz))
-    {
-      // std::cout << "Not into map: " << grid3d_.isIntoMap(tx, ty, tz-1.0) << std::endl;
-      p_[i].w = 0;
-      continue;
-    }
-
-    /*  Evaluate the weight of the point cloud */
-    p_[i].wp = grid3d.computeCloudWeight(cloud, tx, ty, tz, roll, pitch, p_[i].a);
-
-    /*  Evaluate the weight of the range sensors */
-    p_[i].wr = computeRangeWeight(tx, ty, tz, range_data, sigma);
-
-    /*  Increase the summatory of weights */
-    wtp += p_[i].wp;
-    wtr += p_[i].wr;
-  }
-  clock_t end_for1 = clock();
-  double elapsed_secs = double(end_for1 - begin_for1) / CLOCKS_PER_SEC;
-  ROS_DEBUG("Update time 1: [%lf] sec", elapsed_secs);
-
-  /*  Normalize all weights */
-  float wt = 0;
-  for (uint32_t i = 0; i < p_.size(); ++i)
-  {
-    if (wtp > 0)
-      p_[i].wp /= wtp;
-    else
-      p_[i].wp = 0;
-
-    if (wtr > 0)
-      p_[i].wr /= wtr;
-    else
-      p_[i].wr = 0;
-
-    if (!grid3d.isIntoMap(p_[i].x, p_[i].y, p_[i].z))
-    {
-      /* std::cout << "Not into map: " << grid3d_.isIntoMap(tx, ty, tz-1.0) << std::endl; */
-      p_[i].w = 0;
-    }
-    else
-      p_[i].w = p_[i].wp * alpha + p_[i].wr * (1 - alpha);
-    wt += p_[i].w;
-  }
-
-  Particle mean_p;
-  for (uint32_t i = 0; i < p_.size(); ++i)
-  {
-    if (wt > 0)
-      p_[i].w /= wt;
-    else
-      p_[i].w = 0;
-
-    mean_p.x += p_[i].w * p_[i].x;
-    mean_p.y += p_[i].w * p_[i].y;
-    mean_p.z += p_[i].w * p_[i].z;
-    mean_p.a += p_[i].w * p_[i].a;
-  }
-  mean_ = mean_p;
-}
-
-void ParticleFilter::resample()
-{
-  std::vector<Particle> new_p(p_.size());
-  const float factor = 1.f / p_.size();
+  std::vector<Particle> new_p(num_to_sample);
+  const float factor = 1.f / num_to_sample;
   const float r = factor * rngUniform(0, 1);
-  float c = p_[0].w;
+  float c = particles[0].weight;
   float u;
 
   //! Do resamplig
-  for (uint32_t m = 0, i = 0; m < p_.size(); ++m)
+  for (int m = 0, i = 0; m < num_to_sample; m++)
   {
     u = r + factor * m;
     while (u > c)
     {
-      if (++i >= p_.size())
+      if (++i >= particles.size())
         break;
-      c += p_[i].w;
+      c += particles[i].weight;
     }
-    new_p[m] = p_[i];
-    new_p[m].w = factor;
+    new_p[m] = particles[i];
+    new_p[m].weight = factor;
   }
 
   //! Asign the new particles set
-  p_ = new_p;
+  particles = new_p;
 }
 
 
-
-
-
-
-// Predicts the state(set of particles) for the next time step
-// using the process model.
-void ParticleFilter::prediction(double delta_t, double std_pos[],
-                                double velocity, double yaw_rate)
+float ParticleFilter::computeCloudWeight(LidarPointCloudConstPtr cloud, const vector<float> &measurements, const float px, const float py, const float pth)
 {
-    // Add measurements to each particle and add random Gaussian noise.
-    // Object of random number engine class that generate pseudo-random numbers
-    default_random_engine gen;
+    vector<float> dists; // computed distance from lidar to obstacle
+    vector<float> angles;
 
-    // Standard deviations for x, y, and theta
-    double std_x, std_y, std_theta;
+    // transform cloud to particle frame
+    // TODO check if we need to rotate z to point towards the ground
+    Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+    transform.translation() << px, py, fixed_height;
+    // rotate around z axis
+    float theta = pth;
+    transform.rotate(Eigen::AngleAxisf(theta, Eigen::Vector3f::UnitZ()));
+    // Executing the transformation
+    LidarPointCloudPtr transformed_cloud(new LidarPointCloud);
+    pcl::transformPointCloud(*cloud, *transformed_cloud, transform);
 
-    // Set standard deviations for x, y, and theta.
-    std_x = std_pos[0];
-    std_y = std_pos[1];
-    std_theta = std_pos[2];
+    Eigen::Vector3f robot_position(px, py, fixed_height);
+    associate(transformed_cloud, point_cloud_map, kdtree, robot_position, dists, angles);
 
-    // Create a normal (Gaussian) distribution for noise along position x.
-    normal_distribution<double> noise_dist_x(0, std_x);
-    // Create a normal (Gaussian) distribution for noise along position y.
-    normal_distribution<double> noise_dist_y(0, std_y);
-    // Create a normal (Gaussian) distribution for noise of direction theta.
-    normal_distribution<double> noise_dist_theta(0, std_theta);
-
-    // NOTE: Adding noise using the following resources
-    //  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
-    //  http://www.cplusplus.com/reference/random/default_random_engine/
-
-    // Prediction for position x,y and angle theta for each of the particles
-    for (size_t par_index = 0; par_index < particles.size(); par_index++)
+    // compute weight
+    float prob = 1.0;
+    for (int i = 0; i < dists.size(); i++)
     {
-        // Temporary variable to store the particle's previous state's theta
-        double prev_theta = particles[par_index].theta;
+        float meas = measurements[i];
+        float meas_computed = dists[i];
+        float sig_hit_sqaure = sigma_hit * sigma_hit;
+        float p_hit = (meas >= 0 && meas <= max_range) ? 
+            (1.0 / sqrt(2*M_PI*sig_hit_sqaure))*exp(-0.5*((meas-meas_computed)*(meas-meas_computed)/sig_hit_sqaure)) : 0.0;
+        float p_short = (meas >= 0 && meas <= meas_computed) ?
+            lambda_short * exp(-lambda_short * meas) : 0.0;
+        float p_max = (meas > max_range-max_span && meas < max_range+max_span) ? 1.0/(2*max_span) : 0.0;
+        float p_rand = (meas >= 0 && meas <= max_range) ? 1.0/max_range : 0.0;
 
-        // Avoid divide by zero error and update prediction for the particle
-        if (abs(yaw_rate) > 0.0001)
-        {
-            // Update the position x, y and angle theta of the particle
-            particles[par_index].x += (velocity / yaw_rate) *
-                                      (sin(prev_theta + (yaw_rate * delta_t)) -
-                                       sin(prev_theta));
-            particles[par_index].y += (velocity / yaw_rate) *
-                                      (cos(prev_theta) -
-                                       cos(prev_theta + (yaw_rate * delta_t)));
-        }
-        else
-        {
-            // Update the position x, y and angle theta of the particle
-            particles[par_index].x += velocity * delta_t * cos(prev_theta);
-            particles[par_index].y += velocity * delta_t * sin(prev_theta);
-        }
-        // Update theta
-        particles[par_index].theta = prev_theta + yaw_rate * delta_t;
+        float p = z_hit * p_hit + z_short * p_short + z_max * p_max + z_rand * p_rand;
 
-        // Add random gaussian noise for each of the above updated measurements
-        particles[par_index].x += noise_dist_x(gen);
-        particles[par_index].y += noise_dist_y(gen);
-        particles[par_index].theta += noise_dist_theta(gen);
+        if (p > 0) prob *= p;
     }
+    return prob;
 }
 
-// Find the closest landmark to the current observation
-vector<LandmarkObs> ParticleFilter::dataAssociation(vector<Map::single_landmark_s> landmarks,
-                                                    vector<LandmarkObs> observations)
-{
-    // Vector of associated landmarks
-    vector<LandmarkObs> associatedLandmarks;
 
-    // Go through list of observations
-    for (size_t obs_index = 0; obs_index < observations.size(); obs_index++)
-    {
-        // Start of with the maximum possible value
-        double minDistance = DBL_MAX;
-        size_t indexOfLandmark;
 
-        // Find the landmark closest to the observation
-        for (size_t land_index = 0; land_index < landmarks.size(); land_index++)
-        {
-            double currentDistance = dist(landmarks[land_index].x_f,
-                                          landmarks[land_index].y_f,
-                                          observations[obs_index].x,
-                                          observations[obs_index].y);
 
-            // Update the minimum distance found and the index if
-            // another landmark is closer to this observation
-            if (currentDistance <= minDistance)
-            {
-                minDistance = currentDistance;
-                indexOfLandmark = land_index;
-            }
-        }
 
-        LandmarkObs closestLandmark;
-        closestLandmark.id = landmarks[indexOfLandmark].id_i;
-        closestLandmark.x = landmarks[indexOfLandmark].x_f;
-        closestLandmark.y = landmarks[indexOfLandmark].y_f;
-        associatedLandmarks.push_back(closestLandmark);
-    }
-
-    // Return the associated landmarks
-    return associatedLandmarks;
-}
-
-// Update all the weights of the particles in the particle filter
-void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
-                                   vector<LandmarkObs> observations,
-                                   Map map_landmarks)
-{
-    // Set standard deviations for x, y
-    double std_x, std_y;
-    double var_x, var_y;
-
-    // Set the standard deviation and calculate variance
-    std_x = std_landmark[0];
-    std_y = std_landmark[1];
-    var_x = std_x * std_x;
-    var_y = std_y * std_y;
-
-    // Go through the list of particles
-    for (size_t par_index = 0; par_index < particles.size(); par_index++)
-    {
-        // For the given list of landmarks find the predicted landmarks within
-        // the range of the car sensor
-        vector<Map::single_landmark_s> predicted_landmarks;
-        for (size_t land_index = 0; land_index < map_landmarks.landmark_list.size(); land_index++)
-        {
-            // Calculate the difference between the particle prediction & landmark
-            double distanceDiff = dist(particles[par_index].x,
-                                       particles[par_index].y,
-                                       map_landmarks.landmark_list[land_index].x_f,
-                                       map_landmarks.landmark_list[land_index].y_f);
-
-            // Create a new list of landmarks within sensor range for data association
-            if (distanceDiff <= sensor_range)
-            {
-                predicted_landmarks.push_back(map_landmarks.landmark_list[land_index]);
-            }
-        }
-
-        // Vector for converted observations
-        vector<LandmarkObs> convertedObservations;
-
-        // For the list of observations, convert to map-coordinates, find the
-        // closest landmark and finally update the weight of the particle
-        for (size_t obs_index = 0; obs_index < observations.size(); obs_index++)
-        {
-            // Convert from car to map-coordinates
-            LandmarkObs convertedObs = convertVehicleToMapCoords(observations[obs_index],
-                                                                 particles[par_index]);
-
-            // Push to the new list of converted observations
-            convertedObservations.push_back(convertedObs);
-        }
-
-        // Using the converted observations perform data association
-        vector<LandmarkObs> associatedLandmarks = dataAssociation(predicted_landmarks,
-                                                                  convertedObservations);
-
-        // Variable to store the result of the multivariate-gaussian
-        double multi_gaussian = 1.0;
-
-        // Update weight of the particle
-        for (size_t obs_index = 0; obs_index < associatedLandmarks.size(); obs_index++)
-        {
-            // Update the weights of each particle using a
-            // a multi-variate Gaussian distribution.
-            // Info: https://en.wikipedia.org/wiki/Multivariate_normal_distribution
-            // Set standard deviations for x, y
-            double std_x, std_y;
-            double var_x, var_y;
-
-            // Set the standard deviation and calculate variance
-            std_x = std_landmark[0];
-            std_y = std_landmark[1];
-            var_x = std_x * std_x;
-            var_y = std_y * std_y;
-
-            // Variables to store the square of the difference between measured and
-            // predicted x and y values
-            double sq_diff_x = associatedLandmarks[obs_index].x -
-                               convertedObservations[obs_index].x;
-            double sq_diff_y = associatedLandmarks[obs_index].y -
-                               convertedObservations[obs_index].y;
-
-            sq_diff_x = sq_diff_x * sq_diff_x;
-            sq_diff_y = sq_diff_y * sq_diff_y;
-
-            multi_gaussian *= (1 / (2 * M_PI * std_x * std_y)) *
-                              exp(-((sq_diff_x) / (2 * var_x) + (sq_diff_y) / (2 * var_y)));
-        }
-
-        // Update the weight of the particle
-        particles[par_index].weight = multi_gaussian;
-    }
-}
 
 // Resample particles with replacement with probability proportional to weight.
 void ParticleFilter::resample_basic()
@@ -518,7 +314,7 @@ void ParticleFilter::write(string filename)
     // NOTE: When ios::app is set, all output operations are performed at the end
     //       of the file.
     dataFile.open(filename, ios::app);
-
+/*
     // Go through each particle and write the particle data into the file
     for (int par_index = 0; par_index < num_particles; ++par_index)
     {
@@ -535,34 +331,23 @@ void ParticleFilter::write(string filename)
                      << particles[par_index].theta << "\n";
         }
     }
-
+*/
     // Close the file
     dataFile.close();
 }
 
-// Convert the passed in vehicle co-ordinates into map co-ordinates from
-// the perspective of the particle in question
-LandmarkObs ParticleFilter::convertVehicleToMapCoords(LandmarkObs observationToConvert,
-                                                      Particle particle)
+void ParticleFilter::buildParticlesPoseMsg(geometry_msgs::PoseArray& msg) const
 {
-    // NOTE: The observations are given in the VEHICLE'S coordinate system.
-    // 	     Your particles are located according to the MAP'S coordinate system.
-    //       A transformation is required between the two systems.
-    //   		 The following is a good resource for the theory:
-    //   		 https://www.willamette.edu/~gorr/classes/GeneralGraphics/Transforms/transforms2d.htm
-    //  		 and the following is a good resource for the actual equation to
-    //       implement (look at equation 3.33. The equation stays as it is.
-    //       1. http://planning.cs.uiuc.edu/node99.html
-    //       2. http://www.sunshine2k.de/articles/RotationDerivation.pdf
-    LandmarkObs convertedObservation;
-    convertedObservation.id = observationToConvert.id;
-    convertedObservation.x = particle.x +
-                             observationToConvert.x * cos(particle.theta) -
-                             observationToConvert.y * sin(particle.theta);
+    msg.poses.resize(particles.size());
 
-    convertedObservation.y = particle.y +
-                             observationToConvert.x * sin(particle.theta) +
-                             observationToConvert.y * cos(particle.theta);
-
-    return convertedObservation;
+    for (int i = 0; i < particles.size(); i++)
+    {
+        msg.poses[i].position.x = static_cast<double>(particles[i].x);
+        msg.poses[i].position.y = static_cast<double>(particles[i].y);
+        msg.poses[i].position.z = static_cast<double>(fixed_height);
+        msg.poses[i].orientation.x = 0.;
+        msg.poses[i].orientation.y = 0.;
+        msg.poses[i].orientation.z = sin(static_cast<double>(particles[i].theta * 0.5f));
+        msg.poses[i].orientation.w = cos(static_cast<double>(particles[i].theta * 0.5f));
+    }
 }

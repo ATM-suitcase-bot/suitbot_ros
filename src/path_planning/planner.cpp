@@ -19,7 +19,6 @@
 #define	MIN(A, B)	((A) < (B) ? (A) : (B))
 #endif
 
-#define FREE 255
 
 struct hash_pair
 {
@@ -144,9 +143,9 @@ void PlannerNode::get_successors(AugmentedNode &aug_node, vector<pair<int, int>>
         for (int j = -1; j < 2; j++)
         {
             int col_new = col + j;
-            if ((row_new != row || col_new != col) && row_new >= 0 && row_new < rows && col_new >= 0 && col_new < cols)
+            if ((row_new != row || col_new != col) && row_new >= 0 && row_new < map.rows && col_new >= 0 && col_new < map.cols)
             {
-                if (occupancy_map[row_new][col_new] == FREE)
+                if (map.occupancy_map[row_new][col_new] == FREE)
                 {
                     pair<int, int> succ;
                     succ.first = col_new;

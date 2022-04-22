@@ -44,4 +44,6 @@ class Parameters:
 
         self.use_audio = rospy.get_param("use_audio")
 
+        self.use_serial = rospy.get_param("use_serial")
+
         self.parameter_set = True

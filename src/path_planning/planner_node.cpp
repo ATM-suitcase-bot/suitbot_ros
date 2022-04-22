@@ -13,34 +13,23 @@
 #include <opencv2/opencv.hpp>
 #include "../utility/tic_toc.h"
 
-#define OCCUPIED 0
-#define FREE 255
-#define BLOATED 100
+
 
 PlannerNode::PlannerNode(ros::NodeHandle *nodehandle, parameters_t &_params)
     : nh(*nodehandle), params(_params)
 {
     ROS_INFO("Initializing Planner Node...");
-    if (initOccupancyGridMap(params.map_file) < 0)
+    if (map.initOccupancyGridMap(params.map_file) < 0)
     {
         ROS_ERROR("Failed to initialize Planner Node, exiting");
         // TODO error handling
+        exit(1);
     }
-    
-    rows = occupancy_map.size();
-    cols = occupancy_map[0].size();
-    bloat_obstacles();
-    coord_to_idx(goal_x, goal_y, goal_x_idx, goal_y_idx);
+    map.coord_to_idx(goal_x, goal_y, goal_x_idx, goal_y_idx);
     initializeSubscribers();
     initializePublishers();
 }
 
-void PlannerNode::coord_to_idx(const double &coord_x, const double &coord_y, int &idx_x, int &idx_y)
-{
-    // TODO
-    idx_x = (int)(coord_x / resolution);
-    idx_y = (int)(coord_y / resolution);
-}
 
 void PlannerNode::set_start_indices(int x_idx_, int y_idx_)
 {
@@ -54,88 +43,7 @@ void PlannerNode::set_goal_indices(int x_idx_, int y_idx_)
     goal_y_idx = y_idx_;
 }
 
-int PlannerNode::initOccupancyGridMap(string map_file)
-{
 
-    /*
-        // Store map into vector
-        std::ifstream in_stream;
-        in_stream.open(map_file);
-        if (in_stream.is_open())
-        {
-            string line;
-            while (getline(in_stream, line))
-            {
-                vector<double> vec_line;
-                std::stringstream line_stream(line);
-                double element; // probability between 0 and 1
-                while (line_stream >> element)
-                {
-                    vec_line.push_back(element);
-                }
-                occupancy_map.push_back(vec_line);
-            }
-            in_stream.close();
-        }
-    */
-    cv::Mat map_img = cv::imread(map_file, cv::IMREAD_GRAYSCALE);
-    //cv::imshow("map", map_img);
-    //cv::waitKey(0);
-    if (!map_img.empty())
-    {
-        for (int r = 0; r < map_img.rows; r++)
-        {
-            vector<int> line;
-            for (int c = 0; c < map_img.cols; c++)
-            {
-                // outimg.at<uchar>(239 - y_coord , x_coord) = 0;
-                int num = (map_img.at<uchar>(r, c) < 50) ? 0 : 255;
-                line.push_back(num);
-            }
-            occupancy_map.push_back(line);
-        }
-    }
-    else
-    {
-        ROS_ERROR("No such map file named %s", map_file.c_str());
-        return -1;
-    }
-    return 0;
-}
-
-void PlannerNode::bloat_obstacles()
-{
-    int count = 0;
-    for (int r = 0; r < rows; r++)
-    {
-        for (int c = 0; c < cols; c++)
-        {
-            if (occupancy_map[r][c] == 0)
-            {
-                count ++;
-                // check all directions
-                for (int i = -1; i < 2; i++)
-                {
-                    int row_new = r + i;
-                    for (int j = -1; j < 2; j++)
-                    {
-                        int col_new = c + j;
-                        if ((row_new != r || col_new != c) && row_new >= 0 && row_new < rows && col_new >= 0 && col_new < cols)
-                        {
-                            if (occupancy_map[row_new][col_new] == 255)
-                            {
-                                occupancy_map[row_new][col_new] = 100;
-                                
-                            }
-                            
-                        }
-                    }
-                }
-            }
-        }
-    }
-    std::cout << count << std::endl;
-}
 
 void PlannerNode::initializeSubscribers()
 {
@@ -186,7 +94,7 @@ void PlannerNode::subscriberCallback(const nav_msgs::Odometry &odom_in)
     //   convert odom into cell index
     int x_idx = 0, y_idx = 0;
     auto pt = odom_in.pose.pose.position;
-    coord_to_idx(pt.x, pt.y, x_idx, y_idx);
+    map.coord_to_idx(pt.x, pt.y, x_idx, y_idx);
 
     // replan
     if (a_star_planner() < 0)
@@ -219,27 +127,15 @@ void PlannerNode::publish_pose()
 void PlannerNode::initVisualization()
 {
     // Publish map as a marker array of cubes
-    // count num of occupied cells
-    int count = 0;
-    for (int r = 0; r < rows; r++)
-    {
-        for (int c = 0; c < cols; c++)
-        {
-            if (occupancy_map[r][c] < FREE)
-                count++;
-        }
-    }
-    num_occupied_cells = count;
-
-    grid_map_marker_array.markers = vector<visualization_msgs::Marker>(count);
+    grid_map_marker_array.markers = vector<visualization_msgs::Marker>(map.num_occupied_cells + map.num_bloated_cells);
 
     int i = 0;
     ros::Time t_now = ros::Time::now();
-    for (int r = 0; r < rows; r++)
+    for (int r = 0; r < map.rows; r++)
     {
-        for (int c = 0; c < cols; c++)
+        for (int c = 0; c < map.cols; c++)
         {
-            if (occupancy_map[r][c] < FREE)
+            if (map.occupancy_map[r][c] < FREE)
             {
                 grid_map_marker_array.markers[i].header.frame_id = "world";
                 grid_map_marker_array.markers[i].ns = "planner_node";
@@ -251,13 +147,13 @@ void PlannerNode::initVisualization()
                 grid_map_marker_array.markers[i].pose.orientation.x = 0;
                 grid_map_marker_array.markers[i].pose.orientation.y = 0;
                 grid_map_marker_array.markers[i].pose.orientation.z = 0;
-                if (occupancy_map[r][c] == OCCUPIED)
+                if (map.occupancy_map[r][c] == OCCUPIED)
                 {
                     grid_map_marker_array.markers[i].color.r = 0.0;
                     grid_map_marker_array.markers[i].color.g = 1.0;
                     grid_map_marker_array.markers[i].color.b = 0.0;
                 }
-                else if (occupancy_map[r][c] == BLOATED)
+                else if (map.occupancy_map[r][c] == BLOATED)
                 {
                     grid_map_marker_array.markers[i].color.r = 0.0;
                     grid_map_marker_array.markers[i].color.g = 0.0;
@@ -359,10 +255,10 @@ int main(int argc, char **argv)
 
     // left mid right
     // mid: first turns right, then go straight, then turn left
-    double start_xs[3] = {23.5, 27.0, 30.0}; // x idx = 50   46
-    double start_ys[3] = {64.0, 87.5, 71.0}; // y idx = 31   132
-    double goal_xs[3] = {30.0, 27.0, 23.5};
-    double goal_ys[3] = {71.0, 75.0, 64.0};
+    float start_xs[3] = {23.5, 27.0, 30.0}; // x idx = 50   46
+    float start_ys[3] = {64.0, 87.5, 71.0}; // y idx = 31   132
+    float goal_xs[3] = {30.0, 27.0, 23.5};
+    float goal_ys[3] = {71.0, 75.0, 64.0};
 
     if (params.manual_control == false)
     {
@@ -386,8 +282,8 @@ int main(int argc, char **argv)
         goal_y = goal_ys[plannerNode.path_cmd];
         cout << start_x << ", " << start_y << ", " << goal_x << ", " << goal_y << endl;
 
-        plannerNode.coord_to_idx(start_x, start_y, x_idx, y_idx);
-        plannerNode.coord_to_idx(goal_x, goal_y, x_goal_idx, y_goal_idx);
+        plannerNode.map.coord_to_idx(start_x, start_y, x_idx, y_idx);
+        plannerNode.map.coord_to_idx(goal_x, goal_y, x_goal_idx, y_goal_idx);
         plannerNode.set_start_indices(x_idx, y_idx);
         plannerNode.set_goal_indices(x_goal_idx, y_goal_idx);
     }

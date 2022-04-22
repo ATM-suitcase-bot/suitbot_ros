@@ -9,10 +9,27 @@
 #ifndef PARTICLE_FILTER_H_
 #define PARTICLE_FILTER_H_
 
+#include <random>
+
 #include "helper_functions.h"
 #include <math.h>
 #include <float.h>
 #include <stdio.h>
+#include "../lidar.h"
+
+#include "../occupancy_map.h"
+#include "../utility/utils.h"
+#include "../utility/pcl_utils.h"
+#include "../utility/tic_toc.h"
+
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl/common/transforms.h>
+#include <pcl/point_cloud.h>
+#include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+
+#include <geometry_msgs/PoseArray.h>
 
 #include <Eigen/Dense>
 
@@ -20,142 +37,146 @@ using namespace std;
 
 struct Particle
 {
-	double x;
-	double y;
-	double theta;
-	double weight;
+	float x;
+	float y;
+	float theta;
+	float weight;
 
-    Particle() : x(0), y(0), theta(0), weight(0) {}
+    Particle() : x(0), y(0), theta(0), weight(1) {}
 
-    Particle(double _x, double _y, double _theta, double _weight) : x(_x), y(_y), theta(_theta), weight(_weight) {}
+    Particle(float _x, float _y, float _theta, float _weight) : x(_x), y(_y), theta(_theta), weight(_weight) {}
 };
 
 class ParticleFilter
 {
-	// Number of particles to draw
-	int num_particles;
-
-
-	// Vector of weights of all particles
-	vector<double> weights;
-
 public:
+	// Number of particles to draw
+	int initial_num_particles_per_grid;
+
+	int initial_num_particles_total;
+
+	float fixed_height = -2.25;
+
 	// Set of current particles
 	vector<Particle> particles;
 
+	// motion model parameters
+	double alpha1 = 0.0001, alpha2 = 0.0001, alpha3 = 0.008, alpha4 = 0.008;
+
+	// sensor model parameters
+	float sigma_hit = 50.0, lambda_short = 0.1, max_range = 150.0, max_span = 5.0;
+	float z_hit = 10.0, z_short = 0.1, z_max = 0.1, z_rand = 100;
+
+	// 2d map
+	OccupancyMap grid_map;
+
+	//3d map
+	LidarPointCloudPtr point_cloud_map;
+
+    float dist_thresh = 10;
+	pcl::KdTreeFLANN<LidarPoint> kdtree;
+
 	// Constructor
-	// @param M Number of particles, whether the particle is initialized
-	ParticleFilter() : num_particles(0), generator_(rd_()) {}
+	// @param Number of particles
+	ParticleFilter() : initial_num_particles_per_grid(50), initial_num_particles_total(10000), point_cloud_map(new LidarPointCloud), generator_(rd_()) {}
+
+	ParticleFilter(string map_file, string pcd_file) : initial_num_particles_per_grid(50), initial_num_particles_total(10000), point_cloud_map(new LidarPointCloud), generator_(rd_()) 
+	{
+		int res = grid_map.initOccupancyGridMap(map_file);
+		if (res < 0)
+		{
+			std::cerr << "ERROR: Cannot create occupancy map! Exiting." << endl;
+			exit(1);
+		}
+		loadPCDMap(pcd_file, point_cloud_map);
+		kdtree.setInputCloud(point_cloud_map);	
+	}
+
+	ParticleFilter(string map_file, string pcd_file, float fixed_height_, int init_num_per_grid, int init_num_total) : fixed_height(fixed_height_), initial_num_particles_per_grid(init_num_per_grid), initial_num_particles_total(init_num_total), point_cloud_map(new LidarPointCloud), generator_(rd_()) {
+
+		int res = grid_map.initOccupancyGridMap(map_file);
+		if (res < 0)
+		{
+			std::cerr << "ERROR: Cannot create occupancy map! Exiting." << endl;
+			exit(1);
+		}
+		loadPCDMap(pcd_file, point_cloud_map);
+		kdtree.setInputCloud(point_cloud_map);		
+	}
+
+	ParticleFilter(string map_file, string pcd_file, 
+				   float fixed_height_, int init_num_per_grid, int init_num_total, 
+				   double _alpha1, double _alpha2, double _alpha3, double _alpha4,
+				   float _sigma_hit, float _lambda_short, float _max_range, float _max_span,
+				   float _z_hit, float _z_short, float _z_max, float _z_rand) : 
+				   fixed_height(fixed_height_), 
+				   initial_num_particles_per_grid(init_num_per_grid), 
+				   initial_num_particles_total(init_num_total), 
+				   alpha1(_alpha1), alpha2(_alpha2), alpha3(_alpha3), alpha4(_alpha4), 
+				   sigma_hit(_sigma_hit), lambda_short(_lambda_short), max_range(_max_range), max_span(_max_span),
+				   z_hit(_z_hit), z_short(_z_short), z_max(_z_max), z_rand(_z_rand),
+				   point_cloud_map(new LidarPointCloud), generator_(rd_()) {
+
+		int res = grid_map.initOccupancyGridMap(map_file);
+		if (res < 0)
+		{
+			std::cerr << "ERROR: Cannot create occupancy map! Exiting." << endl;
+			exit(1);
+		}
+		loadPCDMap(pcd_file, point_cloud_map);
+		kdtree.setInputCloud(point_cloud_map);		
+	}
 
 	// Destructor
 	~ParticleFilter() {}
+
+	void set_params(string map_file, string pcd_file, float resolution,
+				   float fixed_height_, int init_num_per_grid, int init_num_total);
 
     bool isInitialized() const  { return initialized_; }
 
     Particle getMean() const { return mean_; }
 
-	/**
-	 * @brief Initializes particle filter by initializing particles to Gaussian
-	 *        distribution around first position and all the weights set to 1.
-	 * @param x Initial x position [m] (simulated estimate from GPS)
-	 * @param y Initial y position [m]
-	 * @param theta Initial orientation [rad]
-	 * @param std[] Array of dimension 3 [standard deviation of x [m], standard deviation of y [m]
-	 *   standard deviation of yaw [rad]]
-	 */
-	void init(double x, double y, double theta, double std[]);
 
 
 	/**
 	 * @brief This function implements the PF init stage.
-	*
-	* @param num_particles Particle number in the filter.
-	* @param x_init Init x-axis position.
-	* @param y_init Init x-axis position.
-	* @param z_init Init x-axis position.
-	* @param a_init Init yaw angle orientation.
-	* @param x_dev Init thresholds of x-axis position.
-	* @param y_dev Init thresholds of y-axis position.
-	* @param z_dev Init thresholds of z-axis position.
-	* @param a_dev Init thresholds of yaw angle orientation.
-	*
-	* It restructures the particle vector to adapt it to the number of selected particles. Subsequently, it initializes
-	* it using a Gaussian distribution and the deviation introduced. Subsequently, it calculates what would be the
-	* average particle that would simulate the estimated position of the UAV.
-   */
-	void init(const int num_particles, const float x_init, const float y_init, const float z_init,
-			  const float a_init, const float x_dev, const float y_dev, const float z_dev,
-			  const float a_dev);
+    */
+	void init();
 
 	/**
 	 * @brief This function implements the PF prediction stage.
 	* 		  (Translation in X, Y and Z in meters and yaw angle incremenet in rad.)
 	*
-	* @param odom_x_mod Increased odometry in the position of the x-axis.
-	* @param odom_y_mod Increased odometry in the position of the x-axis.
-	* @param odom_z_mod Increased odometry in the position of the x-axis.
-	* @param odom_a_mod Increased odometry in the position of the x-axis.
 	* @param delta_x Thresholds of x-axis position in prediction.
 	* @param delta_y Thresholds of y-axis position in prediction.
-	* @param delta_z Thresholds of z-axis position in prediction.
-	* @param delta_a Thresholds of yaw angle orientation in prediction.
+	* @param delta_theta Thresholds of yaw angle orientation in prediction.
 	*
 	* It calculates the increase that has occurred in the odometry and makes predictions of where it is possible that the
 	* UAV is, taking into account selected thresholds.
    */
-	void predict(const double odom_x_mod, const double odom_y_mod, const double odom_z_mod,
-				const double odom_a_mod, const double delta_x, const double delta_y, const double delta_z,
-				const double delta_a);
+	void predict(const double delta_x, const double delta_y, const double delta_theta);
 
 	/** 
 	 * @brief This function implements the PF update stage.
 	*
-	* @param grid3d Instance of the Grid3d class.
-	* @param cloud Point cloud from the UAV view.
-	* @param range_data Information of the radio-range sensor.
-	* @param alpha Percentage weight between point cloud and range sensor.
-	* @param sigma Desviation in the measurement of the radio-range sensor.
+	* @param cloud Point cloud from the robot view.
 	*
-	* It takes the positions of the particles to change if they are on the map. Then, it evaluates the weight of the
-	* particle according to the point cloud and the measurement of the radio sensors. Finally, it normalizes the weights
-	* for all particles and finds the average for the composition of the UAV pose.
+	* It takes the positions of the particles to see if they are on the map. Then, it evaluates the weight of the
+	* particle according to the point cloud. Finally, it normalizes the weights
+	* for all particles and finds the average for the composition of the robot pose.
    */
-	void update(const Grid3d& grid3d, const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
-				const std::vector<Range>& range_data, const double alpha, const double sigma,
-				const double roll, const double pitch);
+	void update(LidarPointCloudConstPtr cloud_in);
 
-
+	float computeCloudWeight(LidarPointCloudConstPtr cloud, const vector<float> &measurements, 
+							 const float px, const float py, const float pth);
 
 
 
 	/**
-	 * @brief Predicts the state for the next time step using the process model.
-	 * @param delta_t: Time between time step t and t+1 in measurements [s]
-	 * @param std_pos[]: Array of dimension 3 [standard deviation of x [m],
-	 *																				 standard deviation of y [m],
-	 *   																       standard deviation of yaw [rad]]
-	 * @param velocity: Velocity of car from t to t+1 [m/s]
-	 * @param yaw_rate: Yaw rate of car from t to t+1 [rad/s]
+	 * @brief Resample particles - low variance
 	 */
-	void prediction(double delta_t, double std_pos[],
-									double velocity, double yaw_rate);
-
-	/**
-	 * @brief Updates the weights for each particle based on the likelihood of the
-	 * observed measurements.
-	 * @param sensor_range: Range [m] of sensor
-	 * @param std_landmark[]: Array of dimension 2 [standard deviation of range [m],
-	 *   																						standard deviation of bearing [rad]]
-	 * @param observations: Vector of landmark observations
-	 * @param map: Map class containing map landmarks
-	 */
-	void updateWeights(double sensor_range, double std_landmark[],
-										 vector<LandmarkObs> observations, Map map_landmarks);
-
-	/**
-	 * @brief Resample particles with replacement with probability proportional to weight
-	 */
-	void resample();
+	void resample(int num_to_sample);
 
 	void resample_basic();
 
@@ -165,9 +186,10 @@ public:
 	 */
 	void write(string filename);
 
+	void buildParticlesPoseMsg(geometry_msgs::PoseArray& msg) const;
+
 
 private:
-    std::vector<Particle> p_; /*!< Vector of particles */
     Particle mean_;           /*!< Particle to show the mean of all the particles */
 
     bool initialized_{ false }; /*!< To indicate the initialition of the filter */
@@ -193,20 +215,10 @@ private:
     */
     float rngUniform(const float range_from, const float range_to);
 
-	/*
-	 * Convert the passed in vehicle co-ordinates into map co-ordinates from
-	 * the perspective of the particle in question
-	 */
-	 LandmarkObs convertVehicleToMapCoords(LandmarkObs observationToConvert,
- 																				 Particle particle);
-	 /*
- 	 * Finds which observations correspond to which landmark
- 	 * (likely by using a nearest-neighbors data association).
- 	 * @param landmarks: List of landmarks
- 	 * @param observation: Current list of converted observation
- 	 */
-	vector<LandmarkObs> dataAssociation(vector<Map::single_landmark_s> landmarks,
-		 																	vector<LandmarkObs> observations);
+	void sampleParticlesUniform(const float from_x, const float from_y,
+                                            const float to_x, const float to_y,
+											const int num, vector<Particle> &out_particles);
+
 };
 
 

@@ -16,6 +16,10 @@ planned_path_topic: "/suitbot/planner/planned_path"
 lidar_original_topic: "/livox/lidar"
 lidar_sync_topic: "/suitbot/lidar"
 
+pf_particles_topic: "/suitbot/localization/particles"
+
+local_map_tooic: "/suitbot/planner/local_map"
+
 # for testing, decoupling audio
 course_idx: 1
 
@@ -46,3 +50,52 @@ keywords_map:
   - terminate 
   - end
   - stop
+
+global_frame_id: "world"
+
+voxel_size: 0.1
+
+fixed_height: -2.25  # this is the height of the lidar wrt the ground
+
+pf_update_rate: 10.0
+pf_resample_interval: 0.5
+pf_updata_dist_threshold: 1.0
+pf_updata_angle_threshold: 0.3
+
+pf_sigma_hit: 50.0
+pf_lambda_short: 0.1
+pf_max_range: 150.0
+pf_max_span: 5.0
+pf_z_hit: 10.0
+pf_z_short: 0.1
+pf_z_max: 0.1
+pf_z_rand: 100.0
+
+# pcd map transformation
+tx: 0.0 
+ty: 0.0
+tz: 0.0
+qx: 0.0
+qy: 0.0
+qz: 0.0
+qw: 1.0
+
+
+# local map parameters
+local_map_xmin: -10.0
+local_map_xmax: 10.0
+local_map_ymin: -10.0
+local_map_ymax: 10.0
+local_map_zmin: -2.0
+local_map_zmax: 10.0
+
+local_icp_dt_thresh: 1.0
+local_icp_dq_thresh: 0.5
+
+local_map_lookahead: 6.0
+
+global_map_resolution: 0.5
+local_map_resolution: 0.25
+
+obstacle_zmin: 0.2
+obstacle_zmax: 1.9

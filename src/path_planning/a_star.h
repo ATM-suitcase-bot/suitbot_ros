@@ -14,7 +14,7 @@ using namespace std;
 // data structure to store each state
 class Node {
 public:
-    pair<int, int> indices; // x_idx, y_idx
+    pair<int, int> indices; // x_idx: horizontal, y_idx: vertical
     Node *predecessor;
     double g;
     double h;

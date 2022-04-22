@@ -39,6 +39,7 @@
 #include "suitbot_ros/SetCourse.h"
 
 #include "../parameters.h"
+#include "../occupancy_map.h"
 
 using namespace std;
 
@@ -55,7 +56,6 @@ public:
 
     void set_goal_indices(int x_idx_, int y_idx_);
 
-    void coord_to_idx(const double &coord_x, const double &coord_y, int &idx_x,  int &idx_y);
 
     void updateVisualization();
 
@@ -82,19 +82,15 @@ public:
 
     double resolution = 0.5; // meter
 
-    vector<vector<int>> occupancy_map; // <0 is occupied, 255 is free space, 100 is bloated
-    int num_occupied_cells;
-
+    OccupancyMap map;
 
     vector<pair<double, double>> banked_steps;
 
-    int rows = 0, cols = 0;
 
     int path_cmd = -2;
     int counter_cmd = 0;
 
 
-    int initOccupancyGridMap(string map_file);
     void initializeSubscribers(); 
     void initializePublishers();
     
@@ -105,8 +101,6 @@ public:
 
     // visualization
     void initVisualization();
-
-    void bloat_obstacles();
 
     
     void get_successors(AugmentedNode &aug_node, vector<pair<int, int>> &successors);
