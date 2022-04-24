@@ -1,5 +1,4 @@
 #include "occupancy_map.h"
-#include <opencv2/opencv.hpp>
 
 
 OccupancyMap::OccupancyMap(string map_file)
@@ -152,4 +151,18 @@ vector<int> OccupancyMap::flatten()
         for (int j = 0; j < cols; j++)
             res.push_back(occupancy_map[i][j]);
     return res;
+}
+
+void OccupancyMap::toImageMsg(sensor_msgs::ImagePtr img_msg)
+{
+    std::vector<uint8_t> image;
+    for (int i = 0; i < rows; i++)
+        for (int j = 0; j < cols; j++)
+            image[i * cols + j] = (uint8_t)(unsigned int)occupancy_map[i][j];
+    img_msg->height = rows;
+    img_msg->width = cols;
+    img_msg->encoding = "mono8";
+    img_msg->is_bigendian = false;
+    img_msg->step = rows * cols;
+    img_msg->data = image;
 }

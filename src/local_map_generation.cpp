@@ -3,7 +3,7 @@
 
 
 LocalMapGenerator::LocalMapGenerator(ros::NodeHandle* nodehandle, parameters_t &_params) : 
-    nh(*nodehandle), params(_params), point_cloud_map(new LidarPointCloud)
+    nh(*nodehandle), params(_params), point_cloud_map(new LidarPointCloud), it(nh)
 {
     ROS_INFO("Initializing Local Map Generator...");
     loadPCDMap(params.pcd_file, point_cloud_map);
@@ -26,6 +26,7 @@ void LocalMapGenerator::initializePublishers()
 {
     ROS_INFO("Initializing Publishers");
     local_map_pub = nh.advertise<suitbot_ros::LocalMapMsg>(params.LOCAL_MAP_TOPIC, 1, true);
+    local_map_img_pub = it.advertise(params.LOCAL_MAP_IMAGE_TOPIC, 1, true);
 }
 
 
@@ -168,6 +169,9 @@ void LocalMapGenerator::pointcloud_callback(const sensor_msgs::PointCloud2ConstP
     map_msg.cells = local_occ_map.flatten();
     local_map_pub.publish(map_msg);
 
+    sensor_msgs::ImagePtr image;
+    local_occ_map.toImageMsg(image);
+    local_map_img_pub.publish(image);
 }
 
 int main(int argc, char **argv)

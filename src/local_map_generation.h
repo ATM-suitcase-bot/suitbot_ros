@@ -18,6 +18,7 @@
 #include <sensor_msgs/Image.h>
 #include <nav_msgs/Odometry.h>
 #include <visualization_msgs/Marker.h>
+#include <sensor_msgs/Image.h>
 
 #include <tf/tf.h>
 #include <tf_conversions/tf_eigen.h>
@@ -41,6 +42,9 @@
 
 #include <suitbot_ros/LocalMapMsg.h>
 
+#include <image_transport/image_transport.h>
+#include <opencv2/highgui/highgui.hpp>
+#include <cv_bridge/cv_bridge.h>
 
 class LocalMapGenerator
 {
@@ -55,6 +59,9 @@ public:
     ros::Subscriber pointcloud_sub;
     
     ros::Publisher local_map_pub;
+
+    image_transport::ImageTransport it;
+    image_transport::Publisher local_map_img_pub;
 
     int direction;
 

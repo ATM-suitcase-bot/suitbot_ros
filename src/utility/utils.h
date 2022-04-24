@@ -1,7 +1,7 @@
 #pragma once
 
 #include <math.h>
-
+#include <opencv2/opencv.hpp>
 
 using namespace std;
 using namespace Eigen;
@@ -83,3 +83,4 @@ void floodFill(vector<vector<int>> &arr, int r, int c, int x, int y, int obsC, i
     if (arr[x][y] == obsC) return;
     floodFillUtil(arr, r, c, x, y, obsC, newC);
 }
+

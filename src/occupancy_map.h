@@ -5,8 +5,10 @@
 #include <stdlib.h>
 #include <string>
 #include <vector>
-
+#include <sensor_msgs/Image.h>
 #include <iostream>
+
+#include <opencv2/opencv.hpp>
 
 using namespace std;
 
@@ -48,6 +50,8 @@ public:
     bool isInMap(const float &px, const float &py);
 
     vector<int> flatten();
+
+    void toImageMsg(sensor_msgs::ImagePtr img_msg);
 
 };
 

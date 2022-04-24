@@ -19,6 +19,7 @@ lidar_sync_topic: "/suitbot/lidar"
 pf_particles_topic: "/suitbot/localization/particles"
 
 local_map_tooic: "/suitbot/planner/local_map"
+local_map_image_topic: "/suitbot/planner/local_map_image"
 
 # for testing, decoupling audio
 course_idx: 2

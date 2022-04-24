@@ -66,6 +66,8 @@ typedef struct params
 
     string LOCAL_MAP_TOPIC;
 
+    string LOCAL_MAP_IMAGE_TOPIC;
+
     // for localization
     // string base_frame_id;   /*!< Name of the robot TF */
     // string odom_frame_id;   /*!< Name of the flight origin of the robot TF */
@@ -148,6 +150,7 @@ typedef struct params
         LIDAR_SYNC_TOPIC = readParam<string>(n, "lidar_sync_topic");
 
         LOCAL_MAP_TOPIC = readParam<string>(n, "local_map_topic");
+        LOCAL_MAP_IMAGE_TOPIC = readParam<string>(n, "local_map_image_topic");
 
         // command types
         auto state_map = readParam<XmlRpc::XmlRpcValue>(n, "states_map");
