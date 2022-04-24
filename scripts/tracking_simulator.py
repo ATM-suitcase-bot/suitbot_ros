@@ -27,7 +27,7 @@ Kp = 1.0  # speed proportional gain
 Ki = 0.0  # speed integral gain
 Kd = 0.0  # speed differential gain
 dt = 0.1  # [s] time tick
-WB = 0.23  # [m] wheel base of vehicle
+WB = 0.20  # [m] wheel base of vehicle
 
 show_animation = True
 
@@ -242,6 +242,7 @@ class TrackingSimulator:
                     pt = Point(self.state.x - self.target_course.cx[0], self.state.y - self.target_course.cy[0], 0)
                 # np array of x y z w
                 q = quaternion_about_axis(self.state.yaw, (0,0,1))
+                #print(self.state.yaw)
                 ang = Quaternion(q[0], q[1], q[2], q[3])
                 msg_out.pose.pose = Pose(pt, ang)
                 linear = Vector3(0.0, 0.0, 0.0)

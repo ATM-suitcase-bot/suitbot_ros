@@ -137,6 +137,8 @@ add_executable(local_map_generator
   src/utility/pcl_utils.cpp
 )
 
+
+
 target_link_libraries(local_map_generator
 ${catkin_LIBRARIES} 
 ${PCL_LIBRARIES} 
@@ -145,6 +147,19 @@ ${PCL_IO_LIBRARIES}
 ${PCL_VISUALIZATION_LIBRARIES}
 ${OpenCV_LIBS})
 
+add_executable(lidar_parse
+  src/lidar_parse.cpp
+  src/occupancy_map.cpp
+  src/lidar.cpp
+  src/utility/pcl_utils.cpp
+)
 
 
+target_link_libraries(lidar_parse
+${catkin_LIBRARIES} 
+${PCL_LIBRARIES} 
+${PCL_COMMON_LIBRARIES} 
+${PCL_IO_LIBRARIES} 
+${PCL_VISUALIZATION_LIBRARIES}
+${OpenCV_LIBS})
 
