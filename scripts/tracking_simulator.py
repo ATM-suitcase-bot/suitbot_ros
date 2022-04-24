@@ -210,7 +210,7 @@ class TrackingSimulator:
         self.lastIndex = None
         self.dt = 0.1
         self.r = rospy.Rate(1.0/self.dt)
-        self.target_speed = 0.5  # [m/s]
+        self.target_speed = 0.6  # [m/s]
         self.T = 10000.0  # max simulation time
         self.t_prev = rospy.Time.now().to_sec()
 

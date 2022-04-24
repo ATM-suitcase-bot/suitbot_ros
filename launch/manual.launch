@@ -3,17 +3,17 @@
 
     <arg name="use_rviz"  default="true"/> 
 
-    <arg name="manual_control"        default="false"/> 
+    <arg name="manual_control"        default="true"/> 
     <param name="manual_control"      type="bool"   value="$(arg manual_control)"/>
 
-    <arg name="debug_odometry"        default="true"/> 
+    <arg name="debug_odometry"        default="false"/> 
     <param name="debug_odometry"      type="bool"   value="$(arg debug_odometry)"/>
-    <arg name="debug_time"            default="4.5"/> 
+    <arg name="debug_time"            default="5.0"/> 
     <param name="debug_time"          type="double"   value="$(arg debug_time)"/>
 
-        <arg name="debug_linear"          default="0.6"/> 
+        <arg name="debug_linear"          default="0.5"/> 
         <param name="debug_linear"        type="double"   value="$(arg debug_linear)"/>
-        <arg name="debug_angular"         default="0.4"/> 
+        <arg name="debug_angular"         default="0.0"/> 
         <param name="debug_angular"              type="double"   value="$(arg debug_angular)"/>
 
         <arg name="init_x"                default="0.0"/> 
@@ -31,8 +31,7 @@
 
     <arg name="use_serial"            default="true"/> 
     <param name="use_serial"           type="bool"   value="$(arg use_serial)"/>
-    
-	<param name="map_file" value="$(find suitbot_ros)/data/wean_map_grid_edited.jpg"/>
+    <param name="map_file" value="$(find suitbot_ros)/data/wean_map_grid_edited.jpg"/>
     <param name="model_path" value="$(find suitbot_ros)/scripts/audio/vosk-model-small-en-us-0.15"/>
 
     <node name="job_management" pkg="suitbot_ros" type="job_management" output="screen"/>
