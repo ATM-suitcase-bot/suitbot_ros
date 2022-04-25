@@ -29,7 +29,6 @@ Kp = 1.0  # speed proportional gain
 Ki = 0.0  # speed integral gain
 Kd = 0.0  # speed differential gain
 dt = 0.1  # [s] time tick
-WB = 0.20  # [m] wheel base of vehicle
 
 show_animation = True
 
@@ -37,24 +36,11 @@ prev_error = 0.0
 total_error = 0.0
 
 class State:
-
     def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0):
         self.x = x
         self.y = y
         self.yaw = yaw
         self.v = v
-        # TODO if we only have the rear wheels
-        self.rear_x = self.x - ((WB / 2) * math.cos(self.yaw))
-        self.rear_y = self.y - ((WB / 2) * math.sin(self.yaw))
-
-    # for simulating the next state
-    def update(self, a, delta):
-        self.x += self.v * math.cos(self.yaw) * dt
-        self.y += self.v * math.sin(self.yaw) * dt
-        self.yaw += self.v / WB * math.tan(delta) * dt
-        self.v += a * dt
-        self.rear_x = self.x #- ((WB / 2) * math.cos(self.yaw))
-        self.rear_y = self.y #- ((WB / 2) * math.sin(self.yaw))
         
     # if we have the encoder reading
     def update_actual(self, v, w, d_t):
@@ -79,21 +65,13 @@ class State:
         self.y += d_t / 6.0 * (k01 + 2 * (k11 + k21) + k31)
         self.yaw += d_t / 6.0 * (k02 + 2 * (k12 + k22) + k32)
 
-        self.rear_x = self.x
-        self.rear_y = self.y
-
-
-
-
-
     def calc_distance(self, point_x, point_y):
-        dx = self.rear_x - point_x
-        dy = self.rear_y - point_y
+        dx = self.x - point_x
+        dy = self.y - point_y
         return math.hypot(dx, dy)
 
 
 class States:
-
     def __init__(self):
         self.x = []
         self.y = []
@@ -129,8 +107,8 @@ class TargetCourse:
         # To speed up nearest point search, doing it at only first time.
         if self.old_nearest_point_index is None:
             # search nearest point index
-            dx = [state.rear_x - icx for icx in self.cx]
-            dy = [state.rear_y - icy for icy in self.cy]
+            dx = [state.x - icx for icx in self.cx]
+            dy = [state.y - icy for icy in self.cy]
             d = np.hypot(dx, dy)
             ind = np.argmin(d)
             self.old_nearest_point_index = ind
@@ -172,9 +150,9 @@ def pure_pursuit_steer_control(state, trajectory, pind):
         ty = trajectory.cy[-1]
         ind = len(trajectory.cx) - 1
 
-    alpha = math.atan2(ty - state.rear_y, tx - state.rear_x) - state.yaw
+    alpha = math.atan2(ty - state.y, tx - state.x) - state.yaw
 
-    delta = math.atan2(2.0 * WB * math.sin(alpha) / Lf, 1.0)
+    delta = math.atan2(2.0 * 0.2 * math.sin(alpha) / Lf, 1.0)
 
     return delta, ind
 
