@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # Modified from https://github.com/AtsushiSakai/PythonRobotics/blob/master/PathTracking/pure_pursuit/pure_pursuit.py
 
@@ -228,7 +228,15 @@ class TrackingSimulator:
         raw_arr = np.reshape(msg_in.cells, im_dims)
        
         raw_arr = raw_arr.astype(np.uint8)
-        self.obs_pub.publish(CvBridge().cv2_to_imgmsg(raw_arr))
+        raw_arr = np.stack([raw_arr, raw_arr, raw_arr], axis=2)
+        
+        #render pixel robot currently occupies
+        raw_arr[robot_pos[0], robot_pos[1], :] = [0, 0, 255]
+        
+        #render goal pixel in the robot's space
+        #print(self.target_course[self.target_ind])
+
+        self.obs_pub.publish(CvBridge().cv2_to_imgmsg(np.flip(np.flip(raw_arr, axis=0), axis=1)))
         #print('obstacle observed')
         #print(np.shape(raw_arr))
 
