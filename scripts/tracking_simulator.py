@@ -14,7 +14,9 @@ from tf.transformations import quaternion_about_axis
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, TwistStamped, Vector3, PoseWithCovariance, TwistWithCovariance
 from suitbot_ros.srv import SetCourse
 from suitbot_ros.msg import TwoFloats
-
+from suitbot_ros.msg import LocalMapMsg
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
 import sys, os.path
 script_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(script_dir)
@@ -195,11 +197,15 @@ class TrackingSimulator:
     def __init__(self):
         self.counter = 0
         self.ctrl_pub = rospy.Publisher(parameters.ctrl_topic, Odometry, queue_size=10)
+        self.obs_pub = rospy.Publisher("/suitbot/obs_py_im", Image, queue_size=10)
         #self.odom_pub = rospy.Publisher("/suitbot/odom", Odometry, queue_size=10)
         #self.number_subscriber = rospy.Subscriber("/number", Int64, self.callback_number)
         self.twist_sub = rospy.Subscriber(parameters.encoder_topic, TwistStamped, self.callback_update)
         self.path_service = rospy.Service(parameters.reset_path_service, SetCourse, self.callback_reset_course)
         self.force_sub = rospy.Subscriber(parameters.force_topic, TwoFloats, self.callback_force)
+        
+        self.obs_sub = rospy.Subscriber("/suitbot/local_obs", LocalMapMsg, self.callback_obs)
+
         self.target_course = None
         self.time = 0.0
         self.state = None
@@ -214,6 +220,17 @@ class TrackingSimulator:
         self.T = 10000.0  # max simulation time
         self.t_prev = rospy.Time.now().to_sec()
 
+
+    def callback_obs(self, msg_in):
+        im_dims = [msg_in.rows, msg_in.cols]
+        robot_pos = [msg_in.robot_x_idx, msg_in.robot_y_idx]
+
+        raw_arr = np.reshape(msg_in.cells, im_dims)
+       
+        raw_arr = raw_arr.astype(np.uint8)
+        self.obs_pub.publish(CvBridge().cv2_to_imgmsg(raw_arr))
+        #print('obstacle observed')
+        #print(np.shape(raw_arr))
 
     def callback_force(self, msg_in):
         force1 = msg_in.float1

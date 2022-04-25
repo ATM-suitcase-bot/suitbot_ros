@@ -38,6 +38,10 @@
 
 #include <suitbot_ros/LocalMapMsg.h>
 
+#include <image_transport/image_transport.h>
+#include <opencv2/highgui/highgui.hpp>
+#include <cv_bridge/cv_bridge.h>
+
 
 class LidarParse
 {
@@ -50,7 +54,10 @@ public:
     
     ros::Subscriber pointcloud_sub;
     ros::Publisher local_map_pub;
-
+    
+    image_transport::ImageTransport it;
+    image_transport::Publisher local_map_img_pub;
+    
     LidarPointCloudPtr point_cloud_map;
 
     void initializeSubscribers(); 

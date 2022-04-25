@@ -1,7 +1,8 @@
 #include "lidar_parse.h"
 
 LidarParse::LidarParse(ros::NodeHandle* nodehandle, parameters_t &_params) : 
-    nh(*nodehandle), params(_params), point_cloud_map(new LidarPointCloud)
+    nh(*nodehandle), params(_params), point_cloud_map(new LidarPointCloud), it(nh)
+
 {
     ROS_INFO("Initializing Local Map Generator...");
     // transform raw pcd to align with our world coordinate
@@ -22,6 +23,8 @@ void LidarParse::initializePublishers()
 {
     ROS_INFO("Initializing Publishers");
     local_map_pub = nh.advertise<suitbot_ros::LocalMapMsg>("/suitbot/local_obs", 1, true);
+    local_map_img_pub = it.advertise("/suitbot/local_img", 1, true);
+
 }
 
 
@@ -84,6 +87,10 @@ void LidarParse::pointcloud_callback(const sensor_msgs::PointCloud2ConstPtr &msg
     map_msg.cells = local_occ_map.flatten();
     local_map_pub.publish(map_msg);
 
+    //sensor_msgs::ImagePtr image;
+    //local_occ_map.toImageMsg(image);
+    //local_map_img_pub.publish(image);
+
 }
 
 int main(int argc, char **argv)
@@ -101,3 +108,4 @@ int main(int argc, char **argv)
     ros::spin();
     return 0;
 }
+

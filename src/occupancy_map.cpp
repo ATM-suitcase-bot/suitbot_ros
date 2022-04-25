@@ -1,6 +1,5 @@
 #include "occupancy_map.h"
 
-
 OccupancyMap::OccupancyMap(string map_file)
 {
     int res = initOccupancyGridMap(map_file);
@@ -111,9 +110,9 @@ void OccupancyMap::bloat_obstacles()
         }
     }
     num_free_cells -= num_bloated_cells;
-    std::cout << "Number of free cells: " << num_free_cells << std::endl;
-    std::cout << "Number of occupied cells: " << num_occupied_cells << std::endl;
-    std::cout << "Number of bloated cells: " << num_bloated_cells << std::endl;
+    //std::cout << "Number of free cells: " << num_free_cells << std::endl;
+    //std::cout << "Number of occupied cells: " << num_occupied_cells << std::endl;
+    //std::cout << "Number of bloated cells: " << num_bloated_cells << std::endl;
 }
 
 
@@ -155,14 +154,18 @@ vector<int> OccupancyMap::flatten()
 
 void OccupancyMap::toImageMsg(sensor_msgs::ImagePtr img_msg)
 {
+    cout << "attempting to convert to img msg";
     std::vector<uint8_t> image;
     for (int i = 0; i < rows; i++)
-        for (int j = 0; j < cols; j++)
+        for (int j = 0; j < cols; j++){
             image[i * cols + j] = (uint8_t)(unsigned int)occupancy_map[i][j];
+            //image.push_back((uint8_t)(unsigned int)occupancy_map[i][j]);
+        }
     img_msg->height = rows;
     img_msg->width = cols;
     img_msg->encoding = "mono8";
     img_msg->is_bigendian = false;
     img_msg->step = rows * cols;
     img_msg->data = image;
+
 }
