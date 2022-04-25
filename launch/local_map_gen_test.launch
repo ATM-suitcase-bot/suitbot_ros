@@ -36,6 +36,7 @@
     <param name="model_path" value="$(find suitbot_ros)/scripts/audio/vosk-model-small-en-us-0.15"/>
 
     
+    <node name="lidar_driver" pkg="suitbot_ros" type="lidar_driver.py" output="screen"/>
     <node name="lidar_parse" pkg="suitbot_ros" type="lidar_parse" output="screen"/>
     <node name="tracking_simulator" pkg="suitbot_ros" type="tracking_simulator.py" output="screen"/>
     

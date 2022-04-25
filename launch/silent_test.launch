@@ -6,7 +6,7 @@
     <arg name="manual_control"        default="false"/> 
     <param name="manual_control"      type="bool"   value="$(arg manual_control)"/>
 
-    <arg name="debug_odometry"        default="true"/> 
+    <arg name="debug_odometry"        default="false"/> 
     <param name="debug_odometry"      type="bool"   value="$(arg debug_odometry)"/>
     <arg name="debug_time"            default="4.5"/> 
     <param name="debug_time"          type="double"   value="$(arg debug_time)"/>

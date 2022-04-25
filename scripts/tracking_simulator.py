@@ -104,7 +104,7 @@ class TargetCourse:
             if (ind + 1) >= len(self.cx):
                 break  # not exceed goal
             ind += 1
-
+        #print(ind, len(self.cx))
         return ind, Lf
 
 
@@ -182,7 +182,9 @@ class TrackingSimulator:
         raw_arr[robot_pos[0], robot_pos[1], :] = [0, 0, 255]
         
         #render goal pixel in the robot's space
-        #print(self.target_course[self.target_ind])
+        relative_x = self.target_course.cx[self.target_ind] - self.state.x
+        relative_y = self.target_course.cy[self.target_ind] - self.state.y
+        print(relative_x, relative_y, self.state.yaw)
 
         self.obs_pub.publish(CvBridge().cv2_to_imgmsg(np.flip(np.flip(raw_arr, axis=0), axis=1)))
         #print('obstacle observed')
@@ -237,7 +239,6 @@ class TrackingSimulator:
             cx[i] = point.x
             cy[i] = point.y
         self.target_course = TargetCourse(cx, cy)
-
         path_cmd = req.path_cmd
         # initial state
         
