@@ -8,7 +8,6 @@ import math
 import matplotlib.pyplot as plt
 import rospy
 import tf
-import time
 from nav_msgs.msg import Odometry
 from tf.transformations import quaternion_about_axis
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, TwistStamped, Vector3, PoseWithCovariance, TwistWithCovariance
@@ -26,14 +25,6 @@ from parameters import Parameters
 k = 0.1  # look forward gain
 Lfc = 1.0  # [m] look-ahead distance
 Kp = 1.0  # speed proportional gain
-Ki = 0.0  # speed integral gain
-Kd = 0.0  # speed differential gain
-dt = 0.1  # [s] time tick
-
-show_animation = True
-
-prev_error = 0.0
-total_error = 0.0
 
 class State:
     def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0):
@@ -71,30 +62,11 @@ class State:
         return math.hypot(dx, dy)
 
 
-class States:
-    def __init__(self):
-        self.x = []
-        self.y = []
-        self.yaw = []
-        self.v = []
-        self.t = []
-
-    def append(self, t, state):
-        self.x.append(state.x)
-        self.y.append(state.y)
-        self.yaw.append(state.yaw)
-        self.v.append(state.v)
-        self.t.append(t)
-
-
+#Actually just p control- is pretty good for path tracking
 def pid_control(target, current, dt):
-    global prev_error, total_error
     cur_error = target - current
-    a = Kp * (cur_error) + Kd * (cur_error - prev_error) / dt + Ki * total_error * dt
-    prev_error = cur_error
-    total_error += cur_error
+    a = Kp * (cur_error)
     return a
-
 
 class TargetCourse:
 
@@ -177,7 +149,7 @@ class TrackingSimulator:
         self.ctrl_pub = rospy.Publisher(parameters.ctrl_topic, Odometry, queue_size=10)
         self.obs_pub = rospy.Publisher("/suitbot/obs_py_im", Image, queue_size=10)
         #self.odom_pub = rospy.Publisher("/suitbot/odom", Odometry, queue_size=10)
-        #self.number_subscriber = rospy.Subscriber("/number", Int64, self.callback_number)
+
         self.twist_sub = rospy.Subscriber(parameters.encoder_topic, TwistStamped, self.callback_update)
         self.path_service = rospy.Service(parameters.reset_path_service, SetCourse, self.callback_reset_course)
         self.force_sub = rospy.Subscriber(parameters.force_topic, TwoFloats, self.callback_force)
@@ -189,7 +161,6 @@ class TrackingSimulator:
         self.state = None
         if (parameters.manual_control == True or parameters.debug_odometry == True):
             self.state = State(x=parameters.init_x, y=parameters.init_y, yaw=parameters.init_theta, v=0.0)
-        self.states = States()
         self.target_ind = None
         self.lastIndex = None
         self.dt = 0.1
@@ -278,8 +249,6 @@ class TrackingSimulator:
         elif path_cmd == 2:
             self.state = State(x=cx[0], y=cy[0], yaw=3.14, v=0.0)
 
-        #self.states.append(self.time, self.state)
-
         self.target_ind, _ = self.target_course.search_target_index(self.state)
         self.lastIndex = l - 1
         rospy.loginfo("Tracking simulator: Reset success")
@@ -291,7 +260,6 @@ class TrackingSimulator:
         while parameters.manual_control == False and self.target_course == None and not rospy.is_shutdown():
             self.r.sleep()
         rospy.loginfo("Tracking simulator: start simulator")
-
        
         if (parameters.manual_control == False and parameters.debug_odometry == False): # not manually controlling
             t_init = rospy.Time.now().to_sec()
@@ -301,9 +269,6 @@ class TrackingSimulator:
                 ai = pid_control(self.target_speed, self.state.v, self.dt)
                 di, self.target_ind = pure_pursuit_steer_control(
                     self.state, self.target_course, self.target_ind)
-
-                # TODO add noise to the control
-                #self.state.update(ai, di)  # Execute control and update vehicle state
 
                 msg_out = Odometry()
                 msg_out.header.stamp = rospy.Time.now()
@@ -319,7 +284,6 @@ class TrackingSimulator:
                 
                 self.r.sleep()
                 t_cur = rospy.Time.now().to_sec()
-                #self.states.append(t_cur, self.state)
 
             if self.lastIndex >= self.target_ind:
                 msg_out = Odometry()
