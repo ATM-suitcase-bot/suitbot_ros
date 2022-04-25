@@ -5,9 +5,7 @@
 import imp
 import numpy as np
 import math
-import matplotlib.pyplot as plt
 import rospy
-import tf
 from nav_msgs.msg import Odometry
 from tf.transformations import quaternion_about_axis
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, TwistStamped, Vector3, PoseWithCovariance, TwistWithCovariance
@@ -15,11 +13,11 @@ from suitbot_ros.srv import SetCourse
 from suitbot_ros.msg import TwoFloats
 from suitbot_ros.msg import LocalMapMsg
 from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
 import sys, os.path
 script_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(script_dir)
 from parameters import Parameters
+from local_planner import PathPerturb
 
 # Parameters
 k = 0.1  # look forward gain
@@ -129,20 +127,6 @@ def pure_pursuit_steer_control(state, trajectory, pind):
     return delta, ind
 
 
-def plot_arrow(x, y, yaw, length=1.0, width=0.5, fc="r", ec="k"):
-    """
-    Plot arrow
-    """
-
-    if not isinstance(x, float):
-        for ix, iy, iyaw in zip(x, y, yaw):
-            plot_arrow(ix, iy, iyaw)
-    else:
-        plt.arrow(x, y, length * math.cos(yaw), length * math.sin(yaw),
-                  fc=fc, ec=ec, head_width=width, head_length=width)
-        plt.plot(x, y)
-
-
 class TrackingSimulator:
     def __init__(self):
         self.counter = 0
@@ -168,7 +152,9 @@ class TrackingSimulator:
         self.T = 10000.0  # max simulation time
         self.t_prev = rospy.Time.now().to_sec()
 
+        self.path_perturb = PathPerturb
 
+    #Callback on obstacle avoidance (local)
     def callback_obs(self, msg_in):
         im_dims = [msg_in.rows, msg_in.cols]
         robot_pos = [msg_in.robot_x_idx, msg_in.robot_y_idx]
@@ -179,17 +165,21 @@ class TrackingSimulator:
         raw_arr = np.stack([raw_arr, raw_arr, raw_arr], axis=2)
         
         #render pixel robot currently occupies
-        raw_arr[robot_pos[0], robot_pos[1], :] = [0, 0, 255]
+        raw_arr[robot_pos[0], robot_pos[1], :] = [0, 0, 255] #robot is red
         
         #render goal pixel in the robot's space
         relative_x = self.target_course.cx[self.target_ind] - self.state.x
         relative_y = self.target_course.cy[self.target_ind] - self.state.y
-        print(relative_x, relative_y, self.state.yaw)
+
+        #convert goal point into pixel in local map
+        [local_x, local_y] = self.path_perturb.rot_point([relative_x, relative_y], -1*self.state.yaw)
+        [pix_x, pix_y] = self.path_perturb.get_pix_ind([local_x, local_y], robot_pos)
+        print(local_x, local_y)
+        raw_arr[pix_x, pix_y, :] = [0, 255, 0] #goal is green
 
         self.obs_pub.publish(CvBridge().cv2_to_imgmsg(np.flip(np.flip(raw_arr, axis=0), axis=1)))
-        #print('obstacle observed')
-        #print(np.shape(raw_arr))
 
+    #Callback on force feedback
     def callback_force(self, msg_in):
         force1 = msg_in.float1
         force2 = msg_in.float2
@@ -198,9 +188,8 @@ class TrackingSimulator:
         global Lfc
         # cap it to (1, 3)
         Lfc = max(1.0, 1.0 + (self.target_speed - 0.5) * 2 / 0.5)
-        
-        
 
+    #Callback on odometry
     def callback_update(self, msg_in):
         try:
             v = msg_in.twist.linear.x
@@ -227,6 +216,7 @@ class TrackingSimulator:
         except:
             rospy.logwarn_throttle_identical(5, "Tracking simulator: bad update_callback")
 
+    #Callback on replanning, new course
     def callback_reset_course(self, req):
         rospy.loginfo("Tracking simulator: Resetting course..")
         if (parameters.manual_control == True):
