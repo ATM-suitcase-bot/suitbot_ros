@@ -171,7 +171,7 @@ void LocalMapGenerator::pointcloud_callback(const sensor_msgs::PointCloud2ConstP
 
     sensor_msgs::ImagePtr image;
     local_occ_map.toImageMsg(image);
-    local_map_img_pub.publish(image);
+    local_map_img_pub.publish(*image);
 }
 
 int main(int argc, char **argv)

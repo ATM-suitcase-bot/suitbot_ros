@@ -163,3 +163,36 @@ ${PCL_IO_LIBRARIES}
 ${PCL_VISUALIZATION_LIBRARIES}
 ${OpenCV_LIBS})
 
+add_executable(combine_pcd
+  src/combine_pcd.cpp
+  src/occupancy_map.cpp
+  src/lidar.cpp
+  src/utility/pcl_utils.cpp
+)
+
+
+target_link_libraries(combine_pcd
+${catkin_LIBRARIES} 
+${PCL_LIBRARIES} 
+${PCL_COMMON_LIBRARIES} 
+${PCL_IO_LIBRARIES} 
+${PCL_VISUALIZATION_LIBRARIES}
+${OpenCV_LIBS}
+)
+
+add_executable(unit_test
+  src/test.cpp
+  src/occupancy_map.cpp
+  src/lidar.cpp
+  src/utility/pcl_utils.cpp
+)
+
+
+target_link_libraries(unit_test
+${catkin_LIBRARIES} 
+${PCL_LIBRARIES} 
+${PCL_COMMON_LIBRARIES} 
+${PCL_IO_LIBRARIES} 
+${PCL_VISUALIZATION_LIBRARIES}
+${OpenCV_LIBS}
+)

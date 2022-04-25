@@ -158,8 +158,8 @@ void OccupancyMap::toImageMsg(sensor_msgs::ImagePtr img_msg)
     std::vector<uint8_t> image;
     for (int i = 0; i < rows; i++)
         for (int j = 0; j < cols; j++){
-            image[i * cols + j] = (uint8_t)(unsigned int)occupancy_map[i][j];
-            //image.push_back((uint8_t)(unsigned int)occupancy_map[i][j]);
+            //image[i * cols + j] = (uint8_t)(unsigned int)occupancy_map[i][j];
+            image.push_back((uint8_t)(unsigned int)occupancy_map[i][j]);
         }
     img_msg->height = rows;
     img_msg->width = cols;

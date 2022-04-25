@@ -60,7 +60,7 @@ void bound_2d_array(vector<vector<int>> &arr, int value)
 void floodFillUtil(vector<vector<int>> &arr, int r, int c, int x, int y, int obsC, int newC)
 {
     // Base cases
-    if (x < 0 || x >= r || y < 0 || y >= r)
+    if (x < 0 || x >= r || y < 0 || y >= c)
         return;
     if (arr[x][y] == obsC)
         return;
