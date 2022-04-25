@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # Modified from https://github.com/AtsushiSakai/PythonRobotics/blob/master/PathTracking/pure_pursuit/pure_pursuit.py
 
@@ -8,7 +8,6 @@ import math
 import matplotlib.pyplot as plt
 import rospy
 import tf
-import time
 from nav_msgs.msg import Odometry
 from tf.transformations import quaternion_about_axis
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, TwistStamped, Vector3, PoseWithCovariance, TwistWithCovariance
@@ -26,35 +25,13 @@ from parameters import Parameters
 k = 0.1  # look forward gain
 Lfc = 1.0  # [m] look-ahead distance
 Kp = 1.0  # speed proportional gain
-Ki = 0.0  # speed integral gain
-Kd = 0.0  # speed differential gain
-dt = 0.1  # [s] time tick
-WB = 0.20  # [m] wheel base of vehicle
-
-show_animation = True
-
-prev_error = 0.0
-total_error = 0.0
 
 class State:
-
     def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0):
         self.x = x
         self.y = y
         self.yaw = yaw
         self.v = v
-        # TODO if we only have the rear wheels
-        self.rear_x = self.x - ((WB / 2) * math.cos(self.yaw))
-        self.rear_y = self.y - ((WB / 2) * math.sin(self.yaw))
-
-    # for simulating the next state
-    def update(self, a, delta):
-        self.x += self.v * math.cos(self.yaw) * dt
-        self.y += self.v * math.sin(self.yaw) * dt
-        self.yaw += self.v / WB * math.tan(delta) * dt
-        self.v += a * dt
-        self.rear_x = self.x #- ((WB / 2) * math.cos(self.yaw))
-        self.rear_y = self.y #- ((WB / 2) * math.sin(self.yaw))
         
     # if we have the encoder reading
     def update_actual(self, v, w, d_t):
@@ -79,44 +56,17 @@ class State:
         self.y += d_t / 6.0 * (k01 + 2 * (k11 + k21) + k31)
         self.yaw += d_t / 6.0 * (k02 + 2 * (k12 + k22) + k32)
 
-        self.rear_x = self.x
-        self.rear_y = self.y
-
-
-
-
-
     def calc_distance(self, point_x, point_y):
-        dx = self.rear_x - point_x
-        dy = self.rear_y - point_y
+        dx = self.x - point_x
+        dy = self.y - point_y
         return math.hypot(dx, dy)
 
 
-class States:
-
-    def __init__(self):
-        self.x = []
-        self.y = []
-        self.yaw = []
-        self.v = []
-        self.t = []
-
-    def append(self, t, state):
-        self.x.append(state.x)
-        self.y.append(state.y)
-        self.yaw.append(state.yaw)
-        self.v.append(state.v)
-        self.t.append(t)
-
-
+#Actually just p control- is pretty good for path tracking
 def pid_control(target, current, dt):
-    global prev_error, total_error
     cur_error = target - current
-    a = Kp * (cur_error) + Kd * (cur_error - prev_error) / dt + Ki * total_error * dt
-    prev_error = cur_error
-    total_error += cur_error
+    a = Kp * (cur_error)
     return a
-
 
 class TargetCourse:
 
@@ -129,8 +79,8 @@ class TargetCourse:
         # To speed up nearest point search, doing it at only first time.
         if self.old_nearest_point_index is None:
             # search nearest point index
-            dx = [state.rear_x - icx for icx in self.cx]
-            dy = [state.rear_y - icy for icy in self.cy]
+            dx = [state.x - icx for icx in self.cx]
+            dy = [state.y - icy for icy in self.cy]
             d = np.hypot(dx, dy)
             ind = np.argmin(d)
             self.old_nearest_point_index = ind
@@ -172,9 +122,9 @@ def pure_pursuit_steer_control(state, trajectory, pind):
         ty = trajectory.cy[-1]
         ind = len(trajectory.cx) - 1
 
-    alpha = math.atan2(ty - state.rear_y, tx - state.rear_x) - state.yaw
+    alpha = math.atan2(ty - state.y, tx - state.x) - state.yaw
 
-    delta = math.atan2(2.0 * WB * math.sin(alpha) / Lf, 1.0)
+    delta = math.atan2(2.0 * 0.2 * math.sin(alpha) / Lf, 1.0)
 
     return delta, ind
 
@@ -198,8 +148,7 @@ class TrackingSimulator:
         self.counter = 0
         self.ctrl_pub = rospy.Publisher(parameters.ctrl_topic, Odometry, queue_size=10)
         self.obs_pub = rospy.Publisher("/suitbot/obs_py_im", Image, queue_size=10)
-        #self.odom_pub = rospy.Publisher("/suitbot/odom", Odometry, queue_size=10)
-        #self.number_subscriber = rospy.Subscriber("/number", Int64, self.callback_number)
+
         self.twist_sub = rospy.Subscriber(parameters.encoder_topic, TwistStamped, self.callback_update)
         self.path_service = rospy.Service(parameters.reset_path_service, SetCourse, self.callback_reset_course)
         self.force_sub = rospy.Subscriber(parameters.force_topic, TwoFloats, self.callback_force)
@@ -211,7 +160,6 @@ class TrackingSimulator:
         self.state = None
         if (parameters.manual_control == True or parameters.debug_odometry == True):
             self.state = State(x=parameters.init_x, y=parameters.init_y, yaw=parameters.init_theta, v=0.0)
-        self.states = States()
         self.target_ind = None
         self.lastIndex = None
         self.dt = 0.1
@@ -228,7 +176,15 @@ class TrackingSimulator:
         raw_arr = np.reshape(msg_in.cells, im_dims)
        
         raw_arr = raw_arr.astype(np.uint8)
-        self.obs_pub.publish(CvBridge().cv2_to_imgmsg(raw_arr))
+        raw_arr = np.stack([raw_arr, raw_arr, raw_arr], axis=2)
+        
+        #render pixel robot currently occupies
+        raw_arr[robot_pos[0], robot_pos[1], :] = [0, 0, 255]
+        
+        #render goal pixel in the robot's space
+        #print(self.target_course[self.target_ind])
+
+        self.obs_pub.publish(CvBridge().cv2_to_imgmsg(np.flip(np.flip(raw_arr, axis=0), axis=1)))
         #print('obstacle observed')
         #print(np.shape(raw_arr))
 
@@ -292,20 +248,29 @@ class TrackingSimulator:
         elif path_cmd == 2:
             self.state = State(x=cx[0], y=cy[0], yaw=3.14, v=0.0)
 
-        #self.states.append(self.time, self.state)
-
         self.target_ind, _ = self.target_course.search_target_index(self.state)
         self.lastIndex = l - 1
         rospy.loginfo("Tracking simulator: Reset success")
         return True
 
+    def getOdoOut(self, ai, di):
+        msg_out = Odometry()
+        msg_out.header.stamp = rospy.Time.now()
+        pt = Point(self.state.x, self.state.y, 0)
+        # np array of x y z w
+        q = quaternion_about_axis(self.state.yaw, (0,0,1))
+        ang = Quaternion(q[0], q[1], q[2], q[3])
+        msg_out.pose.pose = Pose(pt, ang)
+        linear = Vector3(ai, 0.0, 0.0)
+        angular = Vector3(0.0, 0.0, di)
+        msg_out.twist.twist = Twist(linear, angular)
+        return msg_out
 
     def loop(self):
         rospy.loginfo("Tracking simulator: entering loop")
         while parameters.manual_control == False and self.target_course == None and not rospy.is_shutdown():
             self.r.sleep()
         rospy.loginfo("Tracking simulator: start simulator")
-
        
         if (parameters.manual_control == False and parameters.debug_odometry == False): # not manually controlling
             t_init = rospy.Time.now().to_sec()
@@ -316,36 +281,13 @@ class TrackingSimulator:
                 di, self.target_ind = pure_pursuit_steer_control(
                     self.state, self.target_course, self.target_ind)
 
-                # TODO add noise to the control
-                #self.state.update(ai, di)  # Execute control and update vehicle state
-
-                msg_out = Odometry()
-                msg_out.header.stamp = rospy.Time.now()
-                pt = Point(self.state.x, self.state.y, 0)
-                # np array of x y z w
-                q = quaternion_about_axis(self.state.yaw, (0,0,1))
-                ang = Quaternion(q[0], q[1], q[2], q[3])
-                msg_out.pose.pose = Pose(pt, ang)
-                linear = Vector3(ai, 0.0, 0.0)
-                angular = Vector3(0.0, 0.0, di)
-                msg_out.twist.twist = Twist(linear, angular)
-                self.ctrl_pub.publish(msg_out)
+                self.ctrl_pub.publish(self.getOdoOut(ai, di))
                 
                 self.r.sleep()
                 t_cur = rospy.Time.now().to_sec()
-                #self.states.append(t_cur, self.state)
 
             if self.lastIndex >= self.target_ind:
-                msg_out = Odometry()
-                pt = Point(self.state.x, self.state.y, 0)
-                # np array of x y z w
-                q = quaternion_about_axis(self.state.yaw, (0,0,1))
-                ang = Quaternion(q[0], q[1], q[2], q[3])
-                msg_out.pose.pose = Pose(pt, ang)
-                linear = Vector3(0.0, 0.0, 0.0)
-                angular = Vector3(0.0, 0.0, 0.0)
-                msg_out.twist.twist = Twist(linear, angular)
-                self.ctrl_pub.publish(msg_out)
+                self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
 
 
 if __name__ == '__main__':
