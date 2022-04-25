@@ -148,7 +148,6 @@ class TrackingSimulator:
         self.counter = 0
         self.ctrl_pub = rospy.Publisher(parameters.ctrl_topic, Odometry, queue_size=10)
         self.obs_pub = rospy.Publisher("/suitbot/obs_py_im", Image, queue_size=10)
-        #self.odom_pub = rospy.Publisher("/suitbot/odom", Odometry, queue_size=10)
 
         self.twist_sub = rospy.Subscriber(parameters.encoder_topic, TwistStamped, self.callback_update)
         self.path_service = rospy.Service(parameters.reset_path_service, SetCourse, self.callback_reset_course)
@@ -254,6 +253,18 @@ class TrackingSimulator:
         rospy.loginfo("Tracking simulator: Reset success")
         return True
 
+    def getOdoOut(self, ai, di):
+        msg_out = Odometry()
+        msg_out.header.stamp = rospy.Time.now()
+        pt = Point(self.state.x, self.state.y, 0)
+        # np array of x y z w
+        q = quaternion_about_axis(self.state.yaw, (0,0,1))
+        ang = Quaternion(q[0], q[1], q[2], q[3])
+        msg_out.pose.pose = Pose(pt, ang)
+        linear = Vector3(ai, 0.0, 0.0)
+        angular = Vector3(0.0, 0.0, di)
+        msg_out.twist.twist = Twist(linear, angular)
+        return msg_out
 
     def loop(self):
         rospy.loginfo("Tracking simulator: entering loop")
@@ -270,32 +281,13 @@ class TrackingSimulator:
                 di, self.target_ind = pure_pursuit_steer_control(
                     self.state, self.target_course, self.target_ind)
 
-                msg_out = Odometry()
-                msg_out.header.stamp = rospy.Time.now()
-                pt = Point(self.state.x, self.state.y, 0)
-                # np array of x y z w
-                q = quaternion_about_axis(self.state.yaw, (0,0,1))
-                ang = Quaternion(q[0], q[1], q[2], q[3])
-                msg_out.pose.pose = Pose(pt, ang)
-                linear = Vector3(ai, 0.0, 0.0)
-                angular = Vector3(0.0, 0.0, di)
-                msg_out.twist.twist = Twist(linear, angular)
-                self.ctrl_pub.publish(msg_out)
+                self.ctrl_pub.publish(self.getOdoOut(ai, di))
                 
                 self.r.sleep()
                 t_cur = rospy.Time.now().to_sec()
 
             if self.lastIndex >= self.target_ind:
-                msg_out = Odometry()
-                pt = Point(self.state.x, self.state.y, 0)
-                # np array of x y z w
-                q = quaternion_about_axis(self.state.yaw, (0,0,1))
-                ang = Quaternion(q[0], q[1], q[2], q[3])
-                msg_out.pose.pose = Pose(pt, ang)
-                linear = Vector3(0.0, 0.0, 0.0)
-                angular = Vector3(0.0, 0.0, 0.0)
-                msg_out.twist.twist = Twist(linear, angular)
-                self.ctrl_pub.publish(msg_out)
+                self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
 
 
 if __name__ == '__main__':
