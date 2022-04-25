@@ -98,8 +98,8 @@ local_map_lookahead: 6.0
 global_map_resolution: 0.5
 local_map_resolution: 0.25
 
-obstacle_zmin: 0.2
-obstacle_zmax: 1.9
+obstacle_zmin: -0.2
+obstacle_zmax: 1.5
 
 pf_init_num_particles_per_grid: 50
 pf_init_num_particles_total: 10000

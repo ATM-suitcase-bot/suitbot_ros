@@ -50,8 +50,8 @@ void LidarParse::pointcloud_callback(const sensor_msgs::PointCloud2ConstPtr &msg
     float maxx = params.local_map_lookahead;
     float minx = -2.0; // we don't care too much about stuff behind us
     int rows, cols;
-    cols = (int)(fabs(maxy - miny) / params.local_map_resolution);
-    rows = (int)(fabs(maxx - minx) / params.local_map_resolution);
+    cols = (int)((fabs(maxy - miny) + 1.0)/ params.local_map_resolution);
+    rows = (int)((fabs(maxx - minx) + 1.0) / params.local_map_resolution);
     ROS_INFO_STREAM("rows (x): " << rows << ", cols (y): " << cols);
     occ.resize(rows, std::vector<int>(cols));
     for (int i = 0; i < rows; i++)

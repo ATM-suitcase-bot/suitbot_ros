@@ -131,8 +131,8 @@ void LocalMapGenerator::pointcloud_callback(const sensor_msgs::PointCloud2ConstP
     float maxx = params.local_map_lookahead;
     float minx = -2.0; // we don't care too much about stuff behind us
     int rows, cols;
-    cols = (int)(fabs(maxy - miny) / params.local_map_resolution);
-    rows = (int)(fabs(maxx - minx) / params.local_map_resolution);
+    cols = (int)((fabs(maxy - miny) + 1.0)/ params.local_map_resolution);
+    rows = (int)((fabs(maxx - minx) + 1.0) / params.local_map_resolution);
     occ.resize(rows, std::vector<int>(cols));
     for (int i = 0; i < rows; i++)
         for (int j = 0; j < cols; j++) 
@@ -147,7 +147,7 @@ void LocalMapGenerator::pointcloud_callback(const sensor_msgs::PointCloud2ConstP
             continue;
         LidarPoint tmp_pt;
         tmp_pt.x = cloud_merged->points[i].x - minx;
-        tmp_pt.y = cloud_merged->points[i].x - miny;
+        tmp_pt.y = cloud_merged->points[i].y - miny;
         int x_idx = min(max((int)(tmp_pt.x / params.local_map_resolution), 0), rows-1);
         int y_idx = min(max((int)(tmp_pt.y / params.local_map_resolution), 0), cols-1);
         occ[x_idx][y_idx] = OCCUPIED;
