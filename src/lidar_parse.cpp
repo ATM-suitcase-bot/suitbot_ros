@@ -73,8 +73,8 @@ void LidarParse::pointcloud_callback(const sensor_msgs::PointCloud2ConstPtr &msg
         occ[x_idx][y_idx] = OCCUPIED;
     } 
         // 6.4 localflood fill the free space with FREE
-    int robot_x_idx = min(max((int)(-minx / params.local_map_resolution), 0), rows-1);
-    int robot_y_idx = min(max((int)(-miny / params.local_map_resolution), 0), cols-1);
+    int robot_x_idx = min(max((int)((-minx + padding/2.0) / params.local_map_resolution), 0), rows-1);
+    int robot_y_idx = min(max((int)((-miny + padding/2.0) / params.local_map_resolution), 0), cols-1);
     floodFill(occ, rows, cols, robot_x_idx, robot_y_idx, OCCUPIED, FREE);
         // 6.5 construct occ map
     local_occ_map.initOccupancyGridMap(occ, params.local_map_resolution);

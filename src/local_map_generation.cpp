@@ -131,8 +131,9 @@ void LocalMapGenerator::pointcloud_callback(const sensor_msgs::PointCloud2ConstP
     float maxx = params.local_map_lookahead;
     float minx = -2.0; // we don't care too much about stuff behind us
     int rows, cols;
-    cols = (int)((fabs(maxy - miny) + 1.0)/ params.local_map_resolution);
-    rows = (int)((fabs(maxx - minx) + 1.0) / params.local_map_resolution);
+    float padding = 1.0;
+    cols = (int)((fabs(maxy - miny) + padding)/ params.local_map_resolution);
+    rows = (int)((fabs(maxx - minx) + padding) / params.local_map_resolution);
     occ.resize(rows, std::vector<int>(cols));
     for (int i = 0; i < rows; i++)
         for (int j = 0; j < cols; j++) 
@@ -146,15 +147,15 @@ void LocalMapGenerator::pointcloud_callback(const sensor_msgs::PointCloud2ConstP
         if (z < params.obstacle_zmin || z > params.obstacle_zmax)
             continue;
         LidarPoint tmp_pt;
-        tmp_pt.x = cloud_merged->points[i].x - minx;
-        tmp_pt.y = cloud_merged->points[i].y - miny;
+        tmp_pt.x = cloud_merged->points[i].x - minx + padding/2.0;
+        tmp_pt.y = cloud_merged->points[i].y - miny + padding/2.0;
         int x_idx = min(max((int)(tmp_pt.x / params.local_map_resolution), 0), rows-1);
         int y_idx = min(max((int)(tmp_pt.y / params.local_map_resolution), 0), cols-1);
         occ[x_idx][y_idx] = OCCUPIED;
     } 
         // 6.4 localflood fill the free space with FREE
-    int robot_x_idx = min(max((int)(-minx / params.local_map_resolution), 0), rows-1);
-    int robot_y_idx = min(max((int)(-miny / params.local_map_resolution), 0), cols-1);
+    int robot_x_idx = min(max((int)((-minx + padding/2.0) / params.local_map_resolution), 0), rows-1);
+    int robot_y_idx = min(max((int)((-miny + padding/2.0) / params.local_map_resolution), 0), cols-1);
     floodFill(occ, rows, cols, robot_x_idx, robot_y_idx, OCCUPIED, FREE);
         // 6.5 construct occ map
     local_occ_map.initOccupancyGridMap(occ, params.local_map_resolution);
