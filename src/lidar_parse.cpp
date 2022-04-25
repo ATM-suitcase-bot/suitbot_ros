@@ -67,7 +67,7 @@ void LidarParse::pointcloud_callback(const sensor_msgs::PointCloud2ConstPtr &msg
             continue;
         LidarPoint tmp_pt;
         tmp_pt.x = cloud_in->points[i].x - minx;
-        tmp_pt.y = cloud_in->points[i].x - miny;
+        tmp_pt.y = cloud_in->points[i].y - miny;
         int x_idx = min(max((int)(tmp_pt.x / params.local_map_resolution), 0), rows-1);
         int y_idx = min(max((int)(tmp_pt.y / params.local_map_resolution), 0), cols-1);
         occ[x_idx][y_idx] = OCCUPIED;
