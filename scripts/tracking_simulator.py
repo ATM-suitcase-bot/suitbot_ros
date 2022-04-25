@@ -6,6 +6,7 @@ import imp
 import numpy as np
 import math
 import rospy
+from cv_bridge import CvBridge
 from nav_msgs.msg import Odometry
 from tf.transformations import quaternion_about_axis
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, TwistStamped, Vector3, PoseWithCovariance, TwistWithCovariance
@@ -152,7 +153,7 @@ class TrackingSimulator:
         self.T = 10000.0  # max simulation time
         self.t_prev = rospy.Time.now().to_sec()
 
-        self.path_perturb = PathPerturb
+        self.path_perturb = PathPerturb()
 
     #Callback on obstacle avoidance (local)
     def callback_obs(self, msg_in):
@@ -174,9 +175,11 @@ class TrackingSimulator:
         #convert goal point into pixel in local map
         [local_x, local_y] = self.path_perturb.rot_point([relative_x, relative_y], -1*self.state.yaw)
         [pix_x, pix_y] = self.path_perturb.get_pix_ind([local_x, local_y], robot_pos)
-        print(local_x, local_y)
+        
         raw_arr[pix_x, pix_y, :] = [0, 255, 0] #goal is green
 
+         
+        
         self.obs_pub.publish(CvBridge().cv2_to_imgmsg(np.flip(np.flip(raw_arr, axis=0), axis=1)))
 
     #Callback on force feedback
