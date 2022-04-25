@@ -204,7 +204,7 @@ private:
     * @param sigma Desviation of the distribution.
     * @return <b>float</b> - Random value.
     */
-    float ranGaussian(const double mean, const double sigma);
+    float ranGaussian(const float mean, const float sigma);
 
     /**
     *  @brief To generate the random between two values.

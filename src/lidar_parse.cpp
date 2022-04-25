@@ -50,8 +50,9 @@ void LidarParse::pointcloud_callback(const sensor_msgs::PointCloud2ConstPtr &msg
     float maxx = params.local_map_lookahead;
     float minx = -2.0; // we don't care too much about stuff behind us
     int rows, cols;
-    cols = (int)((fabs(maxy - miny) + 1.0)/ params.local_map_resolution);
-    rows = (int)((fabs(maxx - minx) + 1.0) / params.local_map_resolution);
+    float padding = 1.0; // total padding (left + right) or (top + bot)
+    cols = (int)((fabs(maxy - miny) + padding)/ params.local_map_resolution);
+    rows = (int)((fabs(maxx - minx) + padding) / params.local_map_resolution);
     ROS_INFO_STREAM("rows (x): " << rows << ", cols (y): " << cols);
     occ.resize(rows, std::vector<int>(cols));
     for (int i = 0; i < rows; i++)
@@ -66,8 +67,8 @@ void LidarParse::pointcloud_callback(const sensor_msgs::PointCloud2ConstPtr &msg
         if (z < params.obstacle_zmin || z > params.obstacle_zmax)
             continue;
         LidarPoint tmp_pt;
-        tmp_pt.x = cloud_in->points[i].x - minx;
-        tmp_pt.y = cloud_in->points[i].y - miny;
+        tmp_pt.x = cloud_in->points[i].x - minx + padding/2.0;
+        tmp_pt.y = cloud_in->points[i].y - miny + padding/2.0;
         int x_idx = min(max((int)(tmp_pt.x / params.local_map_resolution), 0), rows-1);
         int y_idx = min(max((int)(tmp_pt.y / params.local_map_resolution), 0), cols-1);
         occ[x_idx][y_idx] = OCCUPIED;

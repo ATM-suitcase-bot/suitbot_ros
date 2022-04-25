@@ -84,3 +84,12 @@ void floodFill(vector<vector<int>> &arr, int r, int c, int x, int y, int obsC, i
     floodFillUtil(arr, r, c, x, y, obsC, newC);
 }
 
+
+// a*x+b*y+c*z+d=0
+void three_point_plane(Vector3f &A, Vector3f &B, Vector3f &C, float &a, float &b, float &c, float &d)
+{
+    a = (B[1]-A[1])*(C[2]-A[2])-(C[1]-A[1])*(B[2]-A[2]);
+    b = (B[2]-A[2])*(C[0]-A[0])-(C[2]-A[2])*(B[0]-A[0]);
+    c = (B[0]-A[0])*(C[1]-A[1])-(C[0]-A[0])*(B[1]-A[1]);
+    d = -(a*A[0]+b*A[1]+c*A[2]);
+}

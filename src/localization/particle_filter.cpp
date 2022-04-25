@@ -5,7 +5,7 @@
 
 #include "particle_filter.h"
 
-float ParticleFilter::ranGaussian(const double mean, const double sigma)
+float ParticleFilter::ranGaussian(const float mean, const float sigma)
 {
 
     std::normal_distribution<float> distribution(mean, sigma);

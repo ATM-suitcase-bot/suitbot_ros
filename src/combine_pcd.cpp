@@ -45,7 +45,7 @@ int main(int argc, char **argv)
     sort(names.begin(), names.end());
 
     LidarPointCloudPtr cloud(new LidarPointCloud);
-    for (int i = 0; i < names.size() - 600; i+=5)
+    for (int i = 0; i < names.size() - 1500; i+=5)
     {
         LidarPointCloudPtr cloud_tmp(new LidarPointCloud);
         string name = names[i];
