@@ -46,13 +46,13 @@ void LidarParse::pointcloud_callback(const sensor_msgs::PointCloud2ConstPtr &msg
     pcl::getMinMax3D(*cloud_in, minPt, maxPt); // we care about y bounds. we fix lookahead x dist
     float miny = minPt.y;
     float maxy = maxPt.y;
-    cout << "miny: " << miny << " maxy: " << maxy << endl;
+    ROS_INFO_STREAM("miny: " << miny << " maxy: " << maxy);
     float maxx = params.local_map_lookahead;
     float minx = -2.0; // we don't care too much about stuff behind us
     int rows, cols;
     cols = (int)(fabs(maxy - miny) / params.local_map_resolution);
     rows = (int)(fabs(maxx - minx) / params.local_map_resolution);
-    cout << "rows (x): " << rows << ", cols (y): " << cols;
+    ROS_INFO_STREAM("rows (x): " << rows << ", cols (y): " << cols);
     occ.resize(rows, std::vector<int>(cols));
     for (int i = 0; i < rows; i++)
         for (int j = 0; j < cols; j++) 
