@@ -43,22 +43,22 @@ states_map:
     pos: [0,0,0]
   - key: 6
     name: "elevator" 
-    pos: [0,0,0]
+    pos: [207,183,0]
   - key: 7
     name: "nineteen" 
-    pos: [0,0,0]
+    pos: [137,360,0]
   - key: 8
     name: "four" 
-    pos: [0,0,0]
+    pos: [214,395,0]
   - key: 9
     name: "six" 
-    pos: [0,0,0]
+    pos: [211,252,0]
   - key: 10
     name: "fountain" 
-    pos: [0,0,0]
+    pos: [162,171,0]
   - key: 11
     name: "staircase" 
-    pos: [0,0,0]
+    pos: [200,436,0]
 
 keywords_map:
   - left
