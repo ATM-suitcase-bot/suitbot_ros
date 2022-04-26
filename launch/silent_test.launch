@@ -25,7 +25,7 @@
 
     <arg name="use_audio"             default="false"/> 
     <param name="use_audio"           type="bool"   value="$(arg use_audio)"/>
-    <arg name="course_idx"            default="0"/> 
+    <arg name="course_idx"            default="1"/> 
     <param name="course_idx"          type="int"   value="$(arg course_idx)"/>
     
 

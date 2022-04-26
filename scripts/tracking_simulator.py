@@ -107,7 +107,7 @@ class TargetCourse:
         return ind, Lf
 
 
-def pure_pursuit_steer_control(state, trajectory, pind):
+def pure_pursuit_steer_control(state, trajectory, pind, override_pt):
     ind, Lf = trajectory.search_target_index(state)
 
     if pind >= ind:
@@ -120,6 +120,10 @@ def pure_pursuit_steer_control(state, trajectory, pind):
         tx = trajectory.cx[-1]
         ty = trajectory.cy[-1]
         ind = len(trajectory.cx) - 1
+
+    if(not override_pt is None): #obstacle avoidance overrides other path following
+        tx = override_pt[0]
+        ty = override_pt[1]
 
     alpha = math.atan2(ty - state.y, tx - state.x) - state.yaw
 
@@ -204,7 +208,6 @@ class TrackingSimulator:
         else: #init path found to be safe
             self.avoiding = False
             self.target_pt = None
-            print('path is ok- this print should be annoying')
         
         #render key pixels on the published local map
         raw_arr[robot_pos[0], robot_pos[1], :] = [0, 0, 255] #robot is red
@@ -305,7 +308,7 @@ class TrackingSimulator:
                 # Calc control cmd
                 ai = pid_control(self.target_speed, self.state.v, self.dt)
                 di, self.target_ind = pure_pursuit_steer_control(
-                    self.state, self.target_course, self.target_ind)
+                    self.state, self.target_course, self.target_ind, self.target_pt)
 
                 self.ctrl_pub.publish(self.getOdoOut(ai, di))
                 
