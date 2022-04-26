@@ -154,6 +154,8 @@ class TrackingSimulator:
         self.t_prev = rospy.Time.now().to_sec()
 
         self.path_perturb = PathPerturb()
+        self.avoiding = False
+        self.target_pt = None
 
     #Callback on obstacle avoidance (local)
     def callback_obs(self, msg_in):
@@ -184,7 +186,25 @@ class TrackingSimulator:
         maps_offset = np.array([bot_pix[0]-robot_pos[0], bot_pix[1]-robot_pos[1]])
         init_path_safe = self.path_perturb.check_path(occ_map, maps_offset, fine_bot_pos, fine_goal_pos, None)
 
-        print(init_path_safe)
+        if(not init_path_safe):
+            best_target = self.path_perturb.get_better_path(fine_bot_pos, fine_goal_pos, occ_map, maps_offset)
+
+            if(best_target is None):
+                print('replanning failed, need new global path OR to wait')
+                #need to handle logic here- should probably halt control, maybe send signal to planner
+            else:
+                best_target_offs = np.array(self.path_perturb.rot_point(best_target, self.state.yaw))
+                best_target_global = best_target_offs + fine_bot_pos[0:2]
+                print('found better node: ', best_target_global)
+                print('old node was: ', [self.target_course.cx[self.target_ind], self.target_course.cy[self.target_ind]])
+
+                #then we go to the 'best_target_global'
+                self.avoiding = True
+                self.target_pt = best_target_global
+        else: #init path found to be safe
+            self.avoiding = False
+            self.target_pt = None
+            print('path is ok- this print should be annoying')
         
         #render key pixels on the published local map
         raw_arr[robot_pos[0], robot_pos[1], :] = [0, 0, 255] #robot is red
