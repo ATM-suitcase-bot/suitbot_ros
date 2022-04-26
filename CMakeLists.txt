@@ -167,7 +167,7 @@ ${PCL_VISUALIZATION_LIBRARIES}
 ${OpenCV_LIBS})
 
 add_executable(combine_pcd
-  src/combine_pcd.cpp
+  src/process_map/combine_pcd.cpp
   src/occupancy_map.cpp
   src/lidar.cpp
   src/utility/pcl_utils.cpp
@@ -185,7 +185,7 @@ ${OpenCV_LIBS}
 )
 
 add_executable(map_processing
-  src/pcd_map_process.cpp
+  src/process_map/pcd_map_process.cpp
   src/occupancy_map.cpp
   src/lidar.cpp
   src/utility/pcl_utils.cpp
@@ -204,7 +204,7 @@ ${OpenCV_LIBS}
 
 
 add_executable(unit_test
-  src/unit_test.cpp
+  src/test/unit_test.cpp
   src/occupancy_map.cpp
   src/lidar.cpp
   src/utility/pcl_utils.cpp

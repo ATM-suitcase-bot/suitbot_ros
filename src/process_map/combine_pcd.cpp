@@ -9,7 +9,7 @@
 #include <pcl/common/transforms.h>
 #include <pcl/common/common.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include "lidar.h"
+#include "../lidar.h"
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/radius_outlier_removal.h>
 #include <opencv2/opencv.hpp> 

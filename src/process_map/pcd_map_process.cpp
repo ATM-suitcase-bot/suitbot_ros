@@ -7,20 +7,34 @@
 #include <pcl/common/transforms.h>
 #include <pcl/common/common.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include "lidar.h"
+#include "../lidar.h"
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/radius_outlier_removal.h>
 #include <opencv2/opencv.hpp> 
-#include "utility/utils.h"
-#include "utility/pcl_utils.h"
-#include "occupancy_map.h"
+#include "../utility/utils.h"
+#include "../utility/pcl_utils.h"
+#include "../occupancy_map.h"
 
 using namespace std;
 using namespace Eigen;
 
 int main(int argc, char **argv)
 {
+    // align 3d map with 2d map
+    string filename_1 = "/home/tina/Documents/atm_ws/src/suitbot_ros/data/wean_map_good_processed.pcd";
+    string filename_2 = "/home/tina/Documents/atm_ws/src/suitbot_ros/data/wean_map_good_processed_aligned.pcd";
+    LidarPointCloudPtr cloud(new LidarPointCloud);
+    pcl::io::loadPCDFile<LidarPoint>(filename_1, *cloud);
+    Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+    transform.translation() << 40.0, 40.0, 1.3;
+    transform_cloud(cloud, transform);
+
+    voxel_grid(cloud, 0.075);
+    pcl::io::savePCDFileASCII (filename_2, *cloud);
+
     exit(0);
+
+    /*
     // floodfill the image
     OccupancyMap occ;
     string map_name = "/home/tina/Documents/atm_ws/src/suitbot_ros/data/wean_map_good_grid_edited.png";
@@ -113,6 +127,7 @@ int main(int argc, char **argv)
     { // Display the visualiser until 'q' key is pressed
         viewer2.spinOnce();
     }
+    */
     return 0;
 
 }
