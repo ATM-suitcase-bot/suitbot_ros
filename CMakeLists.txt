@@ -119,6 +119,7 @@ add_executable(planner_node
   src/path_planning/a_star.cpp
   src/occupancy_map.cpp
   src/utility/pcl_utils.cpp
+  src/utility/utils.cpp
 )
 
 target_link_libraries(planner_node 
@@ -135,6 +136,7 @@ add_executable(local_map_generator
   src/occupancy_map.cpp
   src/lidar.cpp
   src/utility/pcl_utils.cpp
+  src/utility/utils.cpp
 )
 
 
@@ -152,6 +154,7 @@ add_executable(lidar_parse
   src/occupancy_map.cpp
   src/lidar.cpp
   src/utility/pcl_utils.cpp
+  src/utility/utils.cpp
 )
 
 
@@ -168,6 +171,7 @@ add_executable(combine_pcd
   src/occupancy_map.cpp
   src/lidar.cpp
   src/utility/pcl_utils.cpp
+  src/utility/utils.cpp
 )
 
 
@@ -180,11 +184,31 @@ ${PCL_VISUALIZATION_LIBRARIES}
 ${OpenCV_LIBS}
 )
 
-add_executable(unit_test
-  src/test.cpp
+add_executable(map_processing
+  src/map_processing.cpp
   src/occupancy_map.cpp
   src/lidar.cpp
   src/utility/pcl_utils.cpp
+  src/utility/utils.cpp
+)
+
+
+target_link_libraries(map_processing
+${catkin_LIBRARIES} 
+${PCL_LIBRARIES} 
+${PCL_COMMON_LIBRARIES} 
+${PCL_IO_LIBRARIES} 
+${PCL_VISUALIZATION_LIBRARIES}
+${OpenCV_LIBS}
+)
+
+
+add_executable(unit_test
+  src/unit_test.cpp
+  src/occupancy_map.cpp
+  src/lidar.cpp
+  src/utility/pcl_utils.cpp
+  src/utility/utils.cpp
 )
 
 

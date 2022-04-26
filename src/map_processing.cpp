@@ -15,22 +15,15 @@
 #include <pcl/filters/radius_outlier_removal.h>
 #include <opencv2/opencv.hpp> 
 #include "utility/utils.h"
+#include "utility/pcl_utils.h"
 
 #include <random>
 
 using namespace std;
 using namespace Eigen;
 
-
-int main(int argc, char **argv)
+void fill_holes(LidarPointCloudPtr cloud, int num_sample)
 {
-    LidarPointCloudPtr cloud(new LidarPointCloud);
-    string name = "/home/tina/Documents/atm_ws/src/suitbot_ros/data/wean_map_good.pcd";
-    if (pcl::io::loadPCDFile<LidarPoint>(name, *cloud) == -1)
-    {
-        cout << "Couldn't read pcd file." << endl;
-        return -1;
-    }
     // fill in hole
     float a, b, c, d, a1, b1, c1, d1, a2, b2, c2, d2;
     Vector3f A(14.573961, 6.168147, 0.349627);
@@ -51,7 +44,6 @@ int main(int argc, char **argv)
 
     three_point_plane(A2, B2, C2, a2, b2, c2, d2);
 
-    int num_sample = 10000;
     std::random_device rd;
     std::uniform_real_distribution<float> dist_z(-0.8, 2.3);
     std::uniform_real_distribution<float> dist_y(2.5, 8.5);
@@ -131,6 +123,52 @@ int main(int argc, char **argv)
     std::uniform_real_distribution<float> dist_x24(1.8, 9.0);
     std::uniform_real_distribution<float> dist_y24(10.0, 14.1);
 
+
+
+
+    float a31, b31, c31, d31;
+    Vector3f A31(0.029584, 4.074814, 1.600556);
+    Vector3f B31(2.010382, -2.477534, 1.865405);
+    Vector3f C31(2.469864, -0.559917, 1.681245);
+    three_point_plane(A31, B31, C31, a31, b31, c31, d31);
+    std::uniform_real_distribution<float> dist_x31(0.0, 3.5);
+    std::uniform_real_distribution<float> dist_y31(-4.0, 4.3);
+
+    float a32, b32, c32, d32;
+    Vector3f A32(0.611384, 1.925963, -1.046653);
+    Vector3f B32(1.026176, -2.704137, -1.028032);
+    Vector3f C32(1.576000, -0.068000, -1.085000);
+    three_point_plane(A32, B32, C32, a32, b32, c32, d32);
+    std::uniform_real_distribution<float> dist_x32(0.3, 3.5);
+    std::uniform_real_distribution<float> dist_y32(-4.0, 3.5);
+
+
+
+    float a41, b41, c41, d41;
+    Vector3f A41(-1.089771, 12.395573, 1.592697);
+    Vector3f B41(1.882982, 12.877304, 1.694659);
+    Vector3f C41(-0.064067, 5.579596, 1.680157);
+    three_point_plane(A41, B41, C41, a41, b41, c41, d41);
+    std::uniform_real_distribution<float> dist_x41(-1.2, 2.0);
+    std::uniform_real_distribution<float> dist_y41(5.3, 13.0);
+
+    float a42, b42, c42, d42;
+    Vector3f A42(-0.804913, 12.375281, -1.003338);
+    Vector3f B42(1.650144, 12.774998, -0.839816);
+    Vector3f C42(0.402031, 3.705537, -1.043948);
+    three_point_plane(A42, B42, C42, a42, b42, c42, d42);
+    std::uniform_real_distribution<float> dist_x42(-1.0, 1.8);
+    std::uniform_real_distribution<float> dist_y42(3.5, 12.8);
+
+
+    float a43, b43, c43, d43;
+    Vector3f A43(0.429574, 4.016790, -1.048063);
+    Vector3f B43(-0.117963, 4.529911, 1.338564);
+    Vector3f C43(-0.845688, 9.383125, -1.046798);
+    three_point_plane(A43, B43, C43, a43, b43, c43, d43);
+    std::uniform_real_distribution<float> dist_y43(4.0, 9.7);
+    std::uniform_real_distribution<float> dist_z43(-1.5, 1.5);
+
     for (int i = 0; i < num_sample; i++)
     {
         cout << "sample id: " << i << endl;
@@ -197,11 +235,6 @@ int main(int argc, char **argv)
         cloud->points.push_back(pt); 
 
 
-
-
-
-
-
         // 21 (front)
         x = dist_x21(rd);
         z = dist_z21(rd);
@@ -237,17 +270,87 @@ int main(int argc, char **argv)
         pt.y = y;
         pt.z = z;
         cloud->points.push_back(pt); 
+
+
+
+        // 31 (top)
+        x = dist_x31(rd);
+        y = dist_y31(rd);
+        z = (-d31 - b31*y - a31*x) / c31;
+        pt.x = x;
+        pt.y = y;
+        pt.z = z;
+        cloud->points.push_back(pt); 
+
+        // 32 (bot)
+        x = dist_x32(rd);
+        y = dist_y32(rd);
+        z = (-d32 - b32*y - a32*x) / c32;
+        pt.x = x;
+        pt.y = y;
+        pt.z = z;
+        cloud->points.push_back(pt); 
+
+
+        // 41 (top)
+        x = dist_x41(rd);
+        y = dist_y41(rd);
+        z = (-d41 - b41*y - a41*x) / c41;
+        pt.x = x;
+        pt.y = y;
+        pt.z = z;
+        cloud->points.push_back(pt); 
+
+        // 42 (bot)
+        x = dist_x42(rd);
+        y = dist_y42(rd);
+        z = (-d42 - b42*y - a42*x) / c42;
+        pt.x = x;
+        pt.y = y;
+        pt.z = z;
+        cloud->points.push_back(pt); 
+
+        // 43 (side)
+        x = 0;
+        y = dist_y43(rd);
+        z = dist_z43(rd);
+        x = (-d43 - b43*y - c43*z) / a43;
+        pt.x = x;
+        pt.y = y;
+        pt.z = z;
+        cloud->points.push_back(pt);
     }
 
 
+    cloud->width = cloud->points.size();
+    cloud->height = 1;
+}
 
 
-    cloud->width = 1;
-    cloud->height = cloud->points.size();
 
+int main(int argc, char **argv)
+{
+    LidarPointCloudPtr cloud(new LidarPointCloud);
+    string name = "/home/tina/Documents/atm_ws/src/suitbot_ros/data/wean_map_good_filled.pcd";
+    if (pcl::io::loadPCDFile<LidarPoint>(name, *cloud) == -1)
+    {
+        cout << "Couldn't read pcd file." << endl;
+        return -1;
+    }
+    //cout << cloud->points.size() << ", " << cloud->width << ", " << cloud->height << endl;
+    //radius_filter(cloud, 0.4, 30);
+    //fill_holes(cloud, 7500);
+    Vector3f c(0.34, 6.71, 0.45);
+    float xmin = -1.03;
+    float xmax = 1.7;
+    float ymin = -4;
+    float ymax = 3.6;
+    float zmin = -1.2;
+    float zmax = 1.0;
+    LidarPointCloudPtr cloud_out(new LidarPointCloud);
+    crop_roi(cloud, cloud_out, c, xmin, xmax, ymin, ymax, zmin, zmax, false);
 
-
-    pcl::io::savePCDFileASCII("/home/tina/Documents/atm_ws/src/suitbot_ros/data/wean_map_good_filled.pcd", *cloud);
+    pcl::io::savePCDFileASCII("/home/tina/Documents/atm_ws/src/suitbot_ros/data/wean_map_good_filtered_1.pcd", *cloud_out);
 
     return 0;
 }

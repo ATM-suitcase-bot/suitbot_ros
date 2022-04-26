@@ -23,7 +23,8 @@ void crop_roi(LidarPointCloudConstPtr cloud,
              Eigen::Vector3f &centroid_ref,
              double xmin, double xmax,
              double ymin, double ymax,
-             double zmin, double zmax) 
+             double zmin, double zmax,
+             bool keep_interior) 
 {
     // build the condition
     pcl::ConditionAnd<LidarPoint>::Ptr range_cond(new pcl::ConditionAnd<LidarPoint>());
@@ -34,30 +35,50 @@ void crop_roi(LidarPointCloudConstPtr cloud,
     y_max = centroid_ref[1] + ymax;
     z_min = centroid_ref[2] + zmin;
     z_min = centroid_ref[2] + zmax;
-    range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-        (new pcl::FieldComparison<LidarPoint>("x", pcl::ComparisonOps::GT, xmin)));
-    range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-        (new pcl::FieldComparison<LidarPoint> ("x", pcl::ComparisonOps::LT, xmax)));
-    range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-        (new pcl::FieldComparison<LidarPoint>("y", pcl::ComparisonOps::GT, ymin)));
-    range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-        (new pcl::FieldComparison<LidarPoint> ("y", pcl::ComparisonOps::LT, ymax)));
-    range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-        (new pcl::FieldComparison<LidarPoint>("z", pcl::ComparisonOps::GT, zmin)));
-    range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-        (new pcl::FieldComparison<LidarPoint> ("z", pcl::ComparisonOps::LT, zmax)));
+    if (keep_interior)
+    {
+        range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
+            (new pcl::FieldComparison<LidarPoint>("x", pcl::ComparisonOps::GT, xmin)));
+        range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
+            (new pcl::FieldComparison<LidarPoint> ("x", pcl::ComparisonOps::LT, xmax)));
+        range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
+            (new pcl::FieldComparison<LidarPoint>("y", pcl::ComparisonOps::GT, ymin)));
+        range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
+            (new pcl::FieldComparison<LidarPoint> ("y", pcl::ComparisonOps::LT, ymax)));
+        range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
+            (new pcl::FieldComparison<LidarPoint>("z", pcl::ComparisonOps::GT, zmin)));
+        range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
+            (new pcl::FieldComparison<LidarPoint> ("z", pcl::ComparisonOps::LT, zmax)));
+    }
+    else
+    { // keep exterior points
+        range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
+            (new pcl::FieldComparison<LidarPoint>("x", pcl::ComparisonOps::LT, xmin)));
+        range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
+            (new pcl::FieldComparison<LidarPoint> ("x", pcl::ComparisonOps::GT, xmax)));
+        range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
+            (new pcl::FieldComparison<LidarPoint>("y", pcl::ComparisonOps::LT, ymin)));
+        range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
+            (new pcl::FieldComparison<LidarPoint> ("y", pcl::ComparisonOps::GT, ymax)));
+        range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
+            (new pcl::FieldComparison<LidarPoint>("z", pcl::ComparisonOps::LT, zmin)));
+        range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
+            (new pcl::FieldComparison<LidarPoint> ("z", pcl::ComparisonOps::GT, zmax)));
+    }
     // build the filter
+    cout << "here" << endl;
     pcl::ConditionalRemoval<LidarPoint> condrem;
     condrem.setCondition(range_cond);
     condrem.setInputCloud(cloud);
-    condrem.setKeepOrganized(true);
+    condrem.setKeepOrganized(false);
     // apply filter
     condrem.filter(*cloud_out);
-    remove_invalid(cloud_out);
+    cout << "here2" << endl;
+    //remove_invalid(cloud_out);
 }
 
 // downsample and do a radius filtering, in place
-void preprocess_cloud(LidarPointCloudPtr cloud, double search_radius, int neighbors)
+void radius_filter(LidarPointCloudPtr cloud, double search_radius, int neighbors)
 {
     LidarPointCloudPtr cloud_tmp(new LidarPointCloud);
     pcl::RadiusOutlierRemoval<LidarPoint> outrem;
@@ -65,13 +86,28 @@ void preprocess_cloud(LidarPointCloudPtr cloud, double search_radius, int neighb
     outrem.setInputCloud(cloud);
     outrem.setRadiusSearch(search_radius);
     outrem.setMinNeighborsInRadius(neighbors);
-    outrem.setKeepOrganized(true);
+    outrem.setKeepOrganized(false);
     // apply filter
     outrem.filter(*cloud_tmp);
 
     remove_invalid(cloud_tmp);
     *cloud = *cloud_tmp;
+    cloud->width = cloud->points.size();
+    cloud->height = 1;
 }
+
+void voxel_grid(LidarPointCloudPtr cloud_in, float voxel_size)
+{
+    pcl::VoxelGrid<LidarPoint> sor;
+    sor.setInputCloud(cloud_in);
+    sor.setLeafSize(voxel_size, voxel_size, voxel_size);
+    LidarPointCloudPtr cloud_down(new LidarPointCloud);
+    sor.filter(*cloud_down);
+    *cloud_in = *cloud_down;
+    cloud_in->width = cloud_in->points.size();
+    cloud_in->height = 1;
+}
+
 
 // modify in place
 bool remove_invalid(LidarPointCloudPtr cloud_in) {
