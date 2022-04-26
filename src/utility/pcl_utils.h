@@ -23,6 +23,7 @@
 #include <pcl/features/normal_3d.h>
 
 #include <pcl/registration/icp.h>
+#include <pcl/filters/voxel_grid.h>
 
 using namespace std;
 
@@ -38,11 +39,13 @@ void crop_roi(LidarPointCloudConstPtr cloud,
              Eigen::Vector3f &centroid_ref,
              double xmin, double xmax,
              double ymin, double ymax,
-             double zmin, double zmax);
+             double zmin, double zmax,
+             bool keep_interior=true);
 
 // downsample and do a radius filtering, in place
-void preprocess_cloud(LidarPointCloudPtr cloud, double search_radius, int neighbors);
+void radius_filter(LidarPointCloudPtr cloud, double search_radius, int neighbors);
 
+void voxel_grid(LidarPointCloudPtr cloud_in, float voxel_size);
 
 // modify in place
 bool remove_invalid(LidarPointCloudPtr cloud_in);
