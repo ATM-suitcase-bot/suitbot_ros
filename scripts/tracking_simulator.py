@@ -107,7 +107,7 @@ class TargetCourse:
         return ind, Lf
 
 
-def pure_pursuit_steer_control(state, trajectory, pind):
+def pure_pursuit_steer_control(state, trajectory, pind, override_pt):
     ind, Lf = trajectory.search_target_index(state)
 
     if pind >= ind:
@@ -120,6 +120,10 @@ def pure_pursuit_steer_control(state, trajectory, pind):
         tx = trajectory.cx[-1]
         ty = trajectory.cy[-1]
         ind = len(trajectory.cx) - 1
+
+    if(not override_pt is None): #obstacle avoidance overrides other path following
+        tx = override_pt[0]
+        ty = override_pt[1]
 
     alpha = math.atan2(ty - state.y, tx - state.x) - state.yaw
 
@@ -154,19 +158,21 @@ class TrackingSimulator:
         self.t_prev = rospy.Time.now().to_sec()
 
         self.path_perturb = PathPerturb()
+        self.avoiding = False
+        self.target_pt = None
 
     #Callback on obstacle avoidance (local)
     def callback_obs(self, msg_in):
+        #read input message to python-style array form
+        if(self.target_course is None):
+            return
         im_dims = [msg_in.rows, msg_in.cols]
         robot_pos = [msg_in.robot_x_idx, msg_in.robot_y_idx]
-
         raw_arr = np.reshape(msg_in.cells, im_dims)
-       
+        occ_map = (raw_arr == 0).astype(int) #save a simple boolean map form of the input array
+        occ_map[robot_pos] = 0
         raw_arr = raw_arr.astype(np.uint8)
         raw_arr = np.stack([raw_arr, raw_arr, raw_arr], axis=2)
-        
-        #render pixel robot currently occupies
-        raw_arr[robot_pos[0], robot_pos[1], :] = [0, 0, 255] #robot is red
         
         #render goal pixel in the robot's space
         relative_x = self.target_course.cx[self.target_ind] - self.state.x
@@ -175,11 +181,40 @@ class TrackingSimulator:
         #convert goal point into pixel in local map
         [local_x, local_y] = self.path_perturb.rot_point([relative_x, relative_y], -1*self.state.yaw)
         [pix_x, pix_y] = self.path_perturb.get_pix_ind([local_x, local_y], robot_pos)
-        
-        raw_arr[pix_x, pix_y, :] = [0, 255, 0] #goal is green
 
+        #check if initial path yields collision
+        fine_bot_pos = np.array([self.state.x, self.state.y, 0.0])
          
+        fine_goal_pos = fine_bot_pos[0:2] + np.array([local_x, local_y])
+        bot_pix = self.path_perturb.get_pix_ind(fine_bot_pos, [0, 0])
+        maps_offset = np.array([bot_pix[0]-robot_pos[0], bot_pix[1]-robot_pos[1]])
+        init_path_safe = self.path_perturb.check_path(occ_map, maps_offset, fine_bot_pos, fine_goal_pos, None)
+
+        if(not init_path_safe):
+            best_target = self.path_perturb.get_better_path(fine_bot_pos, fine_goal_pos, occ_map, maps_offset)
+
+            if(best_target is None):
+                print('replanning failed, need new global path OR to wait')
+                #need to handle logic here- should probably halt control, maybe send signal to planner
+            else:
+                best_target_local_vec = np.array(best_target) - fine_bot_pos[0:2]
+                best_target_offs = np.array(self.path_perturb.rot_point(best_target_local_vec, self.state.yaw))
+                best_target_global = best_target_offs + fine_bot_pos[0:2]
+                
+
+                #then we go to the 'best_target_global'
+                self.avoiding = True
+                self.target_pt = best_target_global
+        else: #init path found to be safe
+            self.avoiding = False
+            self.target_pt = None
         
+        #render key pixels on the published local map
+        raw_arr[robot_pos[0], robot_pos[1], :] = [0, 0, 255] #robot is red
+        raw_arr[pix_x, pix_y, :] = [0, 255, 0] #goal is green
+        if(not init_path_safe):
+            raw_arr[0, :, 2] = 255
+
         self.obs_pub.publish(CvBridge().cv2_to_imgmsg(np.flip(np.flip(raw_arr, axis=0), axis=1)))
 
     #Callback on force feedback
@@ -273,7 +308,7 @@ class TrackingSimulator:
                 # Calc control cmd
                 ai = pid_control(self.target_speed, self.state.v, self.dt)
                 di, self.target_ind = pure_pursuit_steer_control(
-                    self.state, self.target_course, self.target_ind)
+                    self.state, self.target_course, self.target_ind, self.target_pt)
 
                 self.ctrl_pub.publish(self.getOdoOut(ai, di))
                 

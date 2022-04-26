@@ -1,6 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt #for tmp visualization
-import cv2
 
 class PathPerturb:
     #Create an object for calculating path perturbations
@@ -30,9 +28,11 @@ class PathPerturb:
 
         x_pts = np.linspace(0, x_dis, n_interp)
         l = np.hypot(x_dis, y_dis)
-        rad = l**2/(2*y_dis)
-        y_pts = rad - rad*np.cos(np.arcsin(x_pts/rad))
-
+        if(not y_dis == 0):
+            rad = l**2/(2*y_dis)
+            y_pts = rad - rad*np.cos(np.arcsin(x_pts/rad))
+        else:
+            y_pts = 0*x_pts
         [x_back, y_back] = self.rot_point([x_pts, y_pts], -1*start_pose[2])
 
         return [x_back+start_pose[0], y_back+start_pose[1]]
@@ -40,32 +40,33 @@ class PathPerturb:
     #check whether a path to a given point will intersect any obstacles
     #bot is attempting to go through the local map from bot_pose, through target, to final
     def check_path(self, local_map, local_offset, bot_pose, target_pt, final_pt):
-        local_bot = bot_pos[0:2]*self.local2real - local_offset
+        local_bot = bot_pose[0:2]*self.local2real - local_offset
         local_target = target_pt*self.local2real - local_offset
-        
+
         [inter_x, inter_y] = self.get_pursuit_pts([local_bot[0], local_bot[1], bot_pose[2]], local_target)
         
-        if(np.sum((local_map[(inter_y.astype(int)), (inter_x.astype(int))])) > 0):
+        inter_x = np.clip(inter_x, 0, np.shape(local_map)[0]-1)
+        inter_y = np.clip(inter_y, 0, np.shape(local_map)[1]-1)
+        if(np.sum((local_map[(inter_x.astype(int)), (inter_y.astype(int))])) > 0):
             return False
 
         if(final_pt is None):
-            print('first run- no conflict, not checking last pt')
             return True
 
         local_final = final_pt*self.local2real - local_offset
         new_theta = np.arctan2(inter_y[-2]-inter_y[-1], inter_x[-1]-inter_x[-2])
 
         [inter_x, inter_y] = self.get_pursuit_pts([local_target[0], local_target[1], new_theta], local_final)
+        inter_x = np.clip(inter_x, 0, np.shape(local_map)[0]-1)
+        inter_y = np.clip(inter_y, 0, np.shape(local_map)[1]-1)
 
-        if(np.sum((local_map[(inter_y.astype(int)), (inter_x.astype(int))])) > 0):
+        if(np.sum((local_map[(inter_x.astype(int)), (inter_y.astype(int))])) > 0):
             return False
-
-        plt.plot(inter_x, inter_y, color='r')
 
         return True
 
     #Get a set of potential basic possible motions
-    def get_targets(self, bot_pose, t_max=0.6, t_num = 5, d_min = 0.5, d_max = 4.0, d_num=4):
+    def get_targets(self, bot_pose, t_max=0.6, t_num = 5, d_min = 0.5, d_max = 2.5, d_num=4):
         all_t = np.linspace(-1*t_max, t_max, t_num).repeat(d_num, axis=0)
         all_d = np.tile(np.linspace(d_min, d_max, d_num), t_num)
 
@@ -85,7 +86,7 @@ class PathPerturb:
 
     def get_better_path(self, bot_pos, bot_target, combo_map, combo_offset):
         [x_pot, y_pot] = self.get_targets(bot_pos)
-
+        
         best_target = None
         best_score = 0
         for i in range(len(x_pot)):
