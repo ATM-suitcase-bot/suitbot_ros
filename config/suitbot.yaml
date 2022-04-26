@@ -53,6 +53,12 @@ states_map:
   - key: 9
     name: "six" 
     pos: [0,0,0]
+  - key: 10
+    name: "fountain" 
+    pos: [0,0,0]
+  - key: 11
+    name: "staircase" 
+    pos: [0,0,0]
 
 keywords_map:
   - left
@@ -67,6 +73,8 @@ keywords_map:
   - nineteen
   - four
   - six
+  - fountain
+  - staircase
 
 global_frame_id: "world"
 

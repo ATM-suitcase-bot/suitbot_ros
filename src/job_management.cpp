@@ -203,17 +203,21 @@ int main(int argc, char **argv)
             else if (jobManager.direction == params.ELEV)
                 dir = "elevator";
             else if (jobManager.direction == params.NINE)
-                dir = "nineteen";
+                dir = "seven three nineteen";
             else if (jobManager.direction == params.FOUR)
-                dir = "four";
+                dir = "seven four two four";
             else if (jobManager.direction == params.SIX)
-                dir = "six";
+                dir = "classroom six";
+            else if (jobManager.direction == params.FOUNT)
+                dir = "water fountain";
+            else if (jobManager.direction == params.STAIR)
+                dir = "doherty staircase";
             else
                 dir = "error"; //this will give an audible error if very confused
 
             if (params.use_audio)
             {
-                jobManager.try_speak("Received command. Going " + dir);
+                jobManager.try_speak("Received command. Going to " + dir);
             }
             counter_state += 1;
             if (params.use_audio)
