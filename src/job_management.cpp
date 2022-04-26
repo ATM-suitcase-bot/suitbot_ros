@@ -131,6 +131,21 @@ int JobManager::error_handler()
     return 0;
 }
 
+//Attempts to send an audio output, returns 1 on success and 0 on failure
+int JobManager::try_speak(std::string message)
+{
+    suitbot_ros::SpeechSrv speech;
+    speech.request.data = message;
+    if (this->speech_cli.call(speech)){
+        ROS_INFO("Spoken successfully: %s", speech.request.data.c_str());
+        return 1;
+    }
+    else {
+        ROS_INFO("fail to speak");
+        return 0;
+    }
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "job_management");
@@ -153,14 +168,9 @@ int main(int argc, char **argv)
 
     if (params.manual_control == false && params.use_audio == true) {
         // say something
-        suitbot_ros::SpeechSrv speech;
-        speech.request.data = "Robot initialized, where do you want to go?";
-        if (jobManager.speech_cli.call(speech)){
-            ROS_INFO("Spoken successfully: %s", speech.request.data.c_str());
-        }
-        else {
-            ROS_INFO("fail to speak");
-        }
+        jobManager.try_speak("Robot initialized, where do you want to go?");
+        
+        
         // enable audio listening
         std_srvs::SetBool srv_mic;
         srv_mic.request.data = true;
@@ -182,7 +192,7 @@ int main(int argc, char **argv)
         
         if (jobManager.state == GUIDING && counter_state == 0)
         {
-            std::cout << "guiding! direction: " << int(jobManager.direction) << std::endl;
+            std::cout << "guiding! direction: " << int(jobManager.direction) << " " << params.ELEV << std::endl;
             std::string dir;
             if (jobManager.direction == params.LEFT)
                 dir = "left";
@@ -190,17 +200,20 @@ int main(int argc, char **argv)
                 dir = "middle";
             else if (jobManager.direction == params.RIGHT)
                 dir = "right";
+            else if (jobManager.direction == params.ELEV)
+                dir = "elevator";
+            else if (jobManager.direction == params.NINE)
+                dir = "nineteen";
+            else if (jobManager.direction == params.FOUR)
+                dir = "four";
+            else if (jobManager.direction == params.SIX)
+                dir = "six";
+            else
+                dir = "error"; //this will give an audible error if very confused
 
             if (params.use_audio)
             {
-                suitbot_ros::SpeechSrv speech;
-                speech.request.data = "Received command. Going " + dir;
-                if (jobManager.speech_cli.call(speech)){
-                    ROS_INFO("Spoken successfully: %s", speech.request.data.c_str());
-                }
-                else {
-                    ROS_INFO("fail to speak");
-                }
+                jobManager.try_speak("Received command. Going " + dir);
             }
             counter_state += 1;
             if (params.use_audio)

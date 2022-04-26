@@ -95,6 +95,8 @@ public:
     int initialization_handler();
     int guiding_handler();
     int error_handler();
+
+    int try_speak(std::string message);
 }; 
 
 #endif /* JOB_MANAGEMENT_H_ */

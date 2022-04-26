@@ -19,11 +19,14 @@ script_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(script_dir)
 from parameters import Parameters
 from local_planner import PathPerturb
+import cv2
 
 # Parameters
 k = 0.1  # look forward gain
 Lfc = 1.0  # [m] look-ahead distance
 Kp = 1.0  # speed proportional gain
+
+kernel = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]]).astype(np.uint8)
 
 class State:
     def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0):
@@ -127,7 +130,7 @@ def pure_pursuit_steer_control(state, trajectory, pind, override_pt):
 
     alpha = math.atan2(ty - state.y, tx - state.x) - state.yaw
 
-    delta = math.atan2(2.0 * 0.2 * math.sin(alpha) / Lf, 1.0)
+    delta = math.atan2(2.0 * 0.25 * math.sin(alpha) / Lf, 1.0)
 
     return delta, ind
 
@@ -161,6 +164,13 @@ class TrackingSimulator:
         self.avoiding = False
         self.target_pt = None
 
+    def get_local(self, index):
+        #render goal pixel in the robot's space
+        relative_x = self.target_course.cx[index] - self.state.x
+        relative_y = self.target_course.cy[index] - self.state.y
+        [local_x, local_y] = self.path_perturb.rot_point([relative_x, relative_y], -1*self.state.yaw)
+        return [local_x, local_y]
+
     #Callback on obstacle avoidance (local)
     def callback_obs(self, msg_in):
         #read input message to python-style array form
@@ -168,21 +178,36 @@ class TrackingSimulator:
             return
         im_dims = [msg_in.rows, msg_in.cols]
         robot_pos = [msg_in.robot_x_idx, msg_in.robot_y_idx]
-        raw_arr = np.reshape(msg_in.cells, im_dims)
-        occ_map = (raw_arr == 0).astype(int) #save a simple boolean map form of the input array
-        occ_map[robot_pos] = 0
-        raw_arr = raw_arr.astype(np.uint8)
-        raw_arr = np.stack([raw_arr, raw_arr, raw_arr], axis=2)
+
+        if(robot_pos[0] >= im_dims[0] or robot_pos[1] >= im_dims[1]):
+            print('map does not contain robot position, invalid replanning')
+            return
         
-        #render goal pixel in the robot's space
-        relative_x = self.target_course.cx[self.target_ind] - self.state.x
-        relative_y = self.target_course.cy[self.target_ind] - self.state.y
+        raw_arr = np.reshape(msg_in.cells, im_dims)
+        raw_arr = raw_arr.astype(np.uint8)
+        raw_arr = cv2.erode(raw_arr, kernel, iterations=1)
+        occ_map = (raw_arr == 0).astype(int) #save a simple boolean map form of the input array
+        
+        occ_map[robot_pos[0]-1:robot_pos[0]+2, robot_pos[1]-1:robot_pos[1]+2] = 0
+        
+        raw_arr = (255*occ_map.astype(int)).astype(np.uint8)
+        raw_arr = np.stack([raw_arr, raw_arr, raw_arr], axis=2)
 
         #convert goal point into pixel in local map
-        [local_x, local_y] = self.path_perturb.rot_point([relative_x, relative_y], -1*self.state.yaw)
+        [local_x, local_y] = self.get_local(self.target_ind)
         [pix_x, pix_y] = self.path_perturb.get_pix_ind([local_x, local_y], robot_pos)
 
+        alt_endpoint = False
+        alt_offset = 0
+        
         #check if initial path yields collision
+        while(alt_offset < 3 and occ_map[pix_x, pix_y] and self.target_ind < len(self.target_course.cx)-1-alt_offset):
+            print('old goal point is in a wall')
+            alt_offset += 1
+            [local_x, local_y] = self.get_local(self.target_ind+alt_offset)
+            [pix_x, pix_y] = self.path_perturb.get_pix_ind([local_x, local_y], robot_pos)
+            alt_endpoint = True
+        
         fine_bot_pos = np.array([self.state.x, self.state.y, 0.0])
          
         fine_goal_pos = fine_bot_pos[0:2] + np.array([local_x, local_y])
@@ -191,6 +216,7 @@ class TrackingSimulator:
         init_path_safe = self.path_perturb.check_path(occ_map, maps_offset, fine_bot_pos, fine_goal_pos, None)
 
         if(not init_path_safe):
+            
             best_target = self.path_perturb.get_better_path(fine_bot_pos, fine_goal_pos, occ_map, maps_offset)
 
             if(best_target is None):
@@ -208,6 +234,10 @@ class TrackingSimulator:
         else: #init path found to be safe
             self.avoiding = False
             self.target_pt = None
+
+            if(alt_endpoint):
+                self.avoiding = True
+                self.target_pt = [self.target_course.cx[index+alt_offset], self.target_course.cy[index+alt_offset]]
         
         #render key pixels on the published local map
         raw_arr[robot_pos[0], robot_pos[1], :] = [0, 0, 255] #robot is red

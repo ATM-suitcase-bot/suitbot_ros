@@ -49,6 +49,10 @@ typedef struct params
     int MIDDLE;
     int RIGHT;
     int NOTHING;
+    int ELEV;
+    int SIX;
+    int NINE;
+    int FOUR;
 
     // topics
     string SPEECH_SERVICE;
@@ -169,6 +173,14 @@ typedef struct params
                 MIDDLE = value;
             else if (name == "right")
                 RIGHT = value;
+	    else if (name == "elevator")
+		ELEV = value;
+	    else if (name == "nineteen")
+		NINE = value;
+            else if (name == "four")
+		FOUR = value;
+	    else if (name == "six")
+		SIX = value;
             else if (name == "nothing")
                 NOTHING = value;
             else

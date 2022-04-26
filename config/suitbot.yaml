@@ -41,6 +41,18 @@ states_map:
   - key: 5
     name: "nothing"
     pos: [0,0,0]
+  - key: 6
+    name: "elevator" 
+    pos: [0,0,0]
+  - key: 7
+    name: "nineteen" 
+    pos: [0,0,0]
+  - key: 8
+    name: "four" 
+    pos: [0,0,0]
+  - key: 9
+    name: "six" 
+    pos: [0,0,0]
 
 keywords_map:
   - left
@@ -51,6 +63,10 @@ keywords_map:
   - terminate 
   - end
   - stop
+  - elevator
+  - nineteen
+  - four
+  - six
 
 global_frame_id: "world"
 
@@ -93,7 +109,7 @@ local_map_zmax: 10.0
 local_icp_dt_thresh: 1.0
 local_icp_dq_thresh: 0.5
 
-local_map_lookahead: 6.0
+local_map_lookahead: 8.0
 
 global_map_resolution: 0.25
 local_map_resolution: 0.25
