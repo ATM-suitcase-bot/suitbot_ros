@@ -158,10 +158,13 @@ class TrackingSimulator:
     #Callback on obstacle avoidance (local)
     def callback_obs(self, msg_in):
         #read input message to python-style array form
+        if(self.target_course is None):
+            return
         im_dims = [msg_in.rows, msg_in.cols]
         robot_pos = [msg_in.robot_x_idx, msg_in.robot_y_idx]
         raw_arr = np.reshape(msg_in.cells, im_dims)
-        occ_map = (raw_arr == 0) #save a simple boolean map form of the input array
+        occ_map = (raw_arr == 0).astype(int) #save a simple boolean map form of the input array
+        occ_map[robot_pos] = 0
         raw_arr = raw_arr.astype(np.uint8)
         raw_arr = np.stack([raw_arr, raw_arr, raw_arr], axis=2)
         
@@ -174,10 +177,11 @@ class TrackingSimulator:
         [pix_x, pix_y] = self.path_perturb.get_pix_ind([local_x, local_y], robot_pos)
 
         #check if initial path yields collision
-        fine_bot_pos = [self.state.x, self.state.y, self.state.yaw]
-        fine_goal_pos = [self.target_course.cx[self.target_ind], self.target_course.cy[self.target_ind]]
+        fine_bot_pos = np.array([self.state.x, self.state.y, 0.0])
+         
+        fine_goal_pos = fine_bot_pos[0:2] + np.array([local_x, local_y])
         bot_pix = self.path_perturb.get_pix_ind(fine_bot_pos, [0, 0])
-        maps_offset = [bot_pix[0]-robot_pos[0], bot_pix[1]-robot_pos[1]]
+        maps_offset = np.array([bot_pix[0]-robot_pos[0], bot_pix[1]-robot_pos[1]])
         init_path_safe = self.path_perturb.check_path(occ_map, maps_offset, fine_bot_pos, fine_goal_pos, None)
 
         print(init_path_safe)

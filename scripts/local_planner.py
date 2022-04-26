@@ -38,14 +38,14 @@ class PathPerturb:
     #check whether a path to a given point will intersect any obstacles
     #bot is attempting to go through the local map from bot_pose, through target, to final
     def check_path(self, local_map, local_offset, bot_pose, target_pt, final_pt):
-        local_bot = bot_pos[0:2]*self.local2real - local_offset
+        local_bot = bot_pose[0:2]*self.local2real - local_offset
         local_target = target_pt*self.local2real - local_offset
 
-        print("local bot and target: ", local_bot, local_target)
-        
+        #print("lcords: ", local_bot, local_target)
         [inter_x, inter_y] = self.get_pursuit_pts([local_bot[0], local_bot[1], bot_pose[2]], local_target)
         
-        if(np.sum((local_map[(inter_y.astype(int)), (inter_x.astype(int))])) > 0):
+        #print(inter_x[-1], inter_y[-1])
+        if(np.sum((local_map[(inter_x.astype(int)), (inter_y.astype(int))])) > 0):
             return False
 
         if(final_pt is None):
@@ -57,7 +57,7 @@ class PathPerturb:
 
         [inter_x, inter_y] = self.get_pursuit_pts([local_target[0], local_target[1], new_theta], local_final)
 
-        if(np.sum((local_map[(inter_y.astype(int)), (inter_x.astype(int))])) > 0):
+        if(np.sum((local_map[(inter_x.astype(int)), (inter_y.astype(int))])) > 0):
             return False
 
         return True
