@@ -130,9 +130,11 @@ def pure_pursuit_steer_control(state, trajectory, pind, override_pt):
 
     alpha = math.atan2(ty - state.y, tx - state.x) - state.yaw
 
+    isflip = np.abs(alpha) > (np.pi/2)
+
     delta = math.atan2(2.0 * 0.25 * math.sin(alpha) / Lf, 1.0)
 
-    return delta, ind
+    return delta, ind, isflip
 
 
 class TrackingSimulator:
@@ -157,7 +159,6 @@ class TrackingSimulator:
         self.dt = 0.1
         self.r = rospy.Rate(1.0/self.dt)
         self.target_speed = 0.6  # [m/s]
-        self.T = 10000.0  # max simulation time
         self.t_prev = rospy.Time.now().to_sec()
 
         self.path_perturb = PathPerturb()
@@ -334,18 +335,21 @@ class TrackingSimulator:
         if (parameters.manual_control == False and parameters.debug_odometry == False): # not manually controlling
             t_init = rospy.Time.now().to_sec()
             t_cur = t_init
-            while t_cur - t_init <= self.T and self.target_ind < self.lastIndex and not rospy.is_shutdown():
+            while self.target_ind < self.lastIndex and not rospy.is_shutdown():
                 # Calc control cmd
                 ai = pid_control(self.target_speed, self.state.v, self.dt)
-                di, self.target_ind = pure_pursuit_steer_control(
+                di, self.target_ind, isflip = pure_pursuit_steer_control(
                     self.state, self.target_course, self.target_ind, self.target_pt)
+
+                if(isflip):
+                    print('special case of dramatic turnaround encountered: special behavior not yet implemented')
 
                 self.ctrl_pub.publish(self.getOdoOut(ai, di))
                 
                 self.r.sleep()
                 t_cur = rospy.Time.now().to_sec()
 
-            if self.lastIndex >= self.target_ind:
+            if self.lastIndex >= self.target_ind: #stopping
                 self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
 
 
