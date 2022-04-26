@@ -229,7 +229,7 @@ void PlannerNode::callback_path_cmd(const std_msgs::Int32 &msg_in)
     if (counter_cmd == 0)
     {
         int cmd = msg_in.data;
-        path_cmd = cmd - 2;
+        path_cmd = cmd; //removed -2 offset, using suitbot yaml index now
         counter_cmd += 1;
     }
 }
@@ -238,7 +238,7 @@ void PlannerNode::callback_path_cmd(const std_msgs::Int32 &msg_in)
 int main(int argc, char **argv)
 {
     // ROS set-ups:
-    ros::init(argc, argv, "planne_node");
+    ros::init(argc, argv, "planner_node");
 
     ros::NodeHandle nh;
 
@@ -252,13 +252,6 @@ int main(int argc, char **argv)
     PlannerNode plannerNode(&nh, params);
 
     ros::Rate loop_rate(1);
-
-    // left mid right
-    // mid: first turns right, then go straight, then turn left
-    float start_xs[3] = {23.5, 27.0, 30.0}; // x idx = 50   46
-    float start_ys[3] = {64.0, 87.5, 71.0}; // y idx = 31   132
-    float goal_xs[3] = {30.0, 27.0, 23.5};
-    float goal_ys[3] = {71.0, 75.0, 64.0};
 
     if (params.manual_control == false)
     {
@@ -274,16 +267,17 @@ int main(int argc, char **argv)
         std::cout << "Planner Node: Use plan idx: " << plannerNode.path_cmd << std::endl;
     
 
-        // for testing purpose
+        // Read goal location from yaml- default start to elevators
         int x_idx = 0, y_idx = 0, x_goal_idx = 0, y_goal_idx = 0;
-        start_x = start_xs[plannerNode.path_cmd];
-        start_y = start_ys[plannerNode.path_cmd];
-        goal_x = goal_xs[plannerNode.path_cmd];
-        goal_y = goal_ys[plannerNode.path_cmd];
-        cout << start_x << ", " << start_y << ", " << goal_x << ", " << goal_y << endl;
+        start_x = 0;
+        start_y = 0;
+        goal_idx = params.states_map[plannerNode.path_cmd].pos[0];
+        goal_idy = params.states_map[plannerNode.path_cmd].pos[1];
 
         plannerNode.map.coord_to_idx(start_x, start_y, x_idx, y_idx);
-        plannerNode.map.coord_to_idx(goal_x, goal_y, x_goal_idx, y_goal_idx);
+        //plannerNode.map.coord_to_idx(goal_x, goal_y, x_goal_idx, y_goal_idx);
+        cout << x_idx << ", " << y_idx << ", " << x_goal_idx << ", " << y_goal_idx << endl;
+
         plannerNode.set_start_indices(x_idx, y_idx);
         plannerNode.set_goal_indices(x_goal_idx, y_goal_idx);
     }
