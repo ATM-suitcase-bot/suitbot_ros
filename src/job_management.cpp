@@ -190,8 +190,12 @@ int main(int argc, char **argv)
                 dir = "middle";
             else if (jobManager.direction == params.RIGHT)
                 dir = "right";
+		else if (jobManager.direction == params.ELEV)
+                dir = "elevator";
+		else if (jobManager.direction == params.NINE)
+                dir = "nineteen";
 		else
-		    dir = "middle"; //Set middle as the default, while testing out other audio options
+		    dir = "error"; //this will give an audible error if very confused
 
             if (params.use_audio)
             {
