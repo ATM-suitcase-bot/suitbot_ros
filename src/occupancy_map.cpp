@@ -13,8 +13,6 @@ OccupancyMap::OccupancyMap(string map_file)
 int OccupancyMap::initOccupancyGridMap(string map_file)
 {
     cv::Mat map_img = cv::imread(map_file, cv::IMREAD_GRAYSCALE);
-    //cv::imshow("map", map_img);
-    //cv::waitKey(0);
     if (!map_img.empty())
     {
         for (int r = 0; r < map_img.rows; r++)
@@ -24,8 +22,12 @@ int OccupancyMap::initOccupancyGridMap(string map_file)
             {
                 // outimg.at<uchar>(239 - y_coord , x_coord) = 0;
                 int num;
-                if (map_img.at<uchar>(r, c) < 50) num = OCCUPIED; // painted black
-                else if (map_img.at<uchar>(r, c) < 200){
+                if (map_img.at<uchar>(r, c) < 50) 
+                {
+                    num = OCCUPIED; // painted black
+                    num_occupied_cells++;
+                }
+                else if (map_img.at<uchar>(r, c) < (uchar)(FREE+10)){
                     num = FREE;
                     num_free_cells ++; // painted gray (<200)
                 }
@@ -87,7 +89,6 @@ void OccupancyMap::bloat_obstacles()
         {
             if (occupancy_map[r][c] == OCCUPIED)
             {
-                num_occupied_cells++;
                 // check all directions
                 for (int i = -1; i < 2; i++)
                 {
@@ -110,9 +111,9 @@ void OccupancyMap::bloat_obstacles()
         }
     }
     num_free_cells -= num_bloated_cells;
-    //std::cout << "Number of free cells: " << num_free_cells << std::endl;
-    //std::cout << "Number of occupied cells: " << num_occupied_cells << std::endl;
-    //std::cout << "Number of bloated cells: " << num_bloated_cells << std::endl;
+    std::cout << "Number of free cells: " << num_free_cells << std::endl;
+    std::cout << "Number of occupied cells: " << num_occupied_cells << std::endl;
+    std::cout << "Number of bloated cells: " << num_bloated_cells << std::endl;
 }
 
 

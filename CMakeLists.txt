@@ -101,6 +101,10 @@ target_link_libraries(job_management ${catkin_LIBRARIES})
 
 # add_executable(localization_node
 #   src/localization/localization_node.cpp
+#   src/occupancy_map.cpp
+#   src/lidar.cpp
+#   src/utility/pcl_utils.cpp
+#   src/utility/utils.cpp
 # )
 
 # target_link_libraries(localization_node 

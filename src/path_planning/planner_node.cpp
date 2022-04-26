@@ -139,6 +139,7 @@ void PlannerNode::initVisualization()
             {
                 grid_map_marker_array.markers[i].header.frame_id = "world";
                 grid_map_marker_array.markers[i].ns = "planner_node";
+                grid_map_marker_array.markers[i].type = visualization_msgs::Marker::CUBE;
                 grid_map_marker_array.markers[i].action = visualization_msgs::Marker::ADD;
                 grid_map_marker_array.markers[i].pose.position.x = resolution * c + resolution / 2;
                 grid_map_marker_array.markers[i].pose.position.y = resolution * r + resolution / 2;
