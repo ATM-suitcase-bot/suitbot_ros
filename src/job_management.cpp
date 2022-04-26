@@ -182,7 +182,7 @@ int main(int argc, char **argv)
         
         if (jobManager.state == GUIDING && counter_state == 0)
         {
-            std::cout << "guiding! direction: " << int(jobManager.direction) << std::endl;
+            std::cout << "guiding! direction: " << int(jobManager.direction) << " " << params.ELEV << std::endl;
             std::string dir;
             if (jobManager.direction == params.LEFT)
                 dir = "left";
@@ -190,12 +190,12 @@ int main(int argc, char **argv)
                 dir = "middle";
             else if (jobManager.direction == params.RIGHT)
                 dir = "right";
-		else if (jobManager.direction == params.ELEV)
+	    else if (jobManager.direction == params.ELEV)
                 dir = "elevator";
-		else if (jobManager.direction == params.NINE)
+	    else if (jobManager.direction == params.NINE)
                 dir = "nineteen";
-		else
-		    dir = "error"; //this will give an audible error if very confused
+	    else
+                dir = "error"; //this will give an audible error if very confused
 
             if (params.use_audio)
             {

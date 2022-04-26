@@ -173,14 +173,14 @@ typedef struct params
                 MIDDLE = value;
             else if (name == "right")
                 RIGHT = value;
-		else if (name == "elevator")
-		    ELEV = value;
-		else if (name == "nineteen")
-		    ELEV = value;
-		else if (name == "four")
-		    ELEV = value;
-		else if (name == "six")
-		    ELEV = value;
+	    else if (name == "elevator")
+		ELEV = value;
+	    else if (name == "nineteen")
+		ELEV = value;
+            else if (name == "four")
+		ELEV = value;
+	    else if (name == "six")
+		ELEV = value;
             else if (name == "nothing")
                 NOTHING = value;
             else
