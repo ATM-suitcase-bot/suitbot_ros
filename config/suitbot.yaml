@@ -109,7 +109,7 @@ local_map_zmax: 10.0
 local_icp_dt_thresh: 1.0
 local_icp_dq_thresh: 0.5
 
-local_map_lookahead: 6.0
+local_map_lookahead: 8.0
 
 global_map_resolution: 0.5
 local_map_resolution: 0.25

@@ -201,7 +201,7 @@ class TrackingSimulator:
         alt_offset = 0
         
         #check if initial path yields collision
-        while(alt_offset < 3 and occ_map[pix_x, pix_y] and self.target_ind < len(self.target_course.cx)-1):
+        while(alt_offset < 3 and occ_map[pix_x, pix_y] and self.target_ind < len(self.target_course.cx)-1-alt_offset):
             print('old goal point is in a wall')
             alt_offset += 1
             [local_x, local_y] = self.get_local(self.target_ind+alt_offset)
