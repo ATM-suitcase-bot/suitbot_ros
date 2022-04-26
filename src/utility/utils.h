@@ -30,4 +30,6 @@ void floodFill(vector<vector<int>> &arr, int r, int c, int x, int y, int obsC, i
 // a*x+b*y+c*z+d=0
 void three_point_plane(Vector3f &A, Vector3f &B, Vector3f &C, float &a, float &b, float &c, float &d);
 
+void array_to_image(vector<vector<int>> &arr, cv::Mat &outimg);
+
 #endif

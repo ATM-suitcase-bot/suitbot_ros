@@ -331,26 +331,66 @@ void fill_holes(LidarPointCloudPtr cloud, int num_sample)
 int main(int argc, char **argv)
 {
     LidarPointCloudPtr cloud(new LidarPointCloud);
-    string name = "/home/tina/Documents/atm_ws/src/suitbot_ros/data/wean_map_good_filled.pcd";
+    string name = "/home/tina/Documents/atm_ws/src/suitbot_ros/data/wean_map_good_filtered_2.pcd";
     if (pcl::io::loadPCDFile<LidarPoint>(name, *cloud) == -1)
     {
         cout << "Couldn't read pcd file." << endl;
         return -1;
     }
     //cout << cloud->points.size() << ", " << cloud->width << ", " << cloud->height << endl;
-    //radius_filter(cloud, 0.4, 30);
+    //radius_filter(cloud, 0.5, 30);
+    //voxel_grid(cloud, 0.05);
     //fill_holes(cloud, 7500);
-    Vector3f c(0.34, 6.71, 0.45);
-    float xmin = -1.03;
-    float xmax = 1.7;
-    float ymin = -4;
-    float ymax = 3.6;
-    float zmin = -1.2;
-    float zmax = 1.0;
-    LidarPointCloudPtr cloud_out(new LidarPointCloud);
-    crop_roi(cloud, cloud_out, c, xmin, xmax, ymin, ymax, zmin, zmax, false);
+    // Vector3f c(0.34, 6.71, 0.45);
+    // double xmin = 0;
+    // double xmax = 1.7;
+    // double ymin = -4;
+    // double ymax = 5.0;
+    // double zmin = -1.2;
+    // double zmax = 1.0;
+    // LidarPointCloudPtr cloud_out(new LidarPointCloud);
+    // crop_roi(cloud, cloud_out, c, xmin, xmax, ymin, ymax, zmin, zmax, false);
 
-    pcl::io::savePCDFileASCII("/home/tina/Documents/atm_ws/src/suitbot_ros/data/wean_map_good_filtered_1.pcd", *cloud_out);
+    // Vector3f c2(8.3, 0.8, 0.8);
+    // xmin = -5;
+    // xmax = 2;
+    // ymin = -0.5;
+    // ymax = 0.5;
+    // zmin = -1.3;
+    // zmax = 0.8;
+    // crop_roi(cloud_out, cloud, c2, xmin, xmax, ymin, ymax, zmin, zmax, false);
+
+    float a1, b1, c1, d1;
+    Vector3f A1(-24.014357, 65.178276, -3.079156);
+    Vector3f B1(-0.068617, 71.269760, -2.576126);
+    Vector3f C1(-7.109270, 8.877142, -0.578899);
+    three_point_plane(A1, B1, C1, a1, b1, c1, d1);
+    cout << "a1: " << a1 << ", b1: " << b1 << ", c1: " << c1 << endl;
+    // we want normal to be parallel to z (0,0,1)
+    // now the normal is (a, b, c)
+    // so we rotate around the cross product of these two by theta 
+    Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+    transform.translation() << -2.014192, 0.506788, -0.4;
+    transform_cloud(cloud, transform);
+
+    transform = Eigen::Affine3f::Identity();
+
+    float theta = -0.243;
+    transform.rotate(Eigen::AngleAxisf(theta, Eigen::Vector3f::UnitZ()));
+    transform_cloud(cloud, transform);
+
+    transform = Eigen::Affine3f::Identity();
+    theta = 0.03;
+    transform.rotate(Eigen::AngleAxisf(theta, Eigen::Vector3f::UnitY()));
+    transform_cloud(cloud, transform);
+
+    transform = Eigen::Affine3f::Identity();
+    theta = 0.05; 
+    transform.rotate(Eigen::AngleAxisf(theta, Eigen::Vector3f::UnitX()));
+    transform_cloud(cloud, transform);
+
+
+    pcl::io::savePCDFileASCII("/home/tina/Documents/atm_ws/src/suitbot_ros/data/wean_map_good_processed.pcd", *cloud);
 
     return 0;
 }
