@@ -197,10 +197,10 @@ class TrackingSimulator:
                 print('replanning failed, need new global path OR to wait')
                 #need to handle logic here- should probably halt control, maybe send signal to planner
             else:
-                best_target_offs = np.array(self.path_perturb.rot_point(best_target, self.state.yaw))
+                best_target_local_vec = np.array(best_target) - fine_bot_pos[0:2]
+                best_target_offs = np.array(self.path_perturb.rot_point(best_target_local_vec, self.state.yaw))
                 best_target_global = best_target_offs + fine_bot_pos[0:2]
-                print('found better node: ', best_target_global)
-                print('old node was: ', [self.target_course.cx[self.target_ind], self.target_course.cy[self.target_ind]])
+                
 
                 #then we go to the 'best_target_global'
                 self.avoiding = True

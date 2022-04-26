@@ -44,7 +44,9 @@ class PathPerturb:
         local_target = target_pt*self.local2real - local_offset
 
         [inter_x, inter_y] = self.get_pursuit_pts([local_bot[0], local_bot[1], bot_pose[2]], local_target)
-        #print(inter_x[-1], inter_y[-1])
+        
+        inter_x = np.clip(inter_x, 0, np.shape(local_map)[0]-1)
+        inter_y = np.clip(inter_y, 0, np.shape(local_map)[1]-1)
         if(np.sum((local_map[(inter_x.astype(int)), (inter_y.astype(int))])) > 0):
             return False
 
@@ -55,6 +57,8 @@ class PathPerturb:
         new_theta = np.arctan2(inter_y[-2]-inter_y[-1], inter_x[-1]-inter_x[-2])
 
         [inter_x, inter_y] = self.get_pursuit_pts([local_target[0], local_target[1], new_theta], local_final)
+        inter_x = np.clip(inter_x, 0, np.shape(local_map)[0]-1)
+        inter_y = np.clip(inter_y, 0, np.shape(local_map)[1]-1)
 
         if(np.sum((local_map[(inter_x.astype(int)), (inter_y.astype(int))])) > 0):
             return False
