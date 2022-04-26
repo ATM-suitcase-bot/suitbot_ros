@@ -157,16 +157,13 @@ class TrackingSimulator:
 
     #Callback on obstacle avoidance (local)
     def callback_obs(self, msg_in):
+        #read input message to python-style array form
         im_dims = [msg_in.rows, msg_in.cols]
         robot_pos = [msg_in.robot_x_idx, msg_in.robot_y_idx]
-
         raw_arr = np.reshape(msg_in.cells, im_dims)
-       
+        occ_map = (raw_arr == 0) #save a simple boolean map form of the input array
         raw_arr = raw_arr.astype(np.uint8)
         raw_arr = np.stack([raw_arr, raw_arr, raw_arr], axis=2)
-        
-        #render pixel robot currently occupies
-        raw_arr[robot_pos[0], robot_pos[1], :] = [0, 0, 255] #robot is red
         
         #render goal pixel in the robot's space
         relative_x = self.target_course.cx[self.target_ind] - self.state.x
@@ -175,11 +172,22 @@ class TrackingSimulator:
         #convert goal point into pixel in local map
         [local_x, local_y] = self.path_perturb.rot_point([relative_x, relative_y], -1*self.state.yaw)
         [pix_x, pix_y] = self.path_perturb.get_pix_ind([local_x, local_y], robot_pos)
-        
-        raw_arr[pix_x, pix_y, :] = [0, 255, 0] #goal is green
 
-         
+        #check if initial path yields collision
+        fine_bot_pos = [self.state.x, self.state.y, self.state.yaw]
+        fine_goal_pos = [self.target_course.cx[self.target_ind], self.target_course.cy[self.target_ind]]
+        bot_pix = self.path_perturb.get_pix_ind(fine_bot_pos, [0, 0])
+        maps_offset = [bot_pix[0]-robot_pos[0], bot_pix[1]-robot_pos[1]]
+        init_path_safe = self.path_perturb.check_path(occ_map, maps_offset, fine_bot_pos, fine_goal_pos, None)
+
+        print(init_path_safe)
         
+        #render key pixels on the published local map
+        raw_arr[robot_pos[0], robot_pos[1], :] = [0, 0, 255] #robot is red
+        raw_arr[pix_x, pix_y, :] = [0, 255, 0] #goal is green
+        if(not init_path_safe):
+            raw_arr[0, :, 2] = 255
+
         self.obs_pub.publish(CvBridge().cv2_to_imgmsg(np.flip(np.flip(raw_arr, axis=0), axis=1)))
 
     #Callback on force feedback

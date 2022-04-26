@@ -1,6 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt #for tmp visualization
-import cv2
 
 class PathPerturb:
     #Create an object for calculating path perturbations
@@ -42,6 +40,8 @@ class PathPerturb:
     def check_path(self, local_map, local_offset, bot_pose, target_pt, final_pt):
         local_bot = bot_pos[0:2]*self.local2real - local_offset
         local_target = target_pt*self.local2real - local_offset
+
+        print("local bot and target: ", local_bot, local_target)
         
         [inter_x, inter_y] = self.get_pursuit_pts([local_bot[0], local_bot[1], bot_pose[2]], local_target)
         
@@ -59,8 +59,6 @@ class PathPerturb:
 
         if(np.sum((local_map[(inter_y.astype(int)), (inter_x.astype(int))])) > 0):
             return False
-
-        plt.plot(inter_x, inter_y, color='r')
 
         return True
 
