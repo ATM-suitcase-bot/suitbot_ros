@@ -190,6 +190,8 @@ int main(int argc, char **argv)
                 dir = "middle";
             else if (jobManager.direction == params.RIGHT)
                 dir = "right";
+		else
+		    dir = "middle"; //Set middle as the default, while testing out other audio options
 
             if (params.use_audio)
             {

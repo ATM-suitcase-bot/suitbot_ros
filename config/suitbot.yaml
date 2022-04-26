@@ -41,6 +41,9 @@ states_map:
   - key: 5
     name: "nothing"
     pos: [0,0,0]
+  - key: 6
+    name: "elevator" 
+    pos: [0,0,0]
 
 keywords_map:
   - left
@@ -51,6 +54,8 @@ keywords_map:
   - terminate 
   - end
   - stop
+  - elevator
+  - twenty
 
 global_frame_id: "world"
 
