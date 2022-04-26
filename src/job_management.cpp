@@ -210,8 +210,8 @@ int main(int argc, char **argv)
                 dir = "classroom six";
             else if (jobManager.direction == params.FOUNT)
                 dir = "water fountain";
-            else if (jobManager.direction == params.HALL)
-                dir = "doherty hall";
+            else if (jobManager.direction == params.STAIR)
+                dir = "doherty staircase";
             else
                 dir = "error"; //this will give an audible error if very confused
 
