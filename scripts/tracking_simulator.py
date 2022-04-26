@@ -19,11 +19,14 @@ script_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(script_dir)
 from parameters import Parameters
 from local_planner import PathPerturb
+import cv2
 
 # Parameters
 k = 0.1  # look forward gain
 Lfc = 1.0  # [m] look-ahead distance
 Kp = 1.0  # speed proportional gain
+
+kernel = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]]).astype(np.uint8)
 
 class State:
     def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0):
@@ -127,7 +130,7 @@ def pure_pursuit_steer_control(state, trajectory, pind, override_pt):
 
     alpha = math.atan2(ty - state.y, tx - state.x) - state.yaw
 
-    delta = math.atan2(2.0 * 0.2 * math.sin(alpha) / Lf, 1.0)
+    delta = math.atan2(2.0 * 0.25 * math.sin(alpha) / Lf, 1.0)
 
     return delta, ind
 
@@ -169,9 +172,13 @@ class TrackingSimulator:
         im_dims = [msg_in.rows, msg_in.cols]
         robot_pos = [msg_in.robot_x_idx, msg_in.robot_y_idx]
         raw_arr = np.reshape(msg_in.cells, im_dims)
-        occ_map = (raw_arr == 0).astype(int) #save a simple boolean map form of the input array
-        occ_map[robot_pos] = 0
         raw_arr = raw_arr.astype(np.uint8)
+        raw_arr = cv2.erode(raw_arr, kernel, iterations=1)
+        occ_map = (raw_arr == 0).astype(int) #save a simple boolean map form of the input array
+        
+        occ_map[robot_pos[0]-1:robot_pos[0]+2, robot_pos[1]-1:robot_pos[1]+2] = 0
+        
+        raw_arr = (255*occ_map.astype(int)).astype(np.uint8)
         raw_arr = np.stack([raw_arr, raw_arr, raw_arr], axis=2)
         
         #render goal pixel in the robot's space
