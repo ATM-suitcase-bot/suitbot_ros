@@ -194,6 +194,10 @@ int main(int argc, char **argv)
                 dir = "elevator";
 	    else if (jobManager.direction == params.NINE)
                 dir = "nineteen";
+	    else if (jobManager.direction == params.FOUR)
+                dir = "four";
+	    else if (jobManager.direction == params.SIX)
+                dir = "six";
 	    else
                 dir = "error"; //this will give an audible error if very confused
 
