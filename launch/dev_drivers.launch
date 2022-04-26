@@ -29,7 +29,8 @@
     <param name="course_idx"          type="int"   value="$(arg course_idx)"/>
     
 
-    <param name="map_file" value="$(find suitbot_ros)/data/wean_map_grid_edited.jpg"/>
+    <param name="map_file" value="$(find suitbot_ros)/data/wean_map_good_grid_edited_filled.png"/>
+    <param name="pcd_file" value="$(find suitbot_ros)/data/wean_map_good_processed_aligned.pcd"/>
     <param name="model_path" value="$(find suitbot_ros)/scripts/audio/vosk-model-small-en-us-0.15"/>
     
     <node name="embedded_device_driver" pkg="suitbot_ros" type="embedded_device_driver.py" output="screen"/>

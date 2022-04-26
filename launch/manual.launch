@@ -31,8 +31,8 @@
 
     <arg name="use_serial"            default="true"/> 
     <param name="use_serial"           type="bool"   value="$(arg use_serial)"/>
-    <param name="map_file" value="$(find suitbot_ros)/data/wean_map_grid_edited.jpg"/>
-    <param name="pcd_file" value="$(find suitbot_ros)/data/wean.pcd"/>
+    <param name="map_file" value="$(find suitbot_ros)/data/wean_map_good_grid_edited_filled.png"/>
+    <param name="pcd_file" value="$(find suitbot_ros)/data/wean_map_good_processed_aligned.pcd"/>
     <param name="model_path" value="$(find suitbot_ros)/scripts/audio/vosk-model-small-en-us-0.15"/>
 
     <node name="job_management" pkg="suitbot_ros" type="job_management" output="screen"/>
