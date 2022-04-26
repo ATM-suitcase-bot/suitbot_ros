@@ -95,7 +95,7 @@ local_icp_dq_thresh: 0.5
 
 local_map_lookahead: 6.0
 
-global_map_resolution: 0.5
+global_map_resolution: 0.25
 local_map_resolution: 0.25
 
 obstacle_zmin: -0.2

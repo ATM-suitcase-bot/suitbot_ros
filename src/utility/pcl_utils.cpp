@@ -20,60 +20,61 @@ void transform_cloud(LidarPointCloudPtr cloud, Eigen::Affine3f &transform)
 // crop cloud and store in cloud_out
 void crop_roi(LidarPointCloudConstPtr cloud, 
              LidarPointCloudPtr cloud_out,
-             Eigen::Vector3f &centroid_ref,
+             Eigen::Vector3f &centroid_ref_,
              double xmin, double xmax,
              double ymin, double ymax,
              double zmin, double zmax,
              bool keep_interior) 
 {
-    // build the condition
-    pcl::ConditionAnd<LidarPoint>::Ptr range_cond(new pcl::ConditionAnd<LidarPoint>());
     double x_min, x_max, y_min, y_max, z_min, z_max;
+    Eigen::Vector3d centroid_ref = centroid_ref_.cast<double>();
     x_min = centroid_ref[0] + xmin;
     x_max = centroid_ref[0] + xmax;
     y_min = centroid_ref[1] + ymin;
     y_max = centroid_ref[1] + ymax;
     z_min = centroid_ref[2] + zmin;
-    z_min = centroid_ref[2] + zmax;
+    z_max = centroid_ref[2] + zmax;
+    pcl::ConditionalRemoval<LidarPoint> condrem;
     if (keep_interior)
     {
+        pcl::ConditionAnd<LidarPoint>::Ptr range_cond(new pcl::ConditionAnd<LidarPoint>());
         range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-            (new pcl::FieldComparison<LidarPoint>("x", pcl::ComparisonOps::GT, xmin)));
+            (new pcl::FieldComparison<LidarPoint>("x", pcl::ComparisonOps::GT, x_min)));
         range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-            (new pcl::FieldComparison<LidarPoint> ("x", pcl::ComparisonOps::LT, xmax)));
+            (new pcl::FieldComparison<LidarPoint> ("x", pcl::ComparisonOps::LT, x_max)));
         range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-            (new pcl::FieldComparison<LidarPoint>("y", pcl::ComparisonOps::GT, ymin)));
+            (new pcl::FieldComparison<LidarPoint>("y", pcl::ComparisonOps::GT, y_min)));
         range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-            (new pcl::FieldComparison<LidarPoint> ("y", pcl::ComparisonOps::LT, ymax)));
+            (new pcl::FieldComparison<LidarPoint> ("y", pcl::ComparisonOps::LT, y_max)));
         range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-            (new pcl::FieldComparison<LidarPoint>("z", pcl::ComparisonOps::GT, zmin)));
+            (new pcl::FieldComparison<LidarPoint>("z", pcl::ComparisonOps::GT, z_min)));
         range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-            (new pcl::FieldComparison<LidarPoint> ("z", pcl::ComparisonOps::LT, zmax)));
+            (new pcl::FieldComparison<LidarPoint> ("z", pcl::ComparisonOps::LT, z_max)));
+        condrem.setCondition(range_cond);
     }
     else
-    { // keep exterior points
+    {
+        pcl::ConditionOr<LidarPoint>::Ptr range_cond(new pcl::ConditionOr<LidarPoint>());
         range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-            (new pcl::FieldComparison<LidarPoint>("x", pcl::ComparisonOps::LT, xmin)));
+            (new pcl::FieldComparison<LidarPoint>("x", pcl::ComparisonOps::LT, x_min)));
         range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-            (new pcl::FieldComparison<LidarPoint> ("x", pcl::ComparisonOps::GT, xmax)));
+            (new pcl::FieldComparison<LidarPoint> ("x", pcl::ComparisonOps::GT, x_max)));
         range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-            (new pcl::FieldComparison<LidarPoint>("y", pcl::ComparisonOps::LT, ymin)));
+            (new pcl::FieldComparison<LidarPoint>("y", pcl::ComparisonOps::LT, y_min)));
         range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-            (new pcl::FieldComparison<LidarPoint> ("y", pcl::ComparisonOps::GT, ymax)));
+            (new pcl::FieldComparison<LidarPoint> ("y", pcl::ComparisonOps::GT, y_max)));
         range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-            (new pcl::FieldComparison<LidarPoint>("z", pcl::ComparisonOps::LT, zmin)));
+            (new pcl::FieldComparison<LidarPoint>("z", pcl::ComparisonOps::LT, z_min)));
         range_cond->addComparison(pcl::FieldComparison<LidarPoint>::ConstPtr
-            (new pcl::FieldComparison<LidarPoint> ("z", pcl::ComparisonOps::GT, zmax)));
+            (new pcl::FieldComparison<LidarPoint> ("z", pcl::ComparisonOps::GT, z_max)));
+        condrem.setCondition(range_cond);
     }
-    // build the filter
-    cout << "here" << endl;
-    pcl::ConditionalRemoval<LidarPoint> condrem;
-    condrem.setCondition(range_cond);
     condrem.setInputCloud(cloud);
     condrem.setKeepOrganized(false);
     // apply filter
     condrem.filter(*cloud_out);
-    cout << "here2" << endl;
+    cloud_out->width = cloud_out->points.size();
+    cloud_out->height = 1;
     //remove_invalid(cloud_out);
 }
 

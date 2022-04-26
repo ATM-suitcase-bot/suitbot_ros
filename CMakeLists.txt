@@ -185,7 +185,7 @@ ${OpenCV_LIBS}
 )
 
 add_executable(map_processing
-  src/map_processing.cpp
+  src/pcd_map_process.cpp
   src/occupancy_map.cpp
   src/lidar.cpp
   src/utility/pcl_utils.cpp

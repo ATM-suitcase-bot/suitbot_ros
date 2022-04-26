@@ -88,3 +88,13 @@ void three_point_plane(Vector3f &A, Vector3f &B, Vector3f &C, float &a, float &b
     c = (B[0]-A[0])*(C[1]-A[1])-(C[0]-A[0])*(B[1]-A[1]);
     d = -(a*A[0]+b*A[1]+c*A[2]);
 }
+
+void array_to_image(vector<vector<int>> &arr, cv::Mat &outimg)
+{
+    int rows = arr.size();
+    int cols = arr[0].size();
+    outimg = cv::Mat::ones(rows, cols, CV_8UC1) * 255;
+    for (int i = 0; i < rows; i++)
+        for (int j = 0; j < cols; j++)
+            outimg.at<uchar>(i, j) = (uchar)(unsigned int)(arr[i][j]);
+}
