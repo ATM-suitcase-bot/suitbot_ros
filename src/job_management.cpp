@@ -200,27 +200,20 @@ int main(int argc, char **argv)
                 dir = "middle";
             else if (jobManager.direction == params.RIGHT)
                 dir = "right";
-	    else if (jobManager.direction == params.ELEV)
+            else if (jobManager.direction == params.ELEV)
                 dir = "elevator";
-	    else if (jobManager.direction == params.NINE)
+            else if (jobManager.direction == params.NINE)
                 dir = "nineteen";
-	    else if (jobManager.direction == params.FOUR)
+            else if (jobManager.direction == params.FOUR)
                 dir = "four";
-	    else if (jobManager.direction == params.SIX)
+            else if (jobManager.direction == params.SIX)
                 dir = "six";
-	    else
+            else
                 dir = "error"; //this will give an audible error if very confused
 
             if (params.use_audio)
             {
-                suitbot_ros::SpeechSrv speech;
-                speech.request.data = "Received command. Going " + dir;
-                if (jobManager.speech_cli.call(speech)){
-                    ROS_INFO("Spoken successfully: %s", speech.request.data.c_str());
-                }
-                else {
-                    ROS_INFO("fail to speak");
-                }
+                jobManager.try_speak("Received command. Going " + dir);
             }
             counter_state += 1;
             if (params.use_audio)
