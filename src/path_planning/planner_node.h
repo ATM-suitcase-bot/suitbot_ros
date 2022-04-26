@@ -87,7 +87,7 @@ public:
     vector<pair<double, double>> banked_steps;
 
 
-    int path_cmd = -2;
+    int path_cmd = 0;
     int counter_cmd = 0;
 
 

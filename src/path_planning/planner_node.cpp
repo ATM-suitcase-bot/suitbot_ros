@@ -259,7 +259,7 @@ int main(int argc, char **argv)
         if (params.use_audio == false)
             plannerNode.path_cmd = params.course_idx;
             
-        while (plannerNode.path_cmd == -2 && ros::ok())
+        while (plannerNode.path_cmd == 0 && ros::ok())
         {
             ros::spinOnce();
             loop_rate.sleep();
@@ -272,12 +272,16 @@ int main(int argc, char **argv)
         int x_idx = 0, y_idx = 0, x_goal_idx = 0, y_goal_idx = 0;
         start_x = 0;
         start_y = 0;
-        goal_idx = params.states_map[plannerNode.path_cmd].pos[0];
-        goal_idy = params.states_map[plannerNode.path_cmd].pos[1];
 
+        std::cout << "parsing xml\n";	
+        //offset by 1 to fix missing index 1 in yaml
+	//std::cout << params.state_map[plannerNode.path_cmd][std::string("pos")]<<"\n";	
+	x_goal_idx = (int)params.state_map[plannerNode.path_cmd-1][std::string("pos")][0];
+	y_goal_idx = (int)params.state_map[plannerNode.path_cmd-1][std::string("pos")][1];
+        
         plannerNode.map.coord_to_idx(start_x, start_y, x_idx, y_idx);
-        //plannerNode.map.coord_to_idx(goal_x, goal_y, x_goal_idx, y_goal_idx);
-        cout << x_idx << ", " << y_idx << ", " << x_goal_idx << ", " << y_goal_idx << endl;
+        
+	cout << x_idx << ", " << y_idx << ", " << x_goal_idx << ", " << y_goal_idx << endl;
 
         plannerNode.set_start_indices(x_idx, y_idx);
         plannerNode.set_goal_indices(x_goal_idx, y_goal_idx);

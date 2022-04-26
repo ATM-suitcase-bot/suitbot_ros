@@ -136,7 +136,8 @@ typedef struct params
 
     float obstacle_zmin;
     float obstacle_zmax;
-
+    
+    XmlRpc::XmlRpcValue state_map;
     void readParameters(ros::NodeHandle &n)
     {
         // topics
@@ -158,9 +159,9 @@ typedef struct params
         LOCAL_MAP_TOPIC = readParam<string>(n, "local_map_topic");
         LOCAL_MAP_IMAGE_TOPIC = readParam<string>(n, "local_map_image_topic");
 
-        // command types
-        auto state_map = readParam<XmlRpc::XmlRpcValue>(n, "states_map");
-        for (int i = 0; i < state_map.size(); i++) {
+        state_map = readParam<XmlRpc::XmlRpcValue>(n, "states_map");
+        //cout << (state_map);
+	for (int i = 0; i < state_map.size(); i++) {
             auto sublist = state_map[i];
             std::stringstream ss;
             ss << sublist["name"];
