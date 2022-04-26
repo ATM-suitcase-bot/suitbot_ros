@@ -78,7 +78,10 @@ public:
 
 	// Constructor
 	// @param Number of particles
-	ParticleFilter() : initial_num_particles_per_grid(50), initial_num_particles_total(10000), point_cloud_map(new LidarPointCloud), generator_(rd_()) {}
+	ParticleFilter() : initial_num_particles_per_grid(50), 
+					   initial_num_particles_total(10000), 
+					   point_cloud_map(new LidarPointCloud), 
+					   generator_(rd_()) {}
 
 	ParticleFilter(string map_file, string pcd_file) : initial_num_particles_per_grid(50), initial_num_particles_total(10000), point_cloud_map(new LidarPointCloud), generator_(rd_()) 
 	{

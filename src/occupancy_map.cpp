@@ -45,10 +45,6 @@ int OccupancyMap::initOccupancyGridMap(string map_file)
     rows = occupancy_map.size();
     cols = occupancy_map[0].size();
     bloat_obstacles();
-    cv::Mat map_out;
-    array_to_image(occupancy_map, map_out);
-    cv::imshow("map", map_out);
-    cv::waitKey(0);
     return 0;
 }
 
