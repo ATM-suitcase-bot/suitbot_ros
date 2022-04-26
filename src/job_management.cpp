@@ -131,6 +131,21 @@ int JobManager::error_handler()
     return 0;
 }
 
+//Attempts to send an audio output, returns 1 on success and 0 on failure
+int JobManager::try_speak(std::string message)
+{
+    suitbot_ros::SpeechSrv speech;
+    speech.request.data = message;
+    if (this->speech_cli.call(speech)){
+        ROS_INFO("Spoken successfully: %s", speech.request.data.c_str());
+        return 1;
+    }
+    else {
+        ROS_INFO("fail to speak");
+        return 0;
+    }
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "job_management");
@@ -153,14 +168,9 @@ int main(int argc, char **argv)
 
     if (params.manual_control == false && params.use_audio == true) {
         // say something
-        suitbot_ros::SpeechSrv speech;
-        speech.request.data = "Robot initialized, where do you want to go?";
-        if (jobManager.speech_cli.call(speech)){
-            ROS_INFO("Spoken successfully: %s", speech.request.data.c_str());
-        }
-        else {
-            ROS_INFO("fail to speak");
-        }
+        jobManager.try_speak("Robot initialized, where do you want to go?");
+        
+        
         // enable audio listening
         std_srvs::SetBool srv_mic;
         srv_mic.request.data = true;
