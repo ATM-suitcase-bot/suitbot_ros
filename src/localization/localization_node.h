@@ -58,6 +58,8 @@ public:
     ros::Subscriber odom_sub;  
     ros::Publisher particles_pose_pub;
 
+    ros::Publisher mean_particle_pub;
+
     sensor_msgs::PointCloud2Ptr map_point_cloud_msg;
     ros::Publisher map_point_cloud_pub;
     ros::Timer map_point_cloud_pub_timer;
@@ -81,6 +83,8 @@ public:
     float cur_yaw = 0;
     double t_prev = -1;
 
+    int n_updates = 0;
+
     // 2D map, discretized with resolution of 50cm
     
 
@@ -97,7 +101,7 @@ public:
 
     void pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr &msg);
 
-    void odomCallback(const geometry_msgs::TwistStamped &twist_in);
+    void odomCallback(const nav_msgs::Odometry &ctrl_in);
 
     void compute_delta_odom(const geometry_msgs::TwistStamped &twist_in, float &yaw, 
                         float &delta_x, float &delta_y, float &delta_theta);

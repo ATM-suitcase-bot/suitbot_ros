@@ -132,7 +132,21 @@ void ParticleFilter::init()
 
     ROS_WARN_STREAM("particle_per_grid: " << particle_per_grid);
     int num_particles = 0;
-
+    // for debugging motion model:
+    
+    float start_x, start_y;
+    // 204, 172, 1.57
+    // 137, 347, 1.57?
+    /*
+    grid_map.idx_to_coord(204, 172, start_x, start_y);
+    for (int i = 0; i < 100; i++)
+    {
+        Particle p_tmp(start_x, start_y, 1.57, 1.0);
+        particles.push_back(p_tmp);
+        num_particles++;
+    }
+    */
+    
     // sample in free space
     for (int r = 0; r < grid_map.rows; r++)
     {
@@ -151,6 +165,7 @@ void ParticleFilter::init()
             }
         } 
     }
+    
     std::uniform_int_distribution<int> idx_distrib(0, num_particles);
     int idx_rand = idx_distrib(generator_);
     mean_ = particles[idx_rand]; // just a random particle from the set
@@ -160,30 +175,33 @@ void ParticleFilter::init()
 
 
 
-void ParticleFilter::predict(const float delta_x, const float delta_y, const float delta_theta)
+void ParticleFilter::predict(const Eigen::Vector3f &cur_odom, const Eigen::Vector3f &prev_odom)
 {
-    /*
-    const float x_dev = fabs(delta_x * odom_x_mod);
-    const float y_dev = fabs(delta_y * odom_y_mod);
-    const float theta_dev = fabs(delta_theta * odom_theta_mod);
-    */
-
+    
+    //const float x_dev = fabs(delta_x * odom_x_mod);
+    //const float y_dev = fabs(delta_y * odom_y_mod);
+    //const float theta_dev = fabs(delta_theta * odom_theta_mod);
+    
+    float delta_x = cur_odom[0] - prev_odom[0];
+    float delta_y = cur_odom[1] - prev_odom[1];
+    float delta_theta = cur_odom[2] - prev_odom[2];
     /*  Make a prediction for all particles according to the odometry */
     //float sa, ca, rand_x, rand_y;
     for (int i = 0; i < particles.size(); i++)
     {
         /*
-        sa = sin(particles[i].theta);
-        ca = cos(particles[i].theta);
-        rand_x = delta_x + ranGaussian(0, x_dev);
-        rand_y = delta_y + ranGaussian(0, y_dev);
-        particles[i].x += ca * rand_x - sa * rand_y;
-        particles[i].y += sa * rand_x + ca * rand_y;
-        particles[i].theta += delta_theta + ranGaussian(0, theta_dev);
+        float d_trans = sqrt(delta_x * delta_x + delta_y * delta_y);
+        float d_rot = atan2(delta_y, delta_x);
+        particles[i].x += d_trans * cos(particles[i].theta + d_rot);
+        particles[i].y += d_trans * sin(particles[i].theta + d_rot);
+        particles[i].theta += delta_theta ;
         */
+
+        // below is the original motion model
+        
         float d_theta = warpAngle(delta_theta);
 
-        float d_rot1 = atan2(delta_y, delta_x) - particles[i].theta;
+        float d_rot1 = atan2(delta_y, delta_x) - prev_odom[2];
         float d_trans = sqrt(delta_x * delta_x + delta_y * delta_y);
         float d_rot2 = d_theta - d_rot1;
 
@@ -198,6 +216,7 @@ void ParticleFilter::predict(const float delta_x, const float delta_y, const flo
         particles[i].x = particles[i].x + hd_trans * cos(particles[i].theta + hd_rot1);
         particles[i].y = particles[i].y + hd_trans * sin(particles[i].theta + hd_rot1);
         particles[i].theta = warpAngle(particles[i].theta + hd_rot1 + hd_rot2);
+        
     }
 }
 
@@ -240,13 +259,21 @@ void ParticleFilter::update(LidarPointCloudConstPtr cloud_in)
 
     /*  Normalize all weights */
     float wt = 0;
+    float wt_max = 0;
+    int idx_max = -1;
     for (int i = 0; i < particles.size(); i++)
     {
         if (sum_weights > 0)
             particles[i].weight /= sum_weights;
         else
             particles[i].weight = 0;
+        if (idx_max == -1 || particles[i].weight > wt_max)
+        {
+            wt_max = particles[i].weight;
+            idx_max = i;
+        }
     }
+    mean_ = particles[idx_max];
 /*
     // instead of this, we do non maximum supression
     Particle mean_p;
@@ -268,28 +295,28 @@ void ParticleFilter::update(LidarPointCloudConstPtr cloud_in)
 
 void ParticleFilter::resample(int num_to_sample)
 {
-  std::vector<Particle> new_p(num_to_sample);
-  const float factor = 1.f / num_to_sample;
-  const float r = factor * rngUniform(0, 1);
-  float c = particles[0].weight;
-  float u;
+    std::vector<Particle> new_p(num_to_sample);
+    const float factor = 1.f / num_to_sample;
+    const float r = factor * rngUniform(0, 1);
+    float c = particles[0].weight;
+    float u;
 
-  //! Do resamplig
-  for (int m = 0, i = 0; m < num_to_sample; m++)
-  {
-    u = r + factor * m;
-    while (u > c)
+    //! Do resamplig
+    for (int m = 0, i = 0; m < num_to_sample; m++)
     {
-      if (++i >= particles.size())
-        break;
-      c += particles[i].weight;
+        u = r + factor * m;
+        while (u > c)
+        {
+        if (++i >= particles.size())
+            break;
+        c += particles[i].weight;
+        }
+        new_p[m] = particles[i];
+        new_p[m].weight = factor;
     }
-    new_p[m] = particles[i];
-    new_p[m].weight = factor;
-  }
 
-  //! Asign the new particles set
-  particles = new_p;
+    //! Asign the new particles set
+    particles = new_p;
 }
 
 
@@ -405,4 +432,16 @@ void ParticleFilter::buildParticlesPoseMsg(geometry_msgs::PoseArray& msg) const
         msg.poses[i].orientation.z = sin(static_cast<double>(particles[i].theta * 0.5f));
         msg.poses[i].orientation.w = cos(static_cast<double>(particles[i].theta * 0.5f));
     }
+}
+
+void ParticleFilter::buildParticleMsg(geometry_msgs::Pose& msg) const
+{
+    msg.position.x = static_cast<double>(mean_.x);
+    msg.position.y = static_cast<double>(mean_.y);
+    msg.position.z = static_cast<double>(fixed_height);
+    msg.orientation.x = 0.;
+    msg.orientation.y = 0.;
+    msg.orientation.z = sin(static_cast<double>(mean_.theta * 0.5f));
+    msg.orientation.w = cos(static_cast<double>(mean_.theta * 0.5f));
+    
 }

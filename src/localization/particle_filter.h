@@ -29,6 +29,8 @@
 #include <pcl/point_types.h>
 
 #include <geometry_msgs/PoseArray.h>
+#include <geometry_msgs/Pose.h>
+
 
 #include <Eigen/Dense>
 
@@ -127,7 +129,7 @@ public:
 	* It calculates the increase that has occurred in the odometry and makes predictions of where it is possible that the
 	* UAV is, taking into account selected thresholds.
    */
-	void predict(const float delta_x, const float delta_y, const float delta_theta);
+	void predict(const Eigen::Vector3f &cur_odom, const Eigen::Vector3f &prev_odom);
 
 	/** 
 	 * @brief This function implements the PF update stage.
@@ -159,6 +161,8 @@ public:
 	void write(string filename);
 
 	void buildParticlesPoseMsg(geometry_msgs::PoseArray& msg) const;
+
+	void buildParticleMsg(geometry_msgs::Pose& msg) const;
 
 
 private:

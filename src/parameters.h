@@ -82,6 +82,7 @@ typedef struct params
     // string odom_frame_id;   /*!< Name of the flight origin of the robot TF */
     string global_frame_id; /*!< Name of the test-bed origin TF */
     string PF_PARTICLES_TOPIC;
+    string PF_MEAN_PARTICLE_TOPIC;
 
     // bool set_initial_pose; /*!< Flag to indicate if t he initial pose has been received */
 
@@ -167,6 +168,7 @@ typedef struct params
 
         PCD_MAP_TOPIC = readParam<string>(n, "pcd_map_topic");
         PF_PARTICLES_TOPIC = readParam<string>(n, "pf_particles_topic");
+        PF_MEAN_PARTICLE_TOPIC = readParam<string>(n, "pf_mean_particle_topic");
 
         // command types
         state_map = readParam<XmlRpc::XmlRpcValue>(n, "states_map");
