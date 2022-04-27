@@ -14,7 +14,6 @@
 #include "../utility/tic_toc.h"
 #include <cmath>
 
-
 PlannerNode::PlannerNode(ros::NodeHandle *nodehandle, parameters_t &_params)
     : nh(*nodehandle), params(_params)
 {
@@ -148,8 +147,8 @@ void PlannerNode::initVisualization()
                 grid_map_marker_array.markers[i].ns = "planner_node";
                 grid_map_marker_array.markers[i].type = visualization_msgs::Marker::CUBE;
                 grid_map_marker_array.markers[i].action = visualization_msgs::Marker::ADD;
-                grid_map_marker_array.markers[i].pose.position.x = params.global_map_resolution * c + params.global_map_resolution / 2;
-                grid_map_marker_array.markers[i].pose.position.y = params.global_map_resolution  * r + params.global_map_resolution  / 2;
+                grid_map_marker_array.markers[i].pose.position.x = params.global_map_resolution * r + params.global_map_resolution / 2;
+                grid_map_marker_array.markers[i].pose.position.y = params.global_map_resolution  * c + params.global_map_resolution  / 2;
                 grid_map_marker_array.markers[i].pose.position.z = 0;
                 grid_map_marker_array.markers[i].pose.orientation.w = 1;
                 grid_map_marker_array.markers[i].pose.orientation.x = 0;
@@ -288,10 +287,11 @@ int main(int argc, char **argv)
 	y_goal_idx = (int)params.state_map[plannerNode.path_cmd-1][std::string("pos")][1];
         
         plannerNode.map.coord_to_idx(start_x, start_y, x_idx, y_idx);
-        
-	cout << x_idx << ", " << y_idx << ", " << x_goal_idx << ", " << y_goal_idx << endl;
+	std::cout << plannerNode.map.occupancy_map[x_idx][y_idx] << "\n"; 
+	std::cout << plannerNode.map.occupancy_map[x_goal_idx][y_goal_idx] << "\n"; 
+	std::cout << x_idx << ", " << y_idx << ", " << x_goal_idx << ", " << y_goal_idx << endl;
 
-        plannerNode.set_start_indices(x_idx, y_idx);
+	plannerNode.set_start_indices(x_idx, y_idx);
         plannerNode.set_goal_indices(x_goal_idx, y_goal_idx);
     }
 

@@ -113,7 +113,8 @@ int PlannerNode::a_star_planner()
                 if (!successor_in_open)
                 {
                     OPEN.push(AugmentedNode(successor_node));
-                    pq_set[s_idx] = successor_node;
+                    
+		    pq_set[s_idx] = successor_node;
                 }
             }
         }
@@ -135,8 +136,8 @@ int PlannerNode::a_star_planner()
 // get the successors of a node
 void PlannerNode::get_successors(AugmentedNode &aug_node, vector<pair<int, int>> &successors)
 {
-    int row = aug_node.node->indices.second;
-    int col = aug_node.node->indices.first;
+    int row = aug_node.node->indices.first;
+    int col = aug_node.node->indices.second;
     for (int i = -1; i < 2; i++)
     {
         int row_new = row + i;
@@ -148,8 +149,8 @@ void PlannerNode::get_successors(AugmentedNode &aug_node, vector<pair<int, int>>
                 if (map.occupancy_map[row_new][col_new] == FREE)
                 {
                     pair<int, int> succ;
-                    succ.first = col_new;
-                    succ.second = row_new;
+                    succ.second = col_new;
+                    succ.first = row_new;
                     successors.push_back(succ);
                 }
             }
