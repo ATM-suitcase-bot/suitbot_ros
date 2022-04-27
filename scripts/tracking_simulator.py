@@ -366,11 +366,11 @@ class TrackingSimulator:
                         self.ctrl_pub.publish(self.getOdoOut(ai/2.0, di))
 
                     else:
-                            self.ctrl_pub.publish(self.getOdoOut(ai, di))
+                        self.ctrl_pub.publish(self.getOdoOut(ai, di))
 
-                    else: #stopping
-                        self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
-                        self.status_int(2)
+                else: #stopping
+                    self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
+                    self.status_int(2)
                     
                 self.r.sleep()
                 t_cur = rospy.Time.now().to_sec()
