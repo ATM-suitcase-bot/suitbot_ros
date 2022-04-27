@@ -12,7 +12,7 @@
 #include "planner_node.h"
 #include <opencv2/opencv.hpp>
 #include "../utility/tic_toc.h"
-
+#include <cmath>
 
 
 PlannerNode::PlannerNode(ros::NodeHandle *nodehandle, parameters_t &_params)
@@ -67,8 +67,11 @@ void PlannerNode::initializePublishers()
 
 void PlannerNode::controlCallback(const nav_msgs::Odometry &ctrl_in)
 {
-    pt = ctrl_in.pose.pose.position;
-    yaw = ctrl_in.pose.pose.orientation;
+    this->pt = ctrl_in.pose.pose.position;
+
+    float z = ctrl_in.pose.pose.orientation.z;
+    float w = ctrl_in.pose.pose.orientation.w;
+    this->yaw = std::atan2(2.0*(z*w), -1.0+2.0*w*w);
     visualization_msgs::Marker arrow_marker;
     arrow_marker.header.stamp = ros::Time::now();
     arrow_marker.header.frame_id = "world";
@@ -274,7 +277,7 @@ int main(int argc, char **argv)
         start_y = 0;
 
         //std::cout << "parsing xml\n";
-        std::cout << "odo: " << pt.x << " " << pt.y << " " << yaw << "\n";
+        std::cout << "odo: " << plannerNode.pt.x << " " << plannerNode.pt.y << " " << plannerNode.yaw << "\n";
         //offset by 1 to fix missing index 1 in yaml
 	//std::cout << params.state_map[plannerNode.path_cmd][std::string("pos")]<<"\n";	
 	x_goal_idx = (int)params.state_map[plannerNode.path_cmd-1][std::string("pos")][0];
