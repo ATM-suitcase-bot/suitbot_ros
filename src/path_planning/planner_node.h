@@ -90,6 +90,10 @@ public:
     int path_cmd = 0;
     int counter_cmd = 0;
 
+    //Store the most recently observed odometry
+    geometry_msgs::Point pt;
+    double yaw;
+
 
     void initializeSubscribers(); 
     void initializePublishers();

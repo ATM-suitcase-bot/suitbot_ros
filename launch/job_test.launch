@@ -16,11 +16,11 @@
         <arg name="debug_angular"         default="0.0"/> 
         <param name="debug_angular"              type="double"   value="$(arg debug_angular)"/>
 
-        <arg name="init_x"                default="0.0"/> 
+        <arg name="init_x"                default="51.75"/> 
         <param name="init_x"              type="double"   value="$(arg init_x)"/>
-        <arg name="init_y"                default="0.0"/> 
+        <arg name="init_y"                default="45.75"/> 
         <param name="init_y"              type="double"   value="$(arg init_y)"/>
-        <arg name="init_theta"            default="0.0"/> 
+        <arg name="init_theta"            default="1.57"/> 
         <param name="init_theta"          type="double"   value="$(arg init_theta)"/>
 
     <arg name="use_audio"             default="true"/> 

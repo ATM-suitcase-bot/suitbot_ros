@@ -152,8 +152,8 @@ class TrackingSimulator:
         self.target_course = None
         self.time = 0.0
         self.state = None
-        if (parameters.manual_control == True or parameters.debug_odometry == True):
-            self.state = State(x=parameters.init_x, y=parameters.init_y, yaw=parameters.init_theta, v=0.0)
+        #if (parameters.manual_control == True or parameters.debug_odometry == True):
+        self.state = State(x=parameters.init_x, y=parameters.init_y, yaw=parameters.init_theta, v=0.0)
         self.target_ind = None
         self.lastIndex = None
         self.dt = 0.1

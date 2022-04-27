@@ -67,8 +67,8 @@ void PlannerNode::initializePublishers()
 
 void PlannerNode::controlCallback(const nav_msgs::Odometry &ctrl_in)
 {
-    //geometry_msgs::Point pt = ctrl_in.pose.pose.position;
-    //double yaw = ctrl_in.pose.pose.orientation;
+    pt = ctrl_in.pose.pose.position;
+    yaw = ctrl_in.pose.pose.orientation;
     visualization_msgs::Marker arrow_marker;
     arrow_marker.header.stamp = ros::Time::now();
     arrow_marker.header.frame_id = "world";
@@ -273,7 +273,8 @@ int main(int argc, char **argv)
         start_x = 0;
         start_y = 0;
 
-        std::cout << "parsing xml\n";	
+        //std::cout << "parsing xml\n";
+        std::cout << "odo: " << pt.x << " " << pt.y << " " << yaw << "\n";
         //offset by 1 to fix missing index 1 in yaml
 	//std::cout << params.state_map[plannerNode.path_cmd][std::string("pos")]<<"\n";	
 	x_goal_idx = (int)params.state_map[plannerNode.path_cmd-1][std::string("pos")][0];
