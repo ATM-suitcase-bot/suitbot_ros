@@ -329,6 +329,7 @@ class TrackingSimulator:
     def loop(self):
         rospy.loginfo("Tracking simulator: entering loop")
         while parameters.manual_control == False and self.target_course == None and not rospy.is_shutdown():
+            self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
             self.r.sleep()
         rospy.loginfo("Tracking simulator: start simulator")
        
