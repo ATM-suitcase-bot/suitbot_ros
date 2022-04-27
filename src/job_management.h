@@ -24,6 +24,7 @@
 #include <std_msgs/Float64.h>
 #include <std_msgs/Int32.h>
 #include <std_msgs/String.h>
+#include <std_msgs/Int8.h>
 #include <std_srvs/Trigger.h> 
 
 
@@ -59,6 +60,7 @@ public:
     ros::NodeHandle nh; 
     ros::Subscriber audio_sub;
     ros::Subscriber odom_sub; 
+    ros::Subscriber drive_state_sub; 
 
     ros::ServiceClient initialization_cli;
 
@@ -91,6 +93,7 @@ public:
     void localization_callback(const nav_msgs::Odometry::ConstPtr& msg_in);
     bool serviceCallback(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response);
 
+    void drive_state_callback(const std_msgs::Int8::ConstPtr& msg_in);
 
     int initialization_handler();
     int guiding_handler();

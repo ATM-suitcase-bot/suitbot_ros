@@ -27,7 +27,7 @@ void JobManager::initializeSubscribers()
     ROS_INFO("Initializing Subscribers");
     audio_sub = nh.subscribe(params.USR_CMD_TOPIC, 1, &JobManager::audio_cmd_subscriber_callback, this);
     odom_sub = nh.subscribe("odom_topic", 1, &JobManager::localization_callback, this);
-    // add more subscribers here, as needed
+    drive_state_sub = nh.subscribe(params.DRIVE_STATUS_TOPIC, 1, &JobManager::drive_state_callback, this);
 }
 
 void JobManager::initializeServices()
@@ -38,6 +38,7 @@ void JobManager::initializeServices()
     //initialization_cli = nh.serviceClient<suitbot_ros::InitializationSrvMsg>("init_pose");
     audio_cli = nh.serviceClient<std_srvs::SetBool>(params.LISTENING_SERVICE);
     speech_cli = nh.serviceClient<suitbot_ros::SpeechSrv>(params.SPEECH_SERVICE);
+    
 }
 
 void JobManager::initializePublishers()
@@ -90,6 +91,11 @@ void JobManager::localization_callback(const nav_msgs::Odometry::ConstPtr& msg_i
 {
     // subscribe to odometry during guiding phase
 
+}
+
+void JobManager::drive_state_callback(const std_msgs::Int8::ConstPtr& msg_in){
+
+    std::cout << "job state callback: " << msg_in->data << "\n";
 }
 
 bool JobManager::serviceCallback(std_srvs::TriggerRequest &request, std_srvs::TriggerResponse &response)
