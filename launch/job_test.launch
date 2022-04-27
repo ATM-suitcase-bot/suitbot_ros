@@ -43,6 +43,7 @@
         <node name="audio_speaker" pkg="suitbot_ros" type="audio_speaker.py" output="screen"/>
     </group>
     
+    <node name="lidar_parse" pkg="suitbot_ros" type="lidar_parse" output="screen"/>
 
     <group if="$(arg use_serial)">
         <node name="embedded_device_driver" pkg="suitbot_ros" type="embedded_device_driver.py" output="screen"/>
