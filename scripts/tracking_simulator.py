@@ -375,7 +375,7 @@ class TrackingSimulator:
                         self.status_int(3)
                     else:
                         if(isflip):
-                            self.ctrl_pub.publish(self.getOdoOut(ai/2.0, di))
+                            self.ctrl_pub.publish(self.getOdoOut(ai/4.0, di*2.0))
                         else:
                             self.ctrl_pub.publish(self.getOdoOut(ai, di))
                         self.status_int(1)
