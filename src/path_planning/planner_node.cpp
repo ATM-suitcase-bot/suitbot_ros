@@ -83,6 +83,7 @@ void PlannerNode::controlCallback(const nav_msgs::Odometry &ctrl_in)
     arrow_marker.type = visualization_msgs::Marker::ARROW;
     arrow_marker.action = visualization_msgs::Marker::ADD;
     arrow_marker.pose = ctrl_in.pose.pose;
+    arrow_marker.pose.position.z = 1.0;
     arrow_marker.scale.x = 3;
     arrow_marker.scale.y = params.global_map_resolution;
     arrow_marker.scale.z = 1;
@@ -186,7 +187,7 @@ void PlannerNode::initVisualization()
     planned_path_marker.action = visualization_msgs::Marker::ADD;
     planned_path_marker.pose.position.x = 0;
     planned_path_marker.pose.position.y = 0;
-    planned_path_marker.pose.position.z = 0;
+    planned_path_marker.pose.position.z = 1;
     planned_path_marker.pose.orientation.w = 1;
     planned_path_marker.pose.orientation.x = 0;
     planned_path_marker.pose.orientation.y = 0;
