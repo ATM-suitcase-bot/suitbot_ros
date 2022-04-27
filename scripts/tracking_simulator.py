@@ -161,9 +161,13 @@ class TrackingSimulator:
         self.target_speed = 0.6  # [m/s]
         self.t_prev = rospy.Time.now().to_sec()
 
+        #init path perturation object for path recalculation
         self.path_perturb = PathPerturb()
         self.avoiding = False
         self.target_pt = None
+        self.has_spun = False #has the robot done a lil localization loop
+        self.spin_v = [0.1, 0.3] #v/omega to spin with
+        self.spin_time = 5.0 #time (s) to spin
 
     def get_local(self, index):
         #render goal pixel in the robot's space
@@ -329,8 +333,14 @@ class TrackingSimulator:
     def loop(self):
         rospy.loginfo("Tracking simulator: entering loop")
         while parameters.manual_control == False and self.target_course == None and not rospy.is_shutdown():
-            self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
+            if(self.has_spun):
+                self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
+            else:
+                if(rospy.Time.now().to_sec() - self.t_prev > self.spin_time):
+                    self.has_spun = True
+                self.ctrl_pub.publish(self.getOdoOut(self.spin_v[0], self.spin_v[1]))
             self.r.sleep()
+        
         rospy.loginfo("Tracking simulator: start simulator")
        
         if (parameters.manual_control == False and parameters.debug_odometry == False): # not manually controlling
