@@ -119,7 +119,6 @@ def pure_pursuit_steer_control(state, trajectory, pind, override_pt):
     if ind < len(trajectory.cx):
         tx = trajectory.cx[ind]
         ty = trajectory.cy[ind]
-        print([tx, ty])
     else:  # toward goal
         tx = trajectory.cx[-1]
         ty = trajectory.cy[-1]
@@ -355,9 +354,10 @@ class TrackingSimulator:
                     self.state, self.target_course, self.target_ind, self.target_pt)
 
                 if(isflip):
-                    print('special case of dramatic turnaround encountered: special behavior not yet implemented')
+                    self.ctrl_pub.publish(self.getOdoOut(ai/2.0, di))
 
-                self.ctrl_pub.publish(self.getOdoOut(ai, di))
+                else:
+                    self.ctrl_pub.publish(self.getOdoOut(ai, di))
                 
                 self.r.sleep()
                 t_cur = rospy.Time.now().to_sec()
