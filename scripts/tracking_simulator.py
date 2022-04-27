@@ -172,6 +172,8 @@ class TrackingSimulator:
         self.spin_time = 18.0 #time (s) to spin
         self.spin_start = rospy.Time.now().to_sec()
 
+        self.stunlock = False
+
     def get_local(self, index):
         #render goal pixel in the robot's space
         relative_x = self.target_course.cx[index] - self.state.x
@@ -189,6 +191,7 @@ class TrackingSimulator:
 
         if(robot_pos[0] >= im_dims[0] or robot_pos[1] >= im_dims[1]):
             print('map does not contain robot position, invalid replanning')
+            self.stunlock = True
             return
         
         raw_arr = np.reshape(msg_in.cells, im_dims)
@@ -229,6 +232,7 @@ class TrackingSimulator:
 
             if(best_target is None):
                 print('replanning failed, need new global path OR to wait')
+                self.stunlock = True
                 #need to handle logic here- should probably halt control, maybe send signal to planner
             else:
                 best_target_local_vec = np.array(best_target) - fine_bot_pos[0:2]
@@ -239,9 +243,11 @@ class TrackingSimulator:
                 #then we go to the 'best_target_global'
                 self.avoiding = True
                 self.target_pt = best_target_global
+                self.stunlock = False
         else: #init path found to be safe
             self.avoiding = False
             self.target_pt = None
+            self.stunlock = False
 
             if(alt_endpoint):
                 self.avoiding = True
@@ -344,6 +350,7 @@ class TrackingSimulator:
         while parameters.manual_control == False and self.target_course == None and not rospy.is_shutdown():
             if(self.has_spun):
                 self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
+                self.status_int(0)
             else:
                 if(rospy.Time.now().to_sec() - self.spin_start > self.spin_time):
                     self.has_spun = True
@@ -362,15 +369,20 @@ class TrackingSimulator:
                     di, self.target_ind, isflip = pure_pursuit_steer_control(
                         self.state, self.target_course, self.target_ind, self.target_pt)
 
-                    if(isflip):
-                        self.ctrl_pub.publish(self.getOdoOut(ai/2.0, di))
-
+                    if(self.stunlock):
+                        ai = 0.0
+                        di = 0.0
+                        self.status_int(3)
                     else:
+                        if(isflip):
+                            self.ctrl_pub.publish(self.getOdoOut(ai/2.0, di))
+                        else:
                             self.ctrl_pub.publish(self.getOdoOut(ai, di))
+                        self.status_int(1)
 
-                    else: #stopping
-                        self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
-                        self.status_int(2)
+                else: #stopping
+                    self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
+                    self.status_int(2)
                     
                 self.r.sleep()
                 t_cur = rospy.Time.now().to_sec()
