@@ -65,6 +65,9 @@ typedef struct params
     string ENCODER_TOPIC;
     string DRIVE_STATUS_TOPIC;
     string RESET_PATH_SERVICE;
+    string RESET_TRACKER_SERVICE;
+    string RESET_LOCALIZATION_SERVICE;
+    string RESET_PLANNER_SERVICE;
     string PLANNER_ARROW_TOPIC;
     string GLOBAL_MAP_TOPIC;
     string PLANNED_PATH_TOPIC;
@@ -157,6 +160,9 @@ typedef struct params
         DRIVE_STATUS_TOPIC = readParam<string>(n, "drive_status_topic");
 
         RESET_PATH_SERVICE = readParam<string>(n, "reset_path_service");
+        RESET_TRACKER_SERVICE = readParam<string>(n, "reset_tracker_service");
+        RESET_LOCALIZATION_SERVICE = readParam<string>(n, "reset_localization_service");
+        RESET_PLANNER_SERVICE = readParam<string>(n, "reset_planner_service");
         PLANNER_ARROW_TOPIC = readParam<string>(n, "planner_arrow_topic");
         GLOBAL_MAP_TOPIC = readParam<string>(n, "global_map_topic");
         PLANNED_PATH_TOPIC = readParam<string>(n, "planned_path_topic");
