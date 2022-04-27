@@ -19,12 +19,13 @@ PlannerNode::PlannerNode(ros::NodeHandle *nodehandle, parameters_t &_params)
     : nh(*nodehandle), params(_params)
 {
     ROS_INFO("Initializing Planner Node...");
-    if (map.initOccupancyGridMap(params.map_file) < 0)
+    if (map.initOccupancyGridMap(params.map_file, params.global_map_resolution) < 0)
     {
         ROS_ERROR("Failed to initialize Planner Node, exiting");
         // TODO error handling
         exit(1);
     }
+
     map.coord_to_idx(goal_x, goal_y, goal_x_idx, goal_y_idx);
     initializeSubscribers();
     initializePublishers();
@@ -77,7 +78,7 @@ void PlannerNode::controlCallback(const nav_msgs::Odometry &ctrl_in)
 
     visualization_msgs::Marker arrow_marker;
     arrow_marker.header.stamp = ros::Time::now();
-    arrow_marker.header.frame_id = "world";
+    arrow_marker.header.frame_id = params.global_frame_id;
     arrow_marker.ns = "planner_node";
     arrow_marker.id = 1000000;
     arrow_marker.type = visualization_msgs::Marker::ARROW;
@@ -147,8 +148,8 @@ void PlannerNode::initVisualization()
                 grid_map_marker_array.markers[i].ns = "planner_node";
                 grid_map_marker_array.markers[i].type = visualization_msgs::Marker::CUBE;
                 grid_map_marker_array.markers[i].action = visualization_msgs::Marker::ADD;
-                grid_map_marker_array.markers[i].pose.position.x = params.global_map_resolution * c + params.global_map_resolution / 2;
-                grid_map_marker_array.markers[i].pose.position.y = params.global_map_resolution  * r + params.global_map_resolution  / 2;
+                grid_map_marker_array.markers[i].pose.position.x = params.global_map_resolution * r + params.global_map_resolution / 2;
+                grid_map_marker_array.markers[i].pose.position.y = params.global_map_resolution  * c + params.global_map_resolution  / 2;
                 grid_map_marker_array.markers[i].pose.position.z = 0;
                 grid_map_marker_array.markers[i].pose.orientation.w = 1;
                 grid_map_marker_array.markers[i].pose.orientation.x = 0;
