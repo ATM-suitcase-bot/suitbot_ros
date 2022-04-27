@@ -4,9 +4,23 @@
 #include <math.h>
 #include <opencv2/opencv.hpp>
 #include <Eigen/Dense>
+#include <stdlib.h>
 
 using namespace std;
 using namespace Eigen;
+
+struct hash_pair
+{
+    template <class T1, class T2>
+    size_t operator()(const pair<T1, T2> &p) const
+    {
+        std::size_t seed = 0;
+        seed ^= hash<T1>{}(p.first) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= hash<T2>{}(p.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        return seed;
+    }
+};
+
 
 // wrap to [-pi, pi)
 float warpAngle(float x_);

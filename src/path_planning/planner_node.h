@@ -40,6 +40,7 @@
 
 #include "../parameters.h"
 #include "../occupancy_map.h"
+#include "../utility/utils.h"
 
 using namespace std;
 
