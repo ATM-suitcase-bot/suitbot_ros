@@ -45,7 +45,7 @@ LocalizationNode::LocalizationNode(ros::NodeHandle *nodehandle, parameters_t &_p
 void LocalizationNode::initializeSubscribers()
 {
     point_sub = nh.subscribe(params.LIDAR_SYNC_TOPIC, 1, &LocalizationNode::pointcloudCallback, this);
-    odom_sub = nh.subscribe(params.CTRL_TOPIC, 1, &LocalizationNode::odomCallback, this);
+    odom_sub = nh.subscribe(params.ENCODER_TOPIC, 1, &LocalizationNode::odomCallback, this);
 }
 
 void LocalizationNode::initializeServices()
@@ -117,7 +117,6 @@ void LocalizationNode::publishMapPointCloud(const ros::TimerEvent&)
     map_point_cloud_msg->header.stamp = ros::Time::now();
     map_point_cloud_pub.publish(*map_point_cloud_msg);
 
-    publishParticles();
 }
 
 
@@ -180,7 +179,41 @@ void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr
     ROS_DEBUG("pointcloudCallback close");
 }
 
-void LocalizationNode::odomCallback(const nav_msgs::Odometry &ctrl_in)
+void LocalizationNode::compute_delta_odom(const geometry_msgs::TwistStamped &twist_in, float &yaw, 
+                        float &delta_x, float &delta_y, float &delta_theta)
+{
+    double t = twist_in.header.stamp.toSec();
+    if (t_prev < 0)
+        t_prev = t;
+    float d_t = (float)(t - t_prev);
+    t_prev = t;
+
+    float v = (float)(twist_in.twist.linear.x);
+
+    float k00 = v * cos(yaw);
+    float k01 = v * sin(yaw);
+    float k02 = (float)(twist_in.twist.angular.z); 
+
+    float k10 = v * cos(yaw + k02*d_t/2.0);
+    float k11 = v * sin(yaw + k02*d_t/2.0);
+    float k12 = k02;
+
+    float k20 = k10;
+    float k21 = k11;
+    float k22 = k12;
+
+    float k30 = v * cos(yaw+d_t * k22);
+    float k31 = v * sin(yaw+d_t * k22);
+    float k32 = k22;
+
+    delta_x = d_t / 6.0 * (k00 + 2 * (k10 + k20) + k30);
+    delta_y = d_t / 6.0 * (k01 + 2 * (k11 + k21) + k31);
+    delta_theta = d_t / 6.0 * (k02 + 2 * (k12 + k22) + k32);
+
+    yaw = yaw + delta_theta;
+}
+
+void LocalizationNode::odomCallback(const geometry_msgs::TwistStamped &twist_in)
 {
     ROS_DEBUG("odomCallback open");
     // If the filter is not initialized, initialize it then exit
@@ -193,12 +226,21 @@ void LocalizationNode::odomCallback(const nav_msgs::Odometry &ctrl_in)
     }
 
     // Update cur odometry
-    cur_odom(0) = (float)(ctrl_in.pose.pose.position.x);
-    cur_odom(1) = (float)(ctrl_in.pose.pose.position.y);
-    cur_odom(2) = (float)tf::getYaw(ctrl_in.pose.pose.orientation);
+    // cur_odom(0) = (float)(ctrl_in.pose.pose.position.x);
+    // cur_odom(1) = (float)(ctrl_in.pose.pose.position.y);
+    // cur_odom(2) = (float)tf::getYaw(ctrl_in.pose.pose.orientation);
     
     if (!is_odom) is_odom = true;
 
+    // to benchmark predict, we call predict here temporarily
+    float delta_x, delta_y, delta_theta;
+    // do rk4 (we might not need to compute it here in the future)
+    compute_delta_odom(twist_in, cur_yaw, delta_x, delta_y, delta_theta);
+
+    TicToc tic_toc;
+    pf.predict(delta_x, delta_y, delta_theta);
+    ROS_INFO_STREAM("time spent: " << tic_toc.toc() << " ms");
+    publishParticles();
 
     // detect jump? detect error?
 

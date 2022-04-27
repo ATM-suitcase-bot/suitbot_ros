@@ -27,6 +27,8 @@
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Vector3.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <geometry_msgs/TwistStamped.h>
+
 #include <sensor_msgs/Image.h>
 #include <nav_msgs/Odometry.h>
 #include <visualization_msgs/Marker.h>
@@ -38,6 +40,7 @@
 #include <Eigen/Dense>
 #include "../parameters.h"
 #include "../lidar.h"
+#include "../utility/tic_toc.h"
 
 #include "particle_filter.h"
 
@@ -75,6 +78,9 @@ public:
     Eigen::Vector3f prev_odom;
     Eigen::Vector3f cur_odom;
 
+    float cur_yaw = 0;
+    double t_prev = -1;
+
     // 2D map, discretized with resolution of 50cm
     
 
@@ -91,7 +97,10 @@ public:
 
     void pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr &msg);
 
-    void odomCallback(const nav_msgs::Odometry &ctrl_in);
+    void odomCallback(const geometry_msgs::TwistStamped &twist_in);
+
+    void compute_delta_odom(const geometry_msgs::TwistStamped &twist_in, float &yaw, 
+                        float &delta_x, float &delta_y, float &delta_theta);
 
     void publishParticles();
 
