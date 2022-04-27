@@ -12,7 +12,7 @@
 #include "planner_node.h"
 #include <opencv2/opencv.hpp>
 #include "../utility/tic_toc.h"
-
+#include <cmath>
 
 
 PlannerNode::PlannerNode(ros::NodeHandle *nodehandle, parameters_t &_params)
@@ -67,8 +67,14 @@ void PlannerNode::initializePublishers()
 
 void PlannerNode::controlCallback(const nav_msgs::Odometry &ctrl_in)
 {
-    //geometry_msgs::Point pt = ctrl_in.pose.pose.position;
-    //double yaw = ctrl_in.pose.pose.orientation;
+    this->pt = ctrl_in.pose.pose.position;
+
+    float z = ctrl_in.pose.pose.orientation.z;
+    float w = ctrl_in.pose.pose.orientation.w;
+    this->yaw = std::atan2(2.0*(z*w), -1.0+2.0*w*w);
+
+    std::cout << "odom received" << this->pt << "  " << this->yaw << "\n";
+
     visualization_msgs::Marker arrow_marker;
     arrow_marker.header.stamp = ros::Time::now();
     arrow_marker.header.frame_id = "world";
@@ -77,9 +83,9 @@ void PlannerNode::controlCallback(const nav_msgs::Odometry &ctrl_in)
     arrow_marker.type = visualization_msgs::Marker::ARROW;
     arrow_marker.action = visualization_msgs::Marker::ADD;
     arrow_marker.pose = ctrl_in.pose.pose;
-    arrow_marker.scale.x = 6;
-    arrow_marker.scale.y = 0.5;
-    arrow_marker.scale.z = 2;
+    arrow_marker.scale.x = 3;
+    arrow_marker.scale.y = params.global_map_resolution;
+    arrow_marker.scale.z = 1;
     arrow_marker.color.r = 1.0;
     arrow_marker.color.g = 0.1;
     arrow_marker.color.b = 0.0;
@@ -141,8 +147,8 @@ void PlannerNode::initVisualization()
                 grid_map_marker_array.markers[i].ns = "planner_node";
                 grid_map_marker_array.markers[i].type = visualization_msgs::Marker::CUBE;
                 grid_map_marker_array.markers[i].action = visualization_msgs::Marker::ADD;
-                grid_map_marker_array.markers[i].pose.position.x = resolution * c + resolution / 2;
-                grid_map_marker_array.markers[i].pose.position.y = resolution * r + resolution / 2;
+                grid_map_marker_array.markers[i].pose.position.x = params.global_map_resolution * c + params.global_map_resolution / 2;
+                grid_map_marker_array.markers[i].pose.position.y = params.global_map_resolution  * r + params.global_map_resolution  / 2;
                 grid_map_marker_array.markers[i].pose.position.z = 0;
                 grid_map_marker_array.markers[i].pose.orientation.w = 1;
                 grid_map_marker_array.markers[i].pose.orientation.x = 0;
@@ -161,9 +167,9 @@ void PlannerNode::initVisualization()
                     grid_map_marker_array.markers[i].color.b = 1.0;
                 }
                 grid_map_marker_array.markers[i].color.a = 0.75;
-                grid_map_marker_array.markers[i].scale.x = 0.5;
-                grid_map_marker_array.markers[i].scale.y = 0.5;
-                grid_map_marker_array.markers[i].scale.z = 0.5;
+                grid_map_marker_array.markers[i].scale.x = params.global_map_resolution;
+                grid_map_marker_array.markers[i].scale.y = params.global_map_resolution;
+                grid_map_marker_array.markers[i].scale.z = params.global_map_resolution;
                 grid_map_marker_array.markers[i].id = i;
                 grid_map_marker_array.markers[i].header.stamp = t_now;
                 i++;
@@ -230,7 +236,7 @@ void PlannerNode::callback_path_cmd(const std_msgs::Int32 &msg_in)
     if (counter_cmd == 0)
     {
         int cmd = msg_in.data;
-        path_cmd = cmd - 2;
+        path_cmd = cmd; //removed -2 offset, using suitbot yaml index now
         counter_cmd += 1;
     }
 }
@@ -239,7 +245,7 @@ void PlannerNode::callback_path_cmd(const std_msgs::Int32 &msg_in)
 int main(int argc, char **argv)
 {
     // ROS set-ups:
-    ros::init(argc, argv, "planne_node");
+    ros::init(argc, argv, "planner_node");
 
     ros::NodeHandle nh;
 
@@ -254,19 +260,12 @@ int main(int argc, char **argv)
 
     ros::Rate loop_rate(1);
 
-    // left mid right
-    // mid: first turns right, then go straight, then turn left
-    float start_xs[3] = {23.5, 27.0, 30.0}; // x idx = 50   46
-    float start_ys[3] = {64.0, 87.5, 71.0}; // y idx = 31   132
-    float goal_xs[3] = {30.0, 27.0, 23.5};
-    float goal_ys[3] = {71.0, 75.0, 64.0};
-
     if (params.manual_control == false)
     {
         if (params.use_audio == false)
             plannerNode.path_cmd = params.course_idx;
             
-        while (plannerNode.path_cmd == -2 && ros::ok())
+        while (plannerNode.path_cmd == 0 && ros::ok())
         {
             ros::spinOnce();
             loop_rate.sleep();
@@ -275,16 +274,22 @@ int main(int argc, char **argv)
         std::cout << "Planner Node: Use plan idx: " << plannerNode.path_cmd << std::endl;
     
 
-        // for testing purpose
+        // Read goal location from yaml- default start to elevators
         int x_idx = 0, y_idx = 0, x_goal_idx = 0, y_goal_idx = 0;
-        start_x = start_xs[plannerNode.path_cmd];
-        start_y = start_ys[plannerNode.path_cmd];
-        goal_x = goal_xs[plannerNode.path_cmd];
-        goal_y = goal_ys[plannerNode.path_cmd];
-        cout << start_x << ", " << start_y << ", " << goal_x << ", " << goal_y << endl;
+        start_x = 0;
+        start_y = 0;
 
+        //std::cout << "parsing xml\n";
+        std::cout << "odo: " << plannerNode.pt.x << " " << plannerNode.pt.y << " " << plannerNode.yaw << "\n";
+        //offset by 1 to fix missing index 1 in yaml
+	//std::cout << params.state_map[plannerNode.path_cmd][std::string("pos")]<<"\n";	
+	x_goal_idx = (int)params.state_map[plannerNode.path_cmd-1][std::string("pos")][0];
+	y_goal_idx = (int)params.state_map[plannerNode.path_cmd-1][std::string("pos")][1];
+        
         plannerNode.map.coord_to_idx(start_x, start_y, x_idx, y_idx);
-        plannerNode.map.coord_to_idx(goal_x, goal_y, x_goal_idx, y_goal_idx);
+        
+	cout << x_idx << ", " << y_idx << ", " << x_goal_idx << ", " << y_goal_idx << endl;
+
         plannerNode.set_start_indices(x_idx, y_idx);
         plannerNode.set_goal_indices(x_goal_idx, y_goal_idx);
     }

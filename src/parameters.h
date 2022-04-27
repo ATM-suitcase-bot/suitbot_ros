@@ -139,7 +139,8 @@ typedef struct params
 
     float obstacle_zmin;
     float obstacle_zmax;
-
+    
+    XmlRpc::XmlRpcValue state_map;
     void readParameters(ros::NodeHandle &n)
     {
         // topics
@@ -167,6 +168,9 @@ typedef struct params
         // command types
         auto state_map = readParam<XmlRpc::XmlRpcValue>(n, "states_map");
         for (int i = 0; i < state_map.size(); i++) {
+        state_map = readParam<XmlRpc::XmlRpcValue>(n, "states_map");
+        //cout << (state_map);
+        for (int i = 0; i < state_map.size(); i++) {
             auto sublist = state_map[i];
             std::stringstream ss;
             ss << sublist["name"];
@@ -181,18 +185,18 @@ typedef struct params
                 MIDDLE = value;
             else if (name == "right")
                 RIGHT = value;
-	    else if (name == "elevator")
-		ELEV = value;
-	    else if (name == "nineteen")
-		NINE = value;
-          else if (name == "four")
-		FOUR = value;
-	    else if (name == "six")
-		SIX = value;
-	    else if (name == "fountain")
-		FOUNT = value;
-	    else if (name == "staircase")
-		STAIR = value;
+            else if (name == "elevator")
+                ELEV = value;
+            else if (name == "nineteen")
+                NINE = value;
+            else if (name == "four")
+                FOUR = value;
+            else if (name == "six")
+                SIX = value;
+            else if (name == "fountain")
+                FOUNT = value;
+            else if (name == "staircase")
+                STAIR = value;
             else if (name == "nothing")
                 NOTHING = value;
             else

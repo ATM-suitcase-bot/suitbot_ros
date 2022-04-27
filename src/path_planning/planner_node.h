@@ -80,15 +80,19 @@ public:
     double goal_x, goal_y, start_x, start_y;
     int goal_x_idx, goal_y_idx, start_x_idx, start_y_idx;
 
-    double resolution = 0.5; // meter
+    double resolution = 0.25; // meter
 
     OccupancyMap map;
 
     vector<pair<double, double>> banked_steps;
 
 
-    int path_cmd = -2;
+    int path_cmd = 0;
     int counter_cmd = 0;
+
+    //Store the most recently observed odometry
+    geometry_msgs::Point pt;
+    double yaw;
 
 
     void initializeSubscribers(); 
