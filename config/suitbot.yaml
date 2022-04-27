@@ -50,7 +50,7 @@ states_map:
     pos: [137,360,0]
   - key: 8
     name: "four" 
-    pos: [214,395,0]
+    pos: [215,395,0]
   - key: 9
     name: "six" 
     pos: [211,252,0]

@@ -119,6 +119,7 @@ def pure_pursuit_steer_control(state, trajectory, pind, override_pt):
     if ind < len(trajectory.cx):
         tx = trajectory.cx[ind]
         ty = trajectory.cy[ind]
+        print([tx, ty])
     else:  # toward goal
         tx = trajectory.cx[-1]
         ty = trajectory.cy[-1]

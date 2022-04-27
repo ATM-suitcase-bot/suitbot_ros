@@ -31,7 +31,7 @@ public:
 	int rows = 0;
     int cols = 0;
 
-    float resolution = 0.5; // meter
+    float resolution = 0.25; // meter
 
     OccupancyMap(){}
     OccupancyMap(string map_file);
