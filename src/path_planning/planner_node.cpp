@@ -147,8 +147,8 @@ void PlannerNode::initVisualization()
                 grid_map_marker_array.markers[i].ns = "planner_node";
                 grid_map_marker_array.markers[i].type = visualization_msgs::Marker::CUBE;
                 grid_map_marker_array.markers[i].action = visualization_msgs::Marker::ADD;
-                grid_map_marker_array.markers[i].pose.position.x = params.global_map_resolution * c + params.global_map_resolution / 2;
-                grid_map_marker_array.markers[i].pose.position.y = params.global_map_resolution  * r + params.global_map_resolution  / 2;
+                grid_map_marker_array.markers[i].pose.position.x = params.global_map_resolution * r + params.global_map_resolution / 2;
+                grid_map_marker_array.markers[i].pose.position.y = params.global_map_resolution  * c + params.global_map_resolution  / 2;
                 grid_map_marker_array.markers[i].pose.position.z = 0;
                 grid_map_marker_array.markers[i].pose.orientation.w = 1;
                 grid_map_marker_array.markers[i].pose.orientation.x = 0;
