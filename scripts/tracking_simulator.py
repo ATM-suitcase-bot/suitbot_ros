@@ -165,9 +165,10 @@ class TrackingSimulator:
         self.path_perturb = PathPerturb()
         self.avoiding = False
         self.target_pt = None
-        self.has_spun = False #has the robot done a lil localization loop
-        self.spin_v = [0.1, 0.3] #v/omega to spin with
-        self.spin_time = 5.0 #time (s) to spin
+        self.has_spun = True #has the robot done a lil localization loop
+        self.spin_v = [0.12, 0.45] #v/omega to spin with
+        self.spin_time = 18.0 #time (s) to spin
+        self.spin_start = rospy.Time.now().to_sec()
 
     def get_local(self, index):
         #render goal pixel in the robot's space
@@ -336,7 +337,7 @@ class TrackingSimulator:
             if(self.has_spun):
                 self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
             else:
-                if(rospy.Time.now().to_sec() - self.t_prev > self.spin_time):
+                if(rospy.Time.now().to_sec() - self.spin_start > self.spin_time):
                     self.has_spun = True
                 self.ctrl_pub.publish(self.getOdoOut(self.spin_v[0], self.spin_v[1]))
             self.r.sleep()
