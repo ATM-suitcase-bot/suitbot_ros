@@ -80,7 +80,7 @@ public:
     double goal_x, goal_y, start_x, start_y;
     int goal_x_idx, goal_y_idx, start_x_idx, start_y_idx;
 
-    double resolution = 0.5; // meter
+    double resolution = 0.25; // meter
 
     OccupancyMap map;
 

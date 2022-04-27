@@ -73,7 +73,7 @@ void PlannerNode::controlCallback(const nav_msgs::Odometry &ctrl_in)
     float w = ctrl_in.pose.pose.orientation.w;
     this->yaw = std::atan2(2.0*(z*w), -1.0+2.0*w*w);
 
-    std::cout << "odom received" << this->pt << "  " << this->yaw << \n";
+    std::cout << "odom received" << this->pt << "  " << this->yaw << "\n";
 
     visualization_msgs::Marker arrow_marker;
     arrow_marker.header.stamp = ros::Time::now();
@@ -83,9 +83,9 @@ void PlannerNode::controlCallback(const nav_msgs::Odometry &ctrl_in)
     arrow_marker.type = visualization_msgs::Marker::ARROW;
     arrow_marker.action = visualization_msgs::Marker::ADD;
     arrow_marker.pose = ctrl_in.pose.pose;
-    arrow_marker.scale.x = 6;
-    arrow_marker.scale.y = 0.5;
-    arrow_marker.scale.z = 2;
+    arrow_marker.scale.x = 3;
+    arrow_marker.scale.y = params.global_map_resolution;
+    arrow_marker.scale.z = 1;
     arrow_marker.color.r = 1.0;
     arrow_marker.color.g = 0.1;
     arrow_marker.color.b = 0.0;
@@ -147,8 +147,8 @@ void PlannerNode::initVisualization()
                 grid_map_marker_array.markers[i].ns = "planner_node";
                 grid_map_marker_array.markers[i].type = visualization_msgs::Marker::CUBE;
                 grid_map_marker_array.markers[i].action = visualization_msgs::Marker::ADD;
-                grid_map_marker_array.markers[i].pose.position.x = resolution * c + resolution / 2;
-                grid_map_marker_array.markers[i].pose.position.y = resolution * r + resolution / 2;
+                grid_map_marker_array.markers[i].pose.position.x = params.global_map_resolution * c + params.global_map_resolution / 2;
+                grid_map_marker_array.markers[i].pose.position.y = params.global_map_resolution  * r + params.global_map_resolution  / 2;
                 grid_map_marker_array.markers[i].pose.position.z = 0;
                 grid_map_marker_array.markers[i].pose.orientation.w = 1;
                 grid_map_marker_array.markers[i].pose.orientation.x = 0;
@@ -167,9 +167,9 @@ void PlannerNode::initVisualization()
                     grid_map_marker_array.markers[i].color.b = 1.0;
                 }
                 grid_map_marker_array.markers[i].color.a = 0.75;
-                grid_map_marker_array.markers[i].scale.x = 0.5;
-                grid_map_marker_array.markers[i].scale.y = 0.5;
-                grid_map_marker_array.markers[i].scale.z = 0.5;
+                grid_map_marker_array.markers[i].scale.x = params.global_map_resolution;
+                grid_map_marker_array.markers[i].scale.y = params.global_map_resolution;
+                grid_map_marker_array.markers[i].scale.z = params.global_map_resolution;
                 grid_map_marker_array.markers[i].id = i;
                 grid_map_marker_array.markers[i].header.stamp = t_now;
                 i++;
