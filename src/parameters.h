@@ -63,6 +63,7 @@ typedef struct params
     string CTRL_TOPIC;
     string FORCE_TOPIC;
     string ENCODER_TOPIC;
+    string DRIVE_STATUS_TOPIC;
     string RESET_PATH_SERVICE;
     string PLANNER_ARROW_TOPIC;
     string GLOBAL_MAP_TOPIC;
@@ -152,6 +153,7 @@ typedef struct params
         CTRL_TOPIC = readParam<string>(n, "ctrl_topic");
         FORCE_TOPIC = readParam<string>(n, "force_topic");
         ENCODER_TOPIC = readParam<string>(n, "encoder_topic");
+        DRIVE_STATUS_TOPIC = readParam<string>(n, "drive_status_topic");
 
         RESET_PATH_SERVICE = readParam<string>(n, "reset_path_service");
         PLANNER_ARROW_TOPIC = readParam<string>(n, "planner_arrow_topic");

@@ -20,6 +20,7 @@ class Parameters:
         self.force_topic = rospy.get_param('force_topic')
         self.encoder_topic = rospy.get_param('encoder_topic')
         self.voltage_topic = rospy.get_param('voltage_topic')
+        self.drive_status_topic = rospy.get_param('drive_status_topic')
 
         self.reset_path_service = rospy.get_param('reset_path_service')
         self.planner_arrow_topic = rospy.get_param('planner_arrow_topic')
