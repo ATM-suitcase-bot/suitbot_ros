@@ -17,6 +17,7 @@ lidar_original_topic: "/livox/lidar"
 lidar_sync_topic: "/suitbot/lidar"
 
 pf_particles_topic: "/suitbot/localization/particles"
+pcd_map_topic: "/suitbot/localization/pcd_map"
 
 local_map_topic: "/suitbot/planner/local_map"
 local_map_image_topic: "/suitbot/planner/local_map_image"
@@ -84,9 +85,16 @@ fixed_height: -2.25  # this is the height of the lidar wrt the ground
 
 pf_update_rate: 10.0
 pf_resample_interval: 0.5
-pf_updata_dist_threshold: 1.0
-pf_updata_angle_threshold: 0.3
+pf_update_dist_threshold: 1.0
+pf_update_angle_threshold: 0.3
 
+
+# pf motion model parameters
+pf_alpha1: 0.001
+pf_alpha2: 0.0001
+pf_alpha3: 0.008
+pf_alpha4: 0.008
+# pf sensor model parameters
 pf_sigma_hit: 50.0
 pf_lambda_short: 0.1
 pf_max_range: 150.0
@@ -122,8 +130,10 @@ local_map_lookahead: 8.0
 global_map_resolution: 0.25
 local_map_resolution: 0.25
 
-obstacle_zmin: -0.2
+obstacle_zmin: 0.3
 obstacle_zmax: 1.5
 
-pf_init_num_particles_per_grid: 50
-pf_init_num_particles_total: 10000
+pf_init_num_particles_per_grid: 3
+pf_init_num_particles_total: 20000
+
+publish_point_cloud_rate: 1.0

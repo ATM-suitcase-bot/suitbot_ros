@@ -9,6 +9,18 @@ void loadPCDMap(string pcd_file, LidarPointCloudPtr cloud)
     }
 }
 
+void cloud_msg_to_pcl(sensor_msgs::PointCloud2ConstPtr msg_in, LidarPointCloudPtr pcl_p_out)
+{
+    pcl::PCLPointCloud2::Ptr pcl_pc2(new pcl::PCLPointCloud2);
+    pcl_conversions::toPCL(*msg_in, *pcl_pc2);
+    pcl::fromPCLPointCloud2(*pcl_pc2, *pcl_p_out);
+}
+
+void pcl_to_cloud_msg(LidarPointCloudConstPtr pcl_in, sensor_msgs::PointCloud2Ptr msg_out)
+{
+    pcl::toROSMsg(*pcl_in, *msg_out); 
+}
+
 // transform cloud in place
 void transform_cloud(LidarPointCloudPtr cloud, Eigen::Affine3f &transform)
 {

@@ -11,7 +11,6 @@
 
 #include <random>
 
-#include "helper_functions.h"
 #include <math.h>
 #include <float.h>
 #include <stdio.h>
@@ -51,9 +50,9 @@ class ParticleFilter
 {
 public:
 	// Number of particles to draw
-	int initial_num_particles_per_grid;
+	int initial_num_particles_per_grid = 3;
 
-	int initial_num_particles_total;
+	int initial_num_particles_total = 20000;
 
 	float fixed_height = -2.25;
 
@@ -61,7 +60,7 @@ public:
 	vector<Particle> particles;
 
 	// motion model parameters
-	double alpha1 = 0.0001, alpha2 = 0.0001, alpha3 = 0.008, alpha4 = 0.008;
+	float alpha1 = 0.0001, alpha2 = 0.0001, alpha3 = 0.008, alpha4 = 0.008;
 
 	// sensor model parameters
 	float sigma_hit = 50.0, lambda_short = 0.1, max_range = 150.0, max_span = 5.0;
@@ -76,65 +75,35 @@ public:
     float dist_thresh = 10;
 	pcl::KdTreeFLANN<LidarPoint> kdtree;
 
+
+
+
 	// Constructor
 	// @param Number of particles
-	ParticleFilter() : initial_num_particles_per_grid(50), 
-					   initial_num_particles_total(10000), 
-					   point_cloud_map(new LidarPointCloud), 
-					   generator_(rd_()) {}
+	ParticleFilter() : point_cloud_map(new LidarPointCloud) {}
 
-	ParticleFilter(string map_file, string pcd_file) : initial_num_particles_per_grid(50), initial_num_particles_total(10000), point_cloud_map(new LidarPointCloud), generator_(rd_()) 
-	{
-		int res = grid_map.initOccupancyGridMap(map_file);
-		if (res < 0)
-		{
-			std::cerr << "ERROR: Cannot create occupancy map! Exiting." << endl;
-			exit(1);
-		}
-		loadPCDMap(pcd_file, point_cloud_map);
-		kdtree.setInputCloud(point_cloud_map);	
-	}
+	ParticleFilter(string map_file, string pcd_file);
 
-	ParticleFilter(string map_file, string pcd_file, float fixed_height_, int init_num_per_grid, int init_num_total) : fixed_height(fixed_height_), initial_num_particles_per_grid(init_num_per_grid), initial_num_particles_total(init_num_total), point_cloud_map(new LidarPointCloud), generator_(rd_()) {
-
-		int res = grid_map.initOccupancyGridMap(map_file);
-		if (res < 0)
-		{
-			std::cerr << "ERROR: Cannot create occupancy map! Exiting." << endl;
-			exit(1);
-		}
-		loadPCDMap(pcd_file, point_cloud_map);
-		kdtree.setInputCloud(point_cloud_map);		
-	}
+	ParticleFilter(string map_file, string pcd_file, 
+					float fixed_height_, int init_num_per_grid, int init_num_total);
 
 	ParticleFilter(string map_file, string pcd_file, 
 				   float fixed_height_, int init_num_per_grid, int init_num_total, 
-				   double _alpha1, double _alpha2, double _alpha3, double _alpha4,
+				   float _alpha1, float _alpha2, float _alpha3, float _alpha4,
 				   float _sigma_hit, float _lambda_short, float _max_range, float _max_span,
-				   float _z_hit, float _z_short, float _z_max, float _z_rand) : 
-				   fixed_height(fixed_height_), 
-				   initial_num_particles_per_grid(init_num_per_grid), 
-				   initial_num_particles_total(init_num_total), 
-				   alpha1(_alpha1), alpha2(_alpha2), alpha3(_alpha3), alpha4(_alpha4), 
-				   sigma_hit(_sigma_hit), lambda_short(_lambda_short), max_range(_max_range), max_span(_max_span),
-				   z_hit(_z_hit), z_short(_z_short), z_max(_z_max), z_rand(_z_rand),
-				   point_cloud_map(new LidarPointCloud), generator_(rd_()) {
-
-		int res = grid_map.initOccupancyGridMap(map_file);
-		if (res < 0)
-		{
-			std::cerr << "ERROR: Cannot create occupancy map! Exiting." << endl;
-			exit(1);
-		}
-		loadPCDMap(pcd_file, point_cloud_map);
-		kdtree.setInputCloud(point_cloud_map);		
-	}
+				   float _z_hit, float _z_short, float _z_max, float _z_rand);
 
 	// Destructor
 	~ParticleFilter() {}
 
-	void set_params(string map_file, string pcd_file, float resolution,
-				   float fixed_height_, int init_num_per_grid, int init_num_total);
+
+
+	void set_params(
+                   string map_file, string pcd_file, float resolution,
+				   float fixed_height_, int init_num_per_grid, int init_num_total, 
+				   float _alpha1, float _alpha2, float _alpha3, float _alpha4,
+				   float _sigma_hit, float _lambda_short, float _max_range, float _max_span,
+				   float _z_hit, float _z_short, float _z_max, float _z_rand);
 
     bool isInitialized() const  { return initialized_; }
 
@@ -158,7 +127,7 @@ public:
 	* It calculates the increase that has occurred in the odometry and makes predictions of where it is possible that the
 	* UAV is, taking into account selected thresholds.
    */
-	void predict(const double delta_x, const double delta_y, const double delta_theta);
+	void predict(const float delta_x, const float delta_y, const float delta_theta);
 
 	/** 
 	 * @brief This function implements the PF update stage.
@@ -197,8 +166,8 @@ private:
 
     bool initialized_{ false }; /*!< To indicate the initialition of the filter */
 
-    std::random_device rd_;  /*!< Random device */
-    std::mt19937 generator_; /*!< Generator of random values */
+    std::random_device rd_{};  /*!< Random device */
+    std::mt19937 generator_{rd_()}; /*!< Generator of random values */
 
     /** 
     * @brief To generate the random value by the Gaussian distribution.

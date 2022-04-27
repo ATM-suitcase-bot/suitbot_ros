@@ -2,8 +2,8 @@
 
 
 // wrap to [-pi, pi)
-double warpAngle(double x_){
-    double x = fmod(x_ + M_PI, 2 * M_PI);
+float warpAngle(float x_){
+    float x = fmod(x_ + M_PI, 2 * M_PI);
     if (x < 0)
         x += (2*M_PI);
     return x - M_PI;

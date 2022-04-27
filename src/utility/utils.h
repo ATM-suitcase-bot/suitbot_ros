@@ -9,7 +9,7 @@ using namespace std;
 using namespace Eigen;
 
 // wrap to [-pi, pi)
-double warpAngle(double x_);
+float warpAngle(float x_);
 
 void T2tq(const Matrix4f &T, Vector3f &t, Quaternionf &q);
 

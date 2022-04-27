@@ -5,6 +5,65 @@
 
 #include "particle_filter.h"
 
+
+ParticleFilter::ParticleFilter(string map_file, string pcd_file) : initial_num_particles_per_grid(50), 
+                                                                    initial_num_particles_total(10000), 
+                                                                    point_cloud_map(new LidarPointCloud)
+{
+    int res = grid_map.initOccupancyGridMap(map_file);
+    if (res < 0)
+    {
+        std::cerr << "ERROR: Cannot create occupancy map! Exiting." << endl;
+        exit(1);
+    }
+    loadPCDMap(pcd_file, point_cloud_map);
+    kdtree.setInputCloud(point_cloud_map);	
+}
+
+
+ParticleFilter::ParticleFilter(string map_file, string pcd_file, 
+                                float fixed_height_, int init_num_per_grid, int init_num_total) : 
+                                fixed_height(fixed_height_), 
+                                initial_num_particles_per_grid(init_num_per_grid), 
+                                initial_num_particles_total(init_num_total), 
+                                point_cloud_map(new LidarPointCloud)
+{
+    int res = grid_map.initOccupancyGridMap(map_file);
+    if (res < 0)
+    {
+        std::cerr << "ERROR: Cannot create occupancy map! Exiting." << endl;
+        exit(1);
+    }
+    loadPCDMap(pcd_file, point_cloud_map);
+    kdtree.setInputCloud(point_cloud_map);		
+}
+
+
+
+ParticleFilter::ParticleFilter(string map_file, string pcd_file, 
+				   float fixed_height_, int init_num_per_grid, int init_num_total, 
+				   float _alpha1, float _alpha2, float _alpha3, float _alpha4,
+				   float _sigma_hit, float _lambda_short, float _max_range, float _max_span,
+				   float _z_hit, float _z_short, float _z_max, float _z_rand) : 
+				   fixed_height(fixed_height_), 
+				   initial_num_particles_per_grid(init_num_per_grid), 
+				   initial_num_particles_total(init_num_total), 
+				   alpha1(_alpha1), alpha2(_alpha2), alpha3(_alpha3), alpha4(_alpha4), 
+				   sigma_hit(_sigma_hit), lambda_short(_lambda_short), max_range(_max_range), max_span(_max_span),
+				   z_hit(_z_hit), z_short(_z_short), z_max(_z_max), z_rand(_z_rand),
+				   point_cloud_map(new LidarPointCloud)
+{
+    int res = grid_map.initOccupancyGridMap(map_file);
+    if (res < 0)
+    {
+        std::cerr << "ERROR: Cannot create occupancy map! Exiting." << endl;
+        exit(1);
+    }
+    loadPCDMap(pcd_file, point_cloud_map);
+    kdtree.setInputCloud(point_cloud_map);		
+}
+
+
 float ParticleFilter::ranGaussian(const float mean, const float sigma)
 {
 
@@ -33,8 +92,12 @@ void ParticleFilter::sampleParticlesUniform(const float from_x, const float from
     }
 }
 
-void ParticleFilter::set_params(string map_file, string pcd_file, float resolution,
-				   float fixed_height_, int init_num_per_grid, int init_num_total)
+void ParticleFilter::set_params(
+                   string map_file, string pcd_file, float resolution,
+				   float fixed_height_, int init_num_per_grid, int init_num_total, 
+				   float _alpha1, float _alpha2, float _alpha3, float _alpha4,
+				   float _sigma_hit, float _lambda_short, float _max_range, float _max_span,
+				   float _z_hit, float _z_short, float _z_max, float _z_rand)
 {
     fixed_height = fixed_height_; 
     initial_num_particles_per_grid = init_num_per_grid; 
@@ -47,6 +110,18 @@ void ParticleFilter::set_params(string map_file, string pcd_file, float resoluti
     }
     loadPCDMap(pcd_file, point_cloud_map);
     kdtree.setInputCloud(point_cloud_map);
+    alpha1 = _alpha1;
+    alpha2 = _alpha2;
+    alpha3 = _alpha3;
+    alpha4 = _alpha4;
+    sigma_hit = _sigma_hit;
+    lambda_short = _lambda_short;
+    max_range = _max_range;
+    max_span = _max_span;
+    z_hit = _z_hit;
+    z_short = _z_short;
+    z_max = _z_max;
+    z_rand = _z_rand;
 }
 
 
@@ -74,7 +149,7 @@ void ParticleFilter::init()
             }
         } 
     }
-    std::uniform_real_distribution<int> idx_distrib(0, num_particles);
+    std::uniform_int_distribution<int> idx_distrib(0, num_particles);
     int idx_rand = idx_distrib(generator_);
     mean_ = particles[idx_rand]; // just a random particle from the set
 
@@ -83,12 +158,12 @@ void ParticleFilter::init()
 
 
 
-void ParticleFilter::predict(const double delta_x, const double delta_y, const double delta_theta)
+void ParticleFilter::predict(const float delta_x, const float delta_y, const float delta_theta)
 {
     /*
-    const double x_dev = fabs(delta_x * odom_x_mod);
-    const double y_dev = fabs(delta_y * odom_y_mod);
-    const double theta_dev = fabs(delta_theta * odom_theta_mod);
+    const float x_dev = fabs(delta_x * odom_x_mod);
+    const float y_dev = fabs(delta_y * odom_y_mod);
+    const float theta_dev = fabs(delta_theta * odom_theta_mod);
     */
 
     /*  Make a prediction for all particles according to the odometry */
@@ -104,18 +179,18 @@ void ParticleFilter::predict(const double delta_x, const double delta_y, const d
         particles[i].y += sa * rand_x + ca * rand_y;
         particles[i].theta += delta_theta + ranGaussian(0, theta_dev);
         */
-        double d_theta = warpAngle(delta_theta);
+        float d_theta = warpAngle(delta_theta);
 
-        double d_rot1 = atan2(delta_y, delta_x) - particles[i].theta;
-        double d_trans = sqrt(delta_x * delta_x + delta_y * delta_y);
-        double d_rot2 = d_theta - d_rot1;
+        float d_rot1 = atan2(delta_y, delta_x) - particles[i].theta;
+        float d_trans = sqrt(delta_x * delta_x + delta_y * delta_y);
+        float d_rot2 = d_theta - d_rot1;
 
         d_rot1 = warpAngle(d_rot1);
         d_rot2 = warpAngle(d_rot2);
 
-        double hd_rot1 = d_rot1 - ranGaussian(0.0, sqrt(alpha1 * d_rot1*d_rot1 + alpha2 * d_trans*d_trans));
-        double hd_trans = d_trans - ranGaussian(0.0, sqrt(alpha3 * d_trans*d_trans + alpha4 * (d_rot1*d_rot1 + d_rot2*d_rot2)));
-        double hd_rot2 = d_rot2 - ranGaussian(0.0, sqrt(alpha1 * d_rot2*d_rot2 + alpha2 * d_trans*d_trans));
+        float hd_rot1 = d_rot1 - ranGaussian(0.0, sqrt(alpha1 * d_rot1*d_rot1 + alpha2 * d_trans*d_trans));
+        float hd_trans = d_trans - ranGaussian(0.0, sqrt(alpha3 * d_trans*d_trans + alpha4 * (d_rot1*d_rot1 + d_rot2*d_rot2)));
+        float hd_rot2 = d_rot2 - ranGaussian(0.0, sqrt(alpha1 * d_rot2*d_rot2 + alpha2 * d_trans*d_trans));
 
         // update partical coord
         particles[i].x = particles[i].x + hd_trans * cos(particles[i].theta + hd_rot1);
@@ -264,50 +339,28 @@ float ParticleFilter::computeCloudWeight(LidarPointCloudConstPtr cloud, const ve
 // Resample particles with replacement with probability proportional to weight.
 void ParticleFilter::resample_basic()
 {
-    // Copy of the particles vector list
     vector<Particle> particlesCopy = particles;
-
-    // Empty the existing particle list
     particles.erase(particles.begin(), particles.end());
 
-    // Vector of weights of the particles
-    vector<double> weights;
+    vector<float> weights;
     for (size_t par_index = 0; par_index < particlesCopy.size(); par_index++)
     {
         weights.push_back(particlesCopy[par_index].weight);
     }
 
-    // Object of random number engine class that generate pseudo-random numbers
-    // NOTE: http://en.cppreference.com/w/cpp/numeric/random/mersenne_twister_engine
-    mt19937 gen;
+    discrete_distribution<int> weights_dist(weights.begin(), weights.end());
 
-    // Object for generating discrete distribution based on the weights vector
-    discrete_distribution<double> weights_dist(weights.begin(), weights.end());
-
-    // With the discrete distribution pick out particles according to their
-    // weights. The higher the weight of the particle, the higher are the chances
-    // of the particle being included multiple times.
-    // Discrete_distribution is used here to pick particles with the appropriate
-    // weights(i.e. which meet a threshold)
-    // http://www.cplusplus.com/reference/random/discrete_distribution/
-    // NOTE: Here is an example which helps with the understanding
-    //       http://coliru.stacked-crooked.com/a/3c9005a4cc0ed9d6
     for (size_t par_index = 0; par_index < particlesCopy.size(); par_index++)
     {
-        // Append the particle to the new list
-        // NOTE: Calling weights_dist with the generator returns the index of one
-        //       of weights in the vector which was used to generate the distribution.
-        particles.push_back(particlesCopy[weights_dist(gen)]);
+        particles.push_back(particlesCopy[weights_dist(generator_)]);
     }
 }
 
 // Writes particle positions to a file.
 void ParticleFilter::write(string filename)
 {
-    // Object of ofstream for writing output data
     ofstream dataFile;
 
-    // Delete existing files because we always write at the end of the file
     remove(filename.c_str());
 
     // Open the file with the filename passed in and with ios::app option set

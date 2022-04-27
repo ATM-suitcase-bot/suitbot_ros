@@ -99,22 +99,23 @@ add_executable(job_management
 target_link_libraries(job_management ${catkin_LIBRARIES})
 
 
-# add_executable(localization_node
-#   src/localization/localization_node.cpp
-#   src/occupancy_map.cpp
-#   src/lidar.cpp
-#   src/utility/pcl_utils.cpp
-#   src/utility/utils.cpp
-# )
+add_executable(localization_node
+  src/localization/localization_node.cpp
+  src/localization/particle_filter.cpp
+  src/occupancy_map.cpp
+  src/lidar.cpp
+  src/utility/pcl_utils.cpp
+  src/utility/utils.cpp
+)
 
-# target_link_libraries(localization_node 
-#   ${catkin_LIBRARIES} 
-#   ${PCL_LIBRARIES} 
-#   ${PCL_COMMON_LIBRARIES} 
-#   ${PCL_IO_LIBRARIES} 
-#   ${PCL_VISUALIZATION_LIBRARIES}
-#   ${OpenCV_LIBS}
-# )
+target_link_libraries(localization_node 
+  ${catkin_LIBRARIES} 
+  ${PCL_LIBRARIES} 
+  ${PCL_COMMON_LIBRARIES} 
+  ${PCL_IO_LIBRARIES} 
+  ${PCL_VISUALIZATION_LIBRARIES}
+  ${OpenCV_LIBS}
+)
 
 
 add_executable(planner_node 

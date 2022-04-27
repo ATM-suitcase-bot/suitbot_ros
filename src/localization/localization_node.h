@@ -45,7 +45,7 @@
 class LocalizationNode
 {
 public:
-    LocalizationNode(ros::NodeHandle* nodehandle, parameters_t &_params); 
+    LocalizationNode(ros::NodeHandle* nodehandle, parameters_t &_params);
 
     int run();
     
@@ -54,6 +54,10 @@ public:
     ros::Subscriber point_sub;
     ros::Subscriber odom_sub;  
     ros::Publisher particles_pose_pub;
+
+    sensor_msgs::PointCloud2Ptr map_point_cloud_msg;
+    ros::Publisher map_point_cloud_pub;
+    ros::Timer map_point_cloud_pub_timer;
     
     parameters_t params;
 
@@ -76,6 +80,7 @@ public:
 
     // 3D point cloud map
 
+
     bool is_odom{ false };  /*!< Flag to know the initialize of odometry */
     
     void initializeSubscribers(); 
@@ -89,6 +94,9 @@ public:
     void odomCallback(const nav_msgs::Odometry &ctrl_in);
 
     void publishParticles();
+
+    void publishMapPointCloud(const ros::TimerEvent&);
+
 
     bool checkUpdateThresholds();
 

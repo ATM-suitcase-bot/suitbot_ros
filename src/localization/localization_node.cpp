@@ -11,16 +11,26 @@
 #include "localization_node.h"
 #include <pcl/filters/voxel_grid.h>
 
-LocalizationNode::LocalizationNode(ros::NodeHandle *nodehandle, parameters_t &_params) : nh(*nodehandle), params(_params)
+LocalizationNode::LocalizationNode(ros::NodeHandle *nodehandle, parameters_t &_params) : nh(*nodehandle), params(_params), 
+                                                                        map_point_cloud_msg(new sensor_msgs::PointCloud2)
 {
     ROS_INFO("Initializing Localization Node...");
     prev_odom(0) = 0.0;
     prev_odom(1) = 0.0;
     prev_odom(2) = 0.0;
     cur_odom = prev_odom;
-    pf.set_params(params.map_file, params.pcd_file, params.global_map_resolution,params.fixed_height, 
-                  params.pf_init_num_particles_per_grid, params.pf_init_num_particles_total);
-    
+    pf.set_params(params.map_file, params.pcd_file, params.global_map_resolution, 
+                  params.fixed_height, 
+                  params.pf_init_num_particles_per_grid, params.pf_init_num_particles_total,
+                  params.pf_alpha1, params.pf_alpha2, params.pf_alpha3, params.pf_alpha4,
+                  params.pf_sigma_hit, params.pf_lambda_short, params.pf_max_range, params.pf_max_span,
+                  params.pf_z_hit, params.pf_z_short, params.pf_z_max, params.pf_z_rand);
+
+    LidarPointCloudPtr cloud (new LidarPointCloud);
+    loadPCDMap(params.pcd_file, cloud);
+    pcl_to_cloud_msg(cloud, map_point_cloud_msg);
+    map_point_cloud_msg->header.frame_id = params.global_frame_id;
+
     initializeSubscribers();
     initializePublishers();
     initializeServices();
@@ -38,7 +48,14 @@ void LocalizationNode::initializeServices()
 
 void LocalizationNode::initializePublishers()
 {
-    particles_pose_pub = nh.advertise<geometry_msgs::PoseArray>("/suitbot/localization/particles", 1, true);
+    particles_pose_pub = nh.advertise<geometry_msgs::PoseArray>(params.PF_PARTICLES_TOPIC, 1, true);
+    if (params.publish_point_cloud_rate != 0)
+    {
+        map_point_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>(params.PCD_MAP_TOPIC, 1, true);
+        map_point_cloud_pub_timer = nh.createTimer(ros::Duration(ros::Rate(params.publish_point_cloud_rate)),
+                                                    &LocalizationNode::publishMapPointCloud, this);
+    }
+  
 }
 
 bool LocalizationNode::serviceCallback(std_srvs::TriggerRequest &request, std_srvs::TriggerResponse &response)
@@ -83,6 +100,16 @@ void LocalizationNode::publishParticles()
     /* Publish particle cloud */
     particles_pose_pub.publish(msg);
 }
+
+
+void LocalizationNode::publishMapPointCloud(const ros::TimerEvent&)
+{
+    ROS_DEBUG("[%s] Node::publishMapPointCloud()", ros::this_node::getName().data());
+    map_point_cloud_msg->header.stamp = ros::Time::now();
+    map_point_cloud_pub.publish(*map_point_cloud_msg);
+}
+
+
 
 void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr &msg)
 {
@@ -132,7 +159,7 @@ void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr
     if (++n_updates > params.pf_resample_interval)
     {
         n_updates = 0;
-        pf.resample();
+        pf.resample(10);
     }
     // record time spent
 
@@ -184,14 +211,14 @@ bool LocalizationNode::checkUpdateThresholds()
     Eigen::Vector3f delta_odom = cur_odom - prev_odom;
 
     // Check translation threshold
-    if (delta_odom[0]*delta_odom[0] + delta_odom[1]*delta_odom[1] > params.pf_updata_dist_threshold)
+    if (delta_odom[0]*delta_odom[0] + delta_odom[1]*delta_odom[1] > params.pf_update_dist_threshold)
     {
         ROS_INFO("Translation update");
         return true;
     }
 
     // Check yaw threshold 
-    if (fabs(warpAngle(delta_odom[2])) > params.pf_updata_angle_threshold) 
+    if (fabs(warpAngle(delta_odom[2])) > params.pf_update_angle_threshold) 
     {
         ROS_INFO("Rotation update");
         return true;

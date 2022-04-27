@@ -74,11 +74,13 @@ typedef struct params
 
     string LOCAL_MAP_IMAGE_TOPIC;
 
+    string PCD_MAP_TOPIC;
+
     // for localization
     // string base_frame_id;   /*!< Name of the robot TF */
     // string odom_frame_id;   /*!< Name of the flight origin of the robot TF */
     string global_frame_id; /*!< Name of the test-bed origin TF */
-    string pf_particles_topic;
+    string PF_PARTICLES_TOPIC;
 
     // bool set_initial_pose; /*!< Flag to indicate if t he initial pose has been received */
 
@@ -87,11 +89,12 @@ typedef struct params
     // double init_z; /*!< Start z-axis position */
     // double init_a; /*!< Start yaw angle */
 
+    float pf_alpha1, pf_alpha2, pf_alpha3, pf_alpha4;
     float pf_sigma_hit, pf_lambda_short, pf_max_range, pf_max_span;
 	float pf_z_hit, pf_z_short, pf_z_max, pf_z_rand;
 
     // double grid_slice_z;             /*!< Height of grid slice */
-    // double publish_point_cloud_rate; /*!< Map point cloud publishing rate */
+    double publish_point_cloud_rate;    /*!< Map point cloud publishing rate */
     // double publish_grid_slice_rate;  /*!< map grid slice publishing rate */
 
     // double sensor_dev;   /*!< Desviation of 3D point cloud sensor */
@@ -108,13 +111,13 @@ typedef struct params
     int pf_resample_interval; /*!< Resampling control */
 
     double pf_update_rate; /*!< Filter updating frequency */
-    double pf_updata_dist_threshold;        /*!< Threshold in the distance for the update */
-    double pf_updata_angle_threshold;        /*!< Threshold in yaw angle for the update */
+    float pf_update_dist_threshold;        /*!< Threshold in the distance for the update */
+    float pf_update_angle_threshold;        /*!< Threshold in yaw angle for the update */
 
     int pf_init_num_particles_per_grid;
     int pf_init_num_particles_total;
 
-    double fixed_height;
+    float fixed_height;
 
     Eigen::Affine3f pcd_map_transformation;
     
@@ -157,6 +160,9 @@ typedef struct params
 
         LOCAL_MAP_TOPIC = readParam<string>(n, "local_map_topic");
         LOCAL_MAP_IMAGE_TOPIC = readParam<string>(n, "local_map_image_topic");
+
+        PCD_MAP_TOPIC = readParam<string>(n, "pcd_map_topic");
+        PF_PARTICLES_TOPIC = readParam<string>(n, "pf_particles_topic");
 
         // command types
         auto state_map = readParam<XmlRpc::XmlRpcValue>(n, "states_map");
@@ -206,16 +212,21 @@ typedef struct params
         voxel_size = readParam<float>(n, "voxel_size");
         global_frame_id = readParam<string>(n, "global_frame_id");
 
-        pf_particles_topic = readParam<string>(n, "pf_particles_topic");
-
-        fixed_height = readParam<double>(n, "fixed_height");
+        fixed_height = readParam<float>(n, "fixed_height");
 
         pf_resample_interval = readParam<int>(n, "pf_resample_interval");
-        pf_updata_dist_threshold = readParam<double>(n, "pf_updata_dist_threshold");
-        pf_updata_angle_threshold = readParam<double>(n, "pf_updata_angle_threshold");
+        pf_update_dist_threshold = readParam<float>(n, "pf_update_dist_threshold");
+        pf_update_angle_threshold = readParam<float>(n, "pf_update_angle_threshold");
 
         pf_init_num_particles_per_grid = readParam<int>(n, "pf_init_num_particles_per_grid");
         pf_init_num_particles_total = readParam<int>(n, "pf_init_num_particles_total");
+
+        publish_point_cloud_rate = readParam<double>(n, "publish_point_cloud_rate");
+
+        pf_alpha1 = readParam<float>(n, "pf_alpha1");
+        pf_alpha2 = readParam<float>(n, "pf_alpha2");
+        pf_alpha3 = readParam<float>(n, "pf_alpha3");
+        pf_alpha4 = readParam<float>(n, "pf_alpha4");
 
         pf_sigma_hit = readParam<float>(n, "pf_sigma_hit");
         pf_lambda_short = readParam<float>(n, "pf_lambda_short");
