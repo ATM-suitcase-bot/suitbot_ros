@@ -14,6 +14,7 @@ from suitbot_ros.srv import SetCourse
 from suitbot_ros.msg import TwoFloats
 from suitbot_ros.msg import LocalMapMsg
 from sensor_msgs.msg import Image
+from std_msgs.msg import Int8
 import sys, os.path
 script_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(script_dir)
@@ -142,7 +143,8 @@ class TrackingSimulator:
         self.counter = 0
         self.ctrl_pub = rospy.Publisher(parameters.ctrl_topic, Odometry, queue_size=10)
         self.obs_pub = rospy.Publisher("/suitbot/obs_py_im", Image, queue_size=10)
-
+        self.drive_status_pub = rospy.Publisher(parameters.drive_status_topic, Int8, queue_size=10)
+        
         self.twist_sub = rospy.Subscriber(parameters.encoder_topic, TwistStamped, self.callback_update)
         self.path_service = rospy.Service(parameters.reset_path_service, SetCourse, self.callback_reset_course)
         self.force_sub = rospy.Subscriber(parameters.force_topic, TwoFloats, self.callback_force)
@@ -347,18 +349,25 @@ class TrackingSimulator:
         if (parameters.manual_control == False and parameters.debug_odometry == False): # not manually controlling
             t_init = rospy.Time.now().to_sec()
             t_cur = t_init
-            while self.target_ind < self.lastIndex and not rospy.is_shutdown():
-                # Calc control cmd
-                ai = pid_control(self.target_speed, self.state.v, self.dt)
-                di, self.target_ind, isflip = pure_pursuit_steer_control(
-                    self.state, self.target_course, self.target_ind, self.target_pt)
+            while not rospy.is_shutdown():
+                if(self.target_ind < self.lastIndex):
+                    # Calc control cmd
+                    ai = pid_control(self.target_speed, self.state.v, self.dt)
+                    di, self.target_ind, isflip = pure_pursuit_steer_control(
+                        self.state, self.target_course, self.target_ind, self.target_pt)
 
-                if(isflip):
-                    self.ctrl_pub.publish(self.getOdoOut(ai/2.0, di))
+                    if(isflip):
+                        self.ctrl_pub.publish(self.getOdoOut(ai/2.0, di))
 
-                else:
-                    self.ctrl_pub.publish(self.getOdoOut(ai, di))
-                
+                    else:
+                        self.ctrl_pub.publish(self.getOdoOut(ai, di))
+
+                else: #stopping
+                    self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
+                    status_msg = Int8()
+                    status_msg.data = np.int8(2)
+                    self.drive_status_pub(status_msg)
+                    
                 self.r.sleep()
                 t_cur = rospy.Time.now().to_sec()
 
