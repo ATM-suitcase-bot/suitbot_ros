@@ -127,8 +127,8 @@ void OccupancyMap::coord_to_idx(const float &coord_x, const float &coord_y, int 
 // returns the top left corner coordinate, coord_x is horizontal
 void OccupancyMap::idx_to_coord(const int &ind_x, const int &ind_y, float &coord_x, float &coord_y)
 {
-    coord_x = (float)ind_x * resolution;
-    coord_y = (float)ind_y * resolution;
+    coord_x = (float)ind_x * resolution + resolution / 2;
+    coord_y = (float)ind_y * resolution + resolution / 2;
 }
 
 bool OccupancyMap::isInMap(const float &px, const float &py)

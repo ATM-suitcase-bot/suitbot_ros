@@ -31,6 +31,12 @@ LocalizationNode::LocalizationNode(ros::NodeHandle *nodehandle, parameters_t &_p
     pcl_to_cloud_msg(cloud, map_point_cloud_msg);
     map_point_cloud_msg->header.frame_id = params.global_frame_id;
 
+    if (!pf.isInitialized())
+    {
+        ROS_WARN("Filter not initialized yet. Initializing particles randomly in free space.");
+        pf.init();
+    }
+
     initializeSubscribers();
     initializePublishers();
     initializeServices();
@@ -89,7 +95,10 @@ void LocalizationNode::publishParticles()
 {
     /* If the filter is not initialized then exit */
     if (!pf.isInitialized())
-        return;
+    {
+        ROS_WARN("Filter not initialized yet. Initializing particles randomly in free space.");
+        pf.init();
+    }
 
     /* Build the msg based on the particles position and orientation */
     geometry_msgs::PoseArray msg;
@@ -107,6 +116,8 @@ void LocalizationNode::publishMapPointCloud(const ros::TimerEvent&)
     ROS_DEBUG("[%s] Node::publishMapPointCloud()", ros::this_node::getName().data());
     map_point_cloud_msg->header.stamp = ros::Time::now();
     map_point_cloud_pub.publish(*map_point_cloud_msg);
+
+    publishParticles();
 }
 
 
