@@ -68,4 +68,6 @@ bool align_pcl_icp(LidarPointCloudConstPtr source_cloud,
                     LidarPointCloudPtr cloud_aligned,
                     Eigen::Affine3f &tf_out);
 
+void downsample(LidarPointCloudPtr cloud_in, int down_factor);
+
 #endif

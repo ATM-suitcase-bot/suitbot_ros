@@ -30,7 +30,7 @@
 
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/Pose.h>
-
+#include <geometry_msgs/PoseStamped.h>
 
 #include <Eigen/Dense>
 
@@ -162,7 +162,7 @@ public:
 
 	void buildParticlesPoseMsg(geometry_msgs::PoseArray& msg) const;
 
-	void buildParticleMsg(geometry_msgs::Pose& msg) const;
+	void buildParticleMsg(geometry_msgs::PoseStamped& msg) const;
 
 
 private:

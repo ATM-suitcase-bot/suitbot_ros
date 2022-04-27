@@ -56,7 +56,7 @@ void LocalizationNode::initializeServices()
 void LocalizationNode::initializePublishers()
 {
     particles_pose_pub = nh.advertise<geometry_msgs::PoseArray>(params.PF_PARTICLES_TOPIC, 1, true);
-    mean_particle_pub = nh.advertise<geometry_msgs::Pose>(params.PF_MEAN_PARTICLE_TOPIC, 1, true);
+    mean_particle_pub = nh.advertise<geometry_msgs::PoseStamped>(params.PF_MEAN_PARTICLE_TOPIC, 1, true);
     if (params.publish_point_cloud_rate != 0)
     {
         map_point_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>(params.PCD_MAP_TOPIC, 1, true);
@@ -106,11 +106,14 @@ void LocalizationNode::publishParticles()
     geometry_msgs::PoseArray msg;
     pf.buildParticlesPoseMsg(msg);
 
-    geometry_msgs::Pose mean_msg;
+    geometry_msgs::PoseStamped mean_msg;
     pf.buildParticleMsg(mean_msg);
 
     msg.header.stamp = ros::Time::now();
     msg.header.frame_id = params.global_frame_id;
+
+    mean_msg.header.stamp = ros::Time::now();
+    mean_msg.header.frame_id = params.global_frame_id;
 
     /* Publish particle cloud */
     particles_pose_pub.publish(msg);
@@ -139,22 +142,24 @@ void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr
     }
 
     // check if an update must be performed or not
-    //if (!checkUpdateThresholds())
-        //return;
-
+    if (!checkUpdateThresholds())
+        return;
+    ROS_WARN_STREAM("pointcloudCallback starting");
     static const ros::Duration update_interval(1.0 / params.pf_update_rate);
     nextupdate_time = ros::Time::now() + update_interval;
 
     // apply voxel grid
     LidarPointCloudPtr cloud_src(new LidarPointCloud);
     pcl::fromROSMsg(*msg, *cloud_src);
-    /*
+    
     pcl::VoxelGrid<LidarPoint> sor;
     sor.setInputCloud(cloud_src);
     sor.setLeafSize(params.voxel_size, params.voxel_size, params.voxel_size);
     LidarPointCloudPtr cloud_down(new LidarPointCloud);
     sor.filter(*cloud_down);
-    */
+
+    downsample(cloud_down, 3);
+    
     // record time spent
 
     //Eigen::Vector3f delta_odom = cur_odom - prev_odom;
@@ -165,7 +170,7 @@ void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr
 
     /* Perform particle update based on current point-cloud */
     TicToc t_update;
-    pf.update(cloud_src);
+    pf.update(cloud_down);
     // record time spent
     ROS_INFO_STREAM("pf update time: " << t_update.toc() << " ms" << endl);
 
@@ -175,7 +180,6 @@ void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr
     
 
     // Do the resampling if needed
-    static int n_updates = 0;
     if (++n_updates > params.pf_resample_interval)
     {
         n_updates = 0;
@@ -278,14 +282,14 @@ bool LocalizationNode::checkUpdateThresholds()
     // Check translation threshold
     if (delta_odom[0]*delta_odom[0] + delta_odom[1]*delta_odom[1] > params.pf_update_dist_threshold)
     {
-        ROS_INFO("Translation update");
+        ROS_INFO_STREAM("Translation update");
         return true;
     }
 
     // Check yaw threshold 
     if (fabs(warpAngle(delta_odom[2])) > params.pf_update_angle_threshold) 
     {
-        ROS_INFO("Rotation update");
+        ROS_INFO_STREAM("Rotation update");
         return true;
     }
     return false;

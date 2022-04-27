@@ -7,6 +7,7 @@ void loadPCDMap(string pcd_file, LidarPointCloudPtr cloud)
         cerr << "ERROR: Couldn't read pcd file. Exiting." << endl;
         exit(1);
     }
+    downsample(cloud, 10);
 }
 
 void cloud_msg_to_pcl(sensor_msgs::PointCloud2ConstPtr msg_in, LidarPointCloudPtr pcl_p_out)
@@ -187,4 +188,17 @@ bool align_pcl_icp(LidarPointCloudConstPtr source_cloud,
 
     tf_out.matrix() = icp.getFinalTransformation();
     return icp.hasConverged();
+}
+
+
+void downsample(LidarPointCloudPtr cloud_in, int down_factor)
+{
+    LidarPointCloudPtr tmp_cloud(new LidarPointCloud);
+    for (int i = 0; i < cloud_in->points.size(); i+=down_factor)
+    {
+        tmp_cloud->points.push_back(cloud_in->points[i]);
+    }
+    *cloud_in = *tmp_cloud;
+    cloud_in->width = cloud_in->points.size();
+    cloud_in->height = 1;
 }
