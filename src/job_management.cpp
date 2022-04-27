@@ -95,7 +95,7 @@ void JobManager::localization_callback(const nav_msgs::Odometry::ConstPtr& msg_i
 
 void JobManager::drive_state_callback(const std_msgs::Int8::ConstPtr& msg_in){
 
-    std::cout << "job state callback: " << msg_in->data << "\n";
+    std::cout << "job state callback: " << std::to_string((msg_in->data)) << "\n";
 }
 
 bool JobManager::serviceCallback(std_srvs::TriggerRequest &request, std_srvs::TriggerResponse &response)
