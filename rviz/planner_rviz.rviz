@@ -9,7 +9,7 @@ Panels:
         - /MarkerArray1
         - /Marker1
         - /Marker2
-        - /PointCloud21
+        - /PoseArray1
       Splitter Ratio: 0.5
     Tree Height: 70
   - Class: rviz/Selection
@@ -120,6 +120,23 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.30000001192092896
+      Axes Radius: 0.009999999776482582
+      Class: rviz/PoseArray
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: PoseArray
+      Queue Size: 100000
+      Shaft Length: 0.23000000417232513
+      Shaft Radius: 0.009999999776482582
+      Shape: Arrow (Flat)
+      Topic: /suitbot/localization/particles
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -148,25 +165,24 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 55.236419677734375
+      Distance: 28.11064338684082
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 49.84495544433594
-        Y: 69.79759216308594
-        Z: -2.3085031509399414
+        X: 41.19267272949219
+        Y: 66.61929321289062
+        Z: -5.16651725769043
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.41520369052886963
+      Pitch: 0.6097968220710754
       Target Frame: <Fixed Frame>
-      Value: Orbit (rviz)
-      Yaw: 4.160401344299316
+      Yaw: 4.285402774810791
     Saved: ~
 Window Geometry:
   Displays:

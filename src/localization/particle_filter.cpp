@@ -127,8 +127,10 @@ void ParticleFilter::set_params(
 
 void ParticleFilter::init()
 {
-    int particle_per_grid = std::max(1, std::min(initial_num_particles_per_grid, (int)((double)initial_num_particles_total / (double)grid_map.num_free_cells)));
+    int particle_per_grid = std::max(1, std::min(initial_num_particles_per_grid, 
+                (int)((double)initial_num_particles_total / (double)grid_map.num_free_cells)));
 
+    ROS_WARN_STREAM("particle_per_grid: " << particle_per_grid);
     int num_particles = 0;
 
     // sample in free space
@@ -139,11 +141,11 @@ void ParticleFilter::init()
             if (grid_map.occupancy_map[r][c] == FREE)
             {
                 float start_x, start_y, end_x, end_y;
-                grid_map.idx_to_coord(c, r, start_x, start_y);
-                start_x -= grid_map.resolution*0.5;
-                start_y -= grid_map.resolution*0.5;
-                end_x = start_x + grid_map.resolution * 1.5;
-                end_y = end_y + grid_map.resolution * 1.5;
+                grid_map.idx_to_coord(r, c, start_x, start_y); // center of the grid
+                start_x -= grid_map.resolution;
+                start_y -= grid_map.resolution;
+                end_x = start_x + grid_map.resolution * 2;
+                end_y = start_y + grid_map.resolution * 2;
                 sampleParticlesUniform(start_x, start_y, end_x, end_y, particle_per_grid, particles);
                 num_particles += particle_per_grid;
             }
