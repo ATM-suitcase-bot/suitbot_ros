@@ -73,7 +73,7 @@ void PlannerNode::controlCallback(const nav_msgs::Odometry &ctrl_in)
     float w = ctrl_in.pose.pose.orientation.w;
     this->yaw = std::atan2(2.0*(z*w), -1.0+2.0*w*w);
 
-    std::cout << "odom received" << this->pt << "  " << this->yaw << "\n";
+    //std::cout << "odom received" << this->pt << "  " << this->yaw << "\n";
 
     visualization_msgs::Marker arrow_marker;
     arrow_marker.header.stamp = ros::Time::now();
@@ -280,7 +280,7 @@ int main(int argc, char **argv)
         start_y = plannerNode.pt.y;
 
         //std::cout << "parsing xml\n";
-        std::cout << "odo: " << plannerNode.pt.x << " " << plannerNode.pt.y << " " << plannerNode.yaw << "\n";
+        //std::cout << "odo: " << plannerNode.pt.x << " " << plannerNode.pt.y << " " << plannerNode.yaw << "\n";
         //offset by 1 to fix missing index 1 in yaml
 	//std::cout << params.state_map[plannerNode.path_cmd][std::string("pos")]<<"\n";	
 	x_goal_idx = (int)params.state_map[plannerNode.path_cmd-1][std::string("pos")][0];
