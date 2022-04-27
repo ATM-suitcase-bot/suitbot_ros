@@ -19,7 +19,7 @@ PlannerNode::PlannerNode(ros::NodeHandle *nodehandle, parameters_t &_params)
     : nh(*nodehandle), params(_params)
 {
     ROS_INFO("Initializing Planner Node...");
-    if (map.initOccupancyGridMap(params.map_file) < 0)
+    if (map.initOccupancyGridMap(params.map_file, params.local_map_resolution) < 0)
     {
         ROS_ERROR("Failed to initialize Planner Node, exiting");
         // TODO error handling

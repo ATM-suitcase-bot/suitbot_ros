@@ -90,10 +90,10 @@ void OccupancyMap::bloat_obstacles()
             if (occupancy_map[r][c] == OCCUPIED)
             {
                 // check all directions
-                for (int i = -1; i < 2; i++)
+                for (int i = -2; i < 3; i++)
                 {
                     int row_new = r + i;
-                    for (int j = -1; j < 2; j++)
+                    for (int j = -2; j < 3; j++)
                     {
                         int col_new = c + j;
                         if ((row_new != r || col_new != c) && row_new >= 0 && row_new < rows && col_new >= 0 && col_new < cols)
