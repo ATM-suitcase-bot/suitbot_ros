@@ -61,8 +61,19 @@ void PlannerNode::initializePublishers()
     planned_path_pub = nh.advertise<visualization_msgs::Marker>(params.PLANNED_PATH_TOPIC, 1);
     grid_map_pub = nh.advertise<visualization_msgs::MarkerArray>(params.GLOBAL_MAP_TOPIC, 1);
     initVisualization();
+    if (params.publish_point_cloud_rate != 0)
+    {
+        grid_map_pub = nh.advertise<visualization_msgs::MarkerArray>(params.GLOBAL_MAP_TOPIC, 1);
+        grid_map_pub_timer = nh.createTimer(ros::Duration(ros::Rate(params.publish_point_cloud_rate)),
+                                                    &PlannerNode::publish2DMap, this);
+    }
 }
 
+void PlannerNode::publish2DMap(const ros::TimerEvent&)
+{
+    ROS_DEBUG("[%s] Node::publishMapPointCloud()", ros::this_node::getName().data());
+    grid_map_pub.publish(grid_map_marker_array);
+}
 
 void PlannerNode::controlCallback(const nav_msgs::Odometry &ctrl_in)
 {
@@ -76,7 +87,7 @@ void PlannerNode::controlCallback(const nav_msgs::Odometry &ctrl_in)
 
     visualization_msgs::Marker arrow_marker;
     arrow_marker.header.stamp = ros::Time::now();
-    arrow_marker.header.frame_id = "world";
+    arrow_marker.header.frame_id = params.global_frame_id;
     arrow_marker.ns = "planner_node";
     arrow_marker.id = 1000000;
     arrow_marker.type = visualization_msgs::Marker::ARROW;
@@ -203,7 +214,6 @@ void PlannerNode::initVisualization()
 void PlannerNode::updateVisualization()
 {
     publish_pose();
-    grid_map_pub.publish(grid_map_marker_array);
     planned_path_marker.points.clear();
 
     if (params.manual_control)
@@ -310,7 +320,7 @@ int main(int argc, char **argv)
 
     while (ros::ok())
     {
-        plannerNode.updateVisualization();
+        //plannerNode.updateVisualization();
         if (no_course && params.manual_control == false) 
         {
             suitbot_ros::SetCourse srv;
