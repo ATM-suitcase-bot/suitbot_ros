@@ -19,13 +19,12 @@ PlannerNode::PlannerNode(ros::NodeHandle *nodehandle, parameters_t &_params)
     : nh(*nodehandle), params(_params)
 {
     ROS_INFO("Initializing Planner Node...");
-    if (map.initOccupancyGridMap(params.map_file, params.global_map_resolution) < 0)
+    if (map.initOccupancyGridMap(params.map_file) < 0)
     {
         ROS_ERROR("Failed to initialize Planner Node, exiting");
         // TODO error handling
         exit(1);
     }
-
     map.coord_to_idx(goal_x, goal_y, goal_x_idx, goal_y_idx);
     initializeSubscribers();
     initializePublishers();
@@ -63,12 +62,6 @@ void PlannerNode::initializePublishers()
     planned_path_pub = nh.advertise<visualization_msgs::Marker>(params.PLANNED_PATH_TOPIC, 1);
     grid_map_pub = nh.advertise<visualization_msgs::MarkerArray>(params.GLOBAL_MAP_TOPIC, 1);
     initVisualization();
-    if (params.publish_point_cloud_rate != 0)
-    {
-        grid_map_pub = nh.advertise<visualization_msgs::MarkerArray>(params.GLOBAL_MAP_TOPIC, 1);
-        grid_map_pub_timer = nh.createTimer(ros::Duration(ros::Rate(params.publish_point_cloud_rate)),
-                                                    &PlannerNode::publish2DMap, this);
-    }
 }
 
 
@@ -84,7 +77,7 @@ void PlannerNode::controlCallback(const nav_msgs::Odometry &ctrl_in)
 
     visualization_msgs::Marker arrow_marker;
     arrow_marker.header.stamp = ros::Time::now();
-    arrow_marker.header.frame_id = params.global_frame_id;
+    arrow_marker.header.frame_id = "world";
     arrow_marker.ns = "planner_node";
     arrow_marker.id = 1000000;
     arrow_marker.type = visualization_msgs::Marker::ARROW;
@@ -117,12 +110,6 @@ void PlannerNode::subscriberCallback(const nav_msgs::Odometry &odom_in)
 
     // publish new plan
     updateVisualization();
-}
-
-void PlannerNode::publish2DMap(const ros::TimerEvent&)
-{
-    ROS_DEBUG("[%s] Node::publishMapPointCloud()", ros::this_node::getName().data());
-    grid_map_pub.publish(grid_map_marker_array);
 }
 
 void PlannerNode::publish_pose()
@@ -160,8 +147,8 @@ void PlannerNode::initVisualization()
                 grid_map_marker_array.markers[i].ns = "planner_node";
                 grid_map_marker_array.markers[i].type = visualization_msgs::Marker::CUBE;
                 grid_map_marker_array.markers[i].action = visualization_msgs::Marker::ADD;
-                grid_map_marker_array.markers[i].pose.position.x = params.global_map_resolution * r + params.global_map_resolution / 2;
-                grid_map_marker_array.markers[i].pose.position.y = params.global_map_resolution  * c + params.global_map_resolution  / 2;
+                grid_map_marker_array.markers[i].pose.position.x = params.global_map_resolution * c + params.global_map_resolution / 2;
+                grid_map_marker_array.markers[i].pose.position.y = params.global_map_resolution  * r + params.global_map_resolution  / 2;
                 grid_map_marker_array.markers[i].pose.position.z = 0;
                 grid_map_marker_array.markers[i].pose.orientation.w = 1;
                 grid_map_marker_array.markers[i].pose.orientation.x = 0;
@@ -216,6 +203,7 @@ void PlannerNode::initVisualization()
 void PlannerNode::updateVisualization()
 {
     publish_pose();
+    grid_map_pub.publish(grid_map_marker_array);
     planned_path_marker.points.clear();
 
     if (params.manual_control)
@@ -288,8 +276,8 @@ int main(int argc, char **argv)
 
         // Read goal location from yaml- default start to elevators
         int x_idx = 0, y_idx = 0, x_goal_idx = 0, y_goal_idx = 0;
-        start_x = 0;
-        start_y = 0;
+        start_x = plannerNode.pt.x;
+        start_y = plannerNode.pt.y;
 
         //std::cout << "parsing xml\n";
         std::cout << "odo: " << plannerNode.pt.x << " " << plannerNode.pt.y << " " << plannerNode.yaw << "\n";
@@ -321,7 +309,7 @@ int main(int argc, char **argv)
 
     while (ros::ok())
     {
-        //plannerNode.updateVisualization();
+        plannerNode.updateVisualization();
         if (no_course && params.manual_control == false) 
         {
             suitbot_ros::SetCourse srv;
