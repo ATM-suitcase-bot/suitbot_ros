@@ -298,6 +298,7 @@ class TrackingSimulator:
         if (parameters.manual_control == True):
             return True
         l = len(req.points)
+        print(l)
         cx = np.zeros(l)
         cy = np.zeros(l)
         for i in range(l):
@@ -366,13 +367,10 @@ class TrackingSimulator:
                     self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
                     status_msg = Int8()
                     status_msg.data = np.int8(2)
-                    self.drive_status_pub(status_msg)
+                    self.drive_status_pub.publish(status_msg)
                     
                 self.r.sleep()
                 t_cur = rospy.Time.now().to_sec()
-
-            if self.lastIndex >= self.target_ind: #stopping
-                self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
 
 
 if __name__ == '__main__':

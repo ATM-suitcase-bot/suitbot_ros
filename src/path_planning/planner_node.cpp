@@ -325,7 +325,10 @@ int main(int argc, char **argv)
         {
             suitbot_ros::SetCourse srv;
             srv.request.path_cmd = plannerNode.path_cmd;
-            for (int i = 0; i < plannerNode.planned_path_marker.points.size(); i++)
+	    //Critical vis update to load in marker cords
+	    plannerNode.updateVisualization();
+	    std::cout << plannerNode.planned_path_marker.points.size() << "\n";
+	    for (int i = 0; i < plannerNode.planned_path_marker.points.size(); i++)
             {
                 geometry_msgs::Point pt = plannerNode.planned_path_marker.points[i];
                 srv.request.points.push_back(pt);
