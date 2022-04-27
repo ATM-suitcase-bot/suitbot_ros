@@ -72,6 +72,9 @@ void PlannerNode::controlCallback(const nav_msgs::Odometry &ctrl_in)
     float z = ctrl_in.pose.pose.orientation.z;
     float w = ctrl_in.pose.pose.orientation.w;
     this->yaw = std::atan2(2.0*(z*w), -1.0+2.0*w*w);
+
+    std::cout << "odom received" << this->pt << "  " << this->yaw << \n";
+
     visualization_msgs::Marker arrow_marker;
     arrow_marker.header.stamp = ros::Time::now();
     arrow_marker.header.frame_id = "world";
