@@ -292,16 +292,16 @@ int main(int argc, char **argv)
         //std::cout << "parsing xml\n";
         //std::cout << "odo: " << plannerNode.pt.x << " " << plannerNode.pt.y << " " << plannerNode.yaw << "\n";
         //offset by 1 to fix missing index 1 in yaml
-	//std::cout << params.state_map[plannerNode.path_cmd][std::string("pos")]<<"\n";	
-	x_goal_idx = (int)params.state_map[plannerNode.path_cmd-1][std::string("pos")][0];
-	y_goal_idx = (int)params.state_map[plannerNode.path_cmd-1][std::string("pos")][1];
-        
+	    //std::cout << params.state_map[plannerNode.path_cmd][std::string("pos")]<<"\n";	
+        x_goal_idx = (int)params.state_map[plannerNode.path_cmd-1][std::string("pos")][0];
+        y_goal_idx = (int)params.state_map[plannerNode.path_cmd-1][std::string("pos")][1];
+            
         plannerNode.map.coord_to_idx(start_x, start_y, x_idx, y_idx);
-	std::cout << plannerNode.map.occupancy_map[x_idx][y_idx] << "\n"; 
-	std::cout << plannerNode.map.occupancy_map[x_goal_idx][y_goal_idx] << "\n"; 
-	std::cout << x_idx << ", " << y_idx << ", " << x_goal_idx << ", " << y_goal_idx << endl;
+        std::cout << plannerNode.map.occupancy_map[x_idx][y_idx] << "\n"; 
+        std::cout << plannerNode.map.occupancy_map[x_goal_idx][y_goal_idx] << "\n"; 
+        std::cout << x_idx << ", " << y_idx << ", " << x_goal_idx << ", " << y_goal_idx << endl;
 
-	plannerNode.set_start_indices(x_idx, y_idx);
+        plannerNode.set_start_indices(x_idx, y_idx);
         plannerNode.set_goal_indices(x_goal_idx, y_goal_idx);
     }
 

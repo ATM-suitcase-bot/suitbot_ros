@@ -137,7 +137,7 @@ bool OccupancyMap::isInMap(const float &px, const float &py)
     coord_to_idx(px, py, idx_x, idx_y);
     if (idx_x < 0 || idx_x >= rows || idx_y < 0 || idx_y >= cols)
         return false;
-    int val = occupancy_map[idx_y][idx_x];
+    int val = occupancy_map[idx_x][idx_y];
     if (val == FREE || val == BLOATED)
         return true;
     return false;

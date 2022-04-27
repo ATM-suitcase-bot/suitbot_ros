@@ -40,12 +40,13 @@ LocalizationNode::LocalizationNode(ros::NodeHandle *nodehandle, parameters_t &_p
     initializeSubscribers();
     initializePublishers();
     initializeServices();
+    publishParticles();
 }
 
 void LocalizationNode::initializeSubscribers()
 {
     point_sub = nh.subscribe(params.LIDAR_SYNC_TOPIC, 1, &LocalizationNode::pointcloudCallback, this);
-    odom_sub = nh.subscribe(params.ENCODER_TOPIC, 1, &LocalizationNode::odomCallback, this);
+    odom_sub = nh.subscribe(params.CTRL_TOPIC, 1, &LocalizationNode::odomCallback, this);
 }
 
 void LocalizationNode::initializeServices()
@@ -55,6 +56,7 @@ void LocalizationNode::initializeServices()
 void LocalizationNode::initializePublishers()
 {
     particles_pose_pub = nh.advertise<geometry_msgs::PoseArray>(params.PF_PARTICLES_TOPIC, 1, true);
+    mean_particle_pub = nh.advertise<geometry_msgs::Pose>(params.PF_MEAN_PARTICLE_TOPIC, 1, true);
     if (params.publish_point_cloud_rate != 0)
     {
         map_point_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>(params.PCD_MAP_TOPIC, 1, true);
@@ -103,11 +105,16 @@ void LocalizationNode::publishParticles()
     /* Build the msg based on the particles position and orientation */
     geometry_msgs::PoseArray msg;
     pf.buildParticlesPoseMsg(msg);
+
+    geometry_msgs::Pose mean_msg;
+    pf.buildParticleMsg(mean_msg);
+
     msg.header.stamp = ros::Time::now();
     msg.header.frame_id = params.global_frame_id;
 
     /* Publish particle cloud */
     particles_pose_pub.publish(msg);
+    mean_particle_pub.publish(mean_msg);
 }
 
 
@@ -132,8 +139,8 @@ void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr
     }
 
     // check if an update must be performed or not
-    if (!checkUpdateThresholds())
-        return;
+    //if (!checkUpdateThresholds())
+        //return;
 
     static const ros::Duration update_interval(1.0 / params.pf_update_rate);
     nextupdate_time = ros::Time::now() + update_interval;
@@ -141,23 +148,26 @@ void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr
     // apply voxel grid
     LidarPointCloudPtr cloud_src(new LidarPointCloud);
     pcl::fromROSMsg(*msg, *cloud_src);
+    /*
     pcl::VoxelGrid<LidarPoint> sor;
     sor.setInputCloud(cloud_src);
     sor.setLeafSize(params.voxel_size, params.voxel_size, params.voxel_size);
     LidarPointCloudPtr cloud_down(new LidarPointCloud);
     sor.filter(*cloud_down);
-    
+    */
     // record time spent
 
-    Eigen::Vector3f delta_odom = cur_odom - prev_odom;
-    prev_odom = cur_odom;
+    //Eigen::Vector3f delta_odom = cur_odom - prev_odom;
+    //prev_odom = cur_odom;
 
-    pf.predict(delta_odom[0], delta_odom[1], delta_odom[2]);
+    //pf.predict(delta_odom[0], delta_odom[1], delta_odom[2]);
     // record time spent
 
     /* Perform particle update based on current point-cloud */
-    pf.update(cloud_down);
+    TicToc t_update;
+    pf.update(cloud_src);
     // record time spent
+    ROS_INFO_STREAM("pf update time: " << t_update.toc() << " ms" << endl);
 
     mean_p = pf.getMean();
 
@@ -169,7 +179,9 @@ void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr
     if (++n_updates > params.pf_resample_interval)
     {
         n_updates = 0;
-        pf.resample(10);
+        TicToc t_resample;
+        pf.resample(pf.particles.size());
+        ROS_INFO_STREAM("pf resample time: " << t_resample.toc() << " ms" << endl);
     }
     // record time spent
 
@@ -192,7 +204,7 @@ void LocalizationNode::compute_delta_odom(const geometry_msgs::TwistStamped &twi
 
     float k00 = v * cos(yaw);
     float k01 = v * sin(yaw);
-    float k02 = (float)(twist_in.twist.angular.z); 
+    float k02 = -(float)(twist_in.twist.angular.z); 
 
     float k10 = v * cos(yaw + k02*d_t/2.0);
     float k11 = v * sin(yaw + k02*d_t/2.0);
@@ -213,7 +225,7 @@ void LocalizationNode::compute_delta_odom(const geometry_msgs::TwistStamped &twi
     yaw = yaw + delta_theta;
 }
 
-void LocalizationNode::odomCallback(const geometry_msgs::TwistStamped &twist_in)
+void LocalizationNode::odomCallback(const nav_msgs::Odometry &ctrl_in)
 {
     ROS_DEBUG("odomCallback open");
     // If the filter is not initialized, initialize it then exit
@@ -226,19 +238,19 @@ void LocalizationNode::odomCallback(const geometry_msgs::TwistStamped &twist_in)
     }
 
     // Update cur odometry
-    // cur_odom(0) = (float)(ctrl_in.pose.pose.position.x);
-    // cur_odom(1) = (float)(ctrl_in.pose.pose.position.y);
-    // cur_odom(2) = (float)tf::getYaw(ctrl_in.pose.pose.orientation);
+    cur_odom(0) = (float)(ctrl_in.pose.pose.position.x);
+    cur_odom(1) = (float)(ctrl_in.pose.pose.position.y);
+    cur_odom(2) = (float)tf::getYaw(ctrl_in.pose.pose.orientation);
     
     if (!is_odom) is_odom = true;
 
     // to benchmark predict, we call predict here temporarily
-    float delta_x, delta_y, delta_theta;
     // do rk4 (we might not need to compute it here in the future)
-    compute_delta_odom(twist_in, cur_yaw, delta_x, delta_y, delta_theta);
+    //compute_delta_odom(twist_in, cur_yaw, delta_x, delta_y, delta_theta);
 
     TicToc tic_toc;
-    pf.predict(delta_x, delta_y, delta_theta);
+    pf.predict(cur_odom, prev_odom);
+    prev_odom = cur_odom;
     ROS_INFO_STREAM("time spent: " << tic_toc.toc() << " ms");
     publishParticles();
 

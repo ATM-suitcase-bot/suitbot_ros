@@ -18,6 +18,9 @@ lidar_original_topic: "/livox/lidar"
 lidar_sync_topic: "/suitbot/lidar"
 
 pf_particles_topic: "/suitbot/localization/particles"
+
+pf_mean_particle_topic: "/suitbot/localization/mean_particle"
+
 pcd_map_topic: "/suitbot/localization/pcd_map"
 
 local_map_topic: "/suitbot/planner/local_map"
@@ -91,10 +94,10 @@ pf_update_angle_threshold: 0.3
 
 
 # pf motion model parameters
-pf_alpha1: 0.001
-pf_alpha2: 0.0001
-pf_alpha3: 0.008
-pf_alpha4: 0.008
+pf_alpha1: 0.0
+pf_alpha2: 0.0
+pf_alpha3: 0.0
+pf_alpha4: 0.0
 # pf sensor model parameters
 pf_sigma_hit: 50.0
 pf_lambda_short: 0.1
