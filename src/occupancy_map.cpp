@@ -111,9 +111,9 @@ void OccupancyMap::bloat_obstacles()
         }
     }
     num_free_cells -= num_bloated_cells;
-    std::cout << "Number of free cells: " << num_free_cells << std::endl;
-    std::cout << "Number of occupied cells: " << num_occupied_cells << std::endl;
-    std::cout << "Number of bloated cells: " << num_bloated_cells << std::endl;
+    //std::cout << "Number of free cells: " << num_free_cells << std::endl;
+    //std::cout << "Number of occupied cells: " << num_occupied_cells << std::endl;
+    //std::cout << "Number of bloated cells: " << num_bloated_cells << std::endl;
 }
 
 
@@ -138,7 +138,7 @@ bool OccupancyMap::isInMap(const float &px, const float &py)
     if (idx_x < 0 || idx_x >= rows || idx_y < 0 || idx_y >= cols)
         return false;
     int val = occupancy_map[idx_x][idx_y];
-    if (val == FREE || val == BLOATED)
+    if (val == FREE)// || val == BLOATED)
         return true;
     return false;
 }

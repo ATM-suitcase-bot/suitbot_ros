@@ -15,6 +15,7 @@
 #include <float.h>
 #include <stdio.h>
 #include "../lidar.h"
+#include <bits/stdc++.h>
 
 #include "../occupancy_map.h"
 #include "../utility/utils.h"
@@ -30,7 +31,7 @@
 
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/Pose.h>
-
+#include <geometry_msgs/PoseStamped.h>
 
 #include <Eigen/Dense>
 
@@ -162,7 +163,7 @@ public:
 
 	void buildParticlesPoseMsg(geometry_msgs::PoseArray& msg) const;
 
-	void buildParticleMsg(geometry_msgs::Pose& msg) const;
+	void buildParticleMsg(geometry_msgs::PoseStamped& msg) const;
 
 
 private:
@@ -172,6 +173,9 @@ private:
 
     std::random_device rd_{};  /*!< Random device */
     std::mt19937 generator_{rd_()}; /*!< Generator of random values */
+
+
+	unordered_set<pair<int, int>, hash_pair> sample_area;
 
     /** 
     * @brief To generate the random value by the Gaussian distribution.
@@ -194,6 +198,8 @@ private:
 	void sampleParticlesUniform(const float from_x, const float from_y,
                                             const float to_x, const float to_y,
 											const int num, vector<Particle> &out_particles);
+
+	void add_sample_area(float sample_area_width, pair<int, int> indices);
 
 };
 

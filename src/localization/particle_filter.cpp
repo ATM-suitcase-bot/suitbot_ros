@@ -127,10 +127,18 @@ void ParticleFilter::set_params(
 
 void ParticleFilter::init()
 {
-    int particle_per_grid = std::max(1, std::min(initial_num_particles_per_grid, 
-                (int)((double)initial_num_particles_total / (double)grid_map.num_free_cells)));
+    int particle_per_grid = 1;
+    float total_to_free_cell_ratio = (float)initial_num_particles_total / (float)grid_map.num_free_cells;
+    float sample_area_width = grid_map.resolution;
+    if (total_to_free_cell_ratio < 1) // if we don't want a particle in each cell
+    {
+        // then we expand the size of each "cell" that we sample from
+        sample_area_width /= (float)total_to_free_cell_ratio;
+    }
+    ROS_WARN_STREAM("sample area width: " << sample_area_width);
+    particle_per_grid = std::max(1, std::min(initial_num_particles_per_grid, (int)total_to_free_cell_ratio));
 
-    ROS_WARN_STREAM("particle_per_grid: " << particle_per_grid);
+    //ROS_WARN_STREAM("particle_per_grid: " << particle_per_grid);
     int num_particles = 0;
     // for debugging motion model:
     
@@ -147,21 +155,35 @@ void ParticleFilter::init()
     }
     */
     
-    // sample in free space
+    // sample in free space (dubugging now)
+    int tmp_rmin = 198;
+    int tmp_rmax = 214;
+    int tmp_cmin = 160;
+    int tmp_cmax = 201;
+    //particle_per_grid = std::max(1, std::min(100, 
+     //           (int)((double)1000 / (double)((tmp_rmax - tmp_rmin)*(tmp_cmax-tmp_cmin)))));
+
+    ROS_WARN_STREAM("free cells: " << grid_map.num_free_cells << ", particle_per_grid: " << particle_per_grid);
     for (int r = 0; r < grid_map.rows; r++)
     {
         for (int c = 0; c < grid_map.cols; c++)
         {
             if (grid_map.occupancy_map[r][c] == FREE)
             {
-                float start_x, start_y, end_x, end_y;
-                grid_map.idx_to_coord(r, c, start_x, start_y); // center of the grid
-                start_x -= grid_map.resolution;
-                start_y -= grid_map.resolution;
-                end_x = start_x + grid_map.resolution * 2;
-                end_y = start_y + grid_map.resolution * 2;
+                pair<int, int> indices;
+                indices.first = r;
+                indices.second = c;
+                if (sample_area.find(indices) != sample_area.end())
+                    continue;
+                float cx, cy, start_x, start_y, end_x, end_y;
+                grid_map.idx_to_coord(r, c, cx, cy); // center of the grid
+                start_x = cx - sample_area_width / 2;
+                start_y = cy - sample_area_width / 2;
+                end_x = start_x + sample_area_width;
+                end_y = start_y + sample_area_width;
                 sampleParticlesUniform(start_x, start_y, end_x, end_y, particle_per_grid, particles);
                 num_particles += particle_per_grid;
+                add_sample_area(sample_area_width, indices);
             }
         } 
     }
@@ -173,7 +195,27 @@ void ParticleFilter::init()
     initialized_ = true;
 }
 
-
+void ParticleFilter::add_sample_area(float sample_area_width, pair<int, int> indices)
+{
+    float coord_x, coord_y;
+    grid_map.idx_to_coord(indices.first, indices.second, coord_x, coord_y);
+    int idx_x_start, idx_y_start, idx_x_end, idx_y_end;
+    grid_map.coord_to_idx(coord_x - sample_area_width/2, coord_y - sample_area_width/2, idx_x_start, idx_y_start);
+    grid_map.coord_to_idx(coord_x + sample_area_width/2, coord_y + sample_area_width/2, idx_x_end, idx_y_end);
+    for (int i = idx_x_start; i < idx_x_end+1; i++)
+    {
+        for (int j = idx_y_start; j < idx_y_end+1; j++)
+        {
+            pair<int, int> indices;
+            indices.first = i;
+            indices.second = j;
+            if (grid_map.occupancy_map[i][j] == FREE && sample_area.find(indices) == sample_area.end())
+            {
+                sample_area.insert(indices);
+            }
+        }
+    }
+}
 
 void ParticleFilter::predict(const Eigen::Vector3f &cur_odom, const Eigen::Vector3f &prev_odom)
 {
@@ -234,17 +276,19 @@ void ParticleFilter::update(LidarPointCloudConstPtr cloud_in)
         measurements.push_back(p_meas.norm());
     }
 
-    TicToc tic_toc;
+    
     for (int i = 0; i < particles.size(); i++)
     {
+        
         /*  Get particle information */
         float px = particles[i].x;
         float py = particles[i].y;
         float pth = particles[i].theta;
 
         /*  Check the particle is in the map */
-        if (grid_map.isInMap(px, py))
+        if (!grid_map.isInMap(px, py))
         {
+
             particles[i].weight = 0;
             continue;
         }
@@ -255,7 +299,6 @@ void ParticleFilter::update(LidarPointCloudConstPtr cloud_in)
         /*  Increase the summatory of weights */
         sum_weights += particles[i].weight;
     }
-    cout << "Update time: " <<  tic_toc.toc() << "ms" << endl;
 
     /*  Normalize all weights */
     float wt = 0;
@@ -434,14 +477,14 @@ void ParticleFilter::buildParticlesPoseMsg(geometry_msgs::PoseArray& msg) const
     }
 }
 
-void ParticleFilter::buildParticleMsg(geometry_msgs::Pose& msg) const
+void ParticleFilter::buildParticleMsg(geometry_msgs::PoseStamped& msg) const
 {
-    msg.position.x = static_cast<double>(mean_.x);
-    msg.position.y = static_cast<double>(mean_.y);
-    msg.position.z = static_cast<double>(fixed_height);
-    msg.orientation.x = 0.;
-    msg.orientation.y = 0.;
-    msg.orientation.z = sin(static_cast<double>(mean_.theta * 0.5f));
-    msg.orientation.w = cos(static_cast<double>(mean_.theta * 0.5f));
+    msg.pose.position.x = static_cast<double>(mean_.x);
+    msg.pose.position.y = static_cast<double>(mean_.y);
+    msg.pose.position.z = static_cast<double>(fixed_height);
+    msg.pose.orientation.x = 0.;
+    msg.pose.orientation.y = 0.;
+    msg.pose.orientation.z = sin(static_cast<double>(mean_.theta * 0.5f));
+    msg.pose.orientation.w = cos(static_cast<double>(mean_.theta * 0.5f));
     
 }
