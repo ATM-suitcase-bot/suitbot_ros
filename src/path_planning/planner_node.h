@@ -70,8 +70,10 @@ public:
     ros::Publisher arrow_pub;
     ros::Publisher  planned_path_pub; // line list
     visualization_msgs::Marker planned_path_marker;
+    
     ros::Publisher grid_map_pub; // cubes
     visualization_msgs::MarkerArray grid_map_marker_array;
+    ros::Timer grid_map_pub_timer;
 
     tf2_ros::TransformBroadcaster br;
 
@@ -101,6 +103,8 @@ public:
     void controlCallback(const nav_msgs::Odometry &ctrl_in);
 
     void callback_path_cmd(const std_msgs::Int32 &msg_in);
+
+    void publish2DMap(const ros::TimerEvent&);
 
     // visualization
     void initVisualization();

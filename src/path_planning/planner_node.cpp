@@ -63,6 +63,12 @@ void PlannerNode::initializePublishers()
     planned_path_pub = nh.advertise<visualization_msgs::Marker>(params.PLANNED_PATH_TOPIC, 1);
     grid_map_pub = nh.advertise<visualization_msgs::MarkerArray>(params.GLOBAL_MAP_TOPIC, 1);
     initVisualization();
+    if (params.publish_point_cloud_rate != 0)
+    {
+        grid_map_pub = nh.advertise<visualization_msgs::MarkerArray>(params.GLOBAL_MAP_TOPIC, 1);
+        grid_map_pub_timer = nh.createTimer(ros::Duration(ros::Rate(params.publish_point_cloud_rate)),
+                                                    &PlannerNode::publish2DMap, this);
+    }
 }
 
 
@@ -111,6 +117,12 @@ void PlannerNode::subscriberCallback(const nav_msgs::Odometry &odom_in)
 
     // publish new plan
     updateVisualization();
+}
+
+void PlannerNode::publish2DMap(const ros::TimerEvent&)
+{
+    ROS_DEBUG("[%s] Node::publishMapPointCloud()", ros::this_node::getName().data());
+    grid_map_pub.publish(grid_map_marker_array);
 }
 
 void PlannerNode::publish_pose()
@@ -204,7 +216,6 @@ void PlannerNode::initVisualization()
 void PlannerNode::updateVisualization()
 {
     publish_pose();
-    grid_map_pub.publish(grid_map_marker_array);
     planned_path_marker.points.clear();
 
     if (params.manual_control)
@@ -310,7 +321,7 @@ int main(int argc, char **argv)
 
     while (ros::ok())
     {
-        plannerNode.updateVisualization();
+        //plannerNode.updateVisualization();
         if (no_course && params.manual_control == false) 
         {
             suitbot_ros::SetCourse srv;

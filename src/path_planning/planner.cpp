@@ -207,8 +207,8 @@ void PlannerNode::backtrack(Node *goal_node)
     { // the first thing we pop is goal
         pair<int,int> idx = waypoint_idx[i];
         double cx, cy;
-        cx = idx.first * resolution + resolution/2;
-        cy = idx.second * resolution + resolution/2;
+        cx = idx.first * params.global_map_resolution + params.global_map_resolution/2;
+        cy = idx.second * params.global_map_resolution + params.global_map_resolution/2;
         pair<double, double> p{cx, cy};
         banked_steps.push_back(p);
         i++;
