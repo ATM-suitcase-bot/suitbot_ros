@@ -321,6 +321,11 @@ class TrackingSimulator:
         rospy.loginfo("Tracking simulator: Reset success")
         return True
 
+    def status_int(self, int_to_send):
+        status_msg = Int8()
+        status_msg.data = np.int8(int_to_send)
+        self.drive_status_pub.publish(status_msg)
+
     def getOdoOut(self, ai, di):
         msg_out = Odometry()
         msg_out.header.stamp = rospy.Time.now()
@@ -361,13 +366,11 @@ class TrackingSimulator:
                         self.ctrl_pub.publish(self.getOdoOut(ai/2.0, di))
 
                     else:
-                        self.ctrl_pub.publish(self.getOdoOut(ai, di))
+                            self.ctrl_pub.publish(self.getOdoOut(ai, di))
 
-                else: #stopping
-                    self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
-                    status_msg = Int8()
-                    status_msg.data = np.int8(2)
-                    self.drive_status_pub.publish(status_msg)
+                    else: #stopping
+                        self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
+                        self.status_int(2)
                     
                 self.r.sleep()
                 t_cur = rospy.Time.now().to_sec()
