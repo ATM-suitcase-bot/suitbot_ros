@@ -224,10 +224,17 @@ class TrackingSimulator:
         #convert goal point into pixel in local map
         [local_x, local_y] = self.get_local(self.target_ind)
         [pix_x, pix_y] = self.path_perturb.get_pix_ind([local_x, local_y], robot_pos)
+        
+        if(pix_x <= robot_pos[0]+1):#in the dramatic spin special case
+            self.stunlock = 0
+            self.avoiding = False
+            self.target_pt = None
+            return
+
         if(pix_y >= np.shape(occ_map)[1]):
             self.stunlock += 1
             return
-
+        
         alt_endpoint = False
         alt_offset = 0
         
@@ -274,7 +281,7 @@ class TrackingSimulator:
 
             if(alt_endpoint):
                 self.avoiding = True
-                self.target_pt = [self.target_course.cx[index+alt_offset], self.target_course.cy[index+alt_offset]]
+                self.target_pt = [self.target_course.cx[self.target_ind+alt_offset], self.target_course.cy[self.target_ind+alt_offset]]
         
         #render key pixels on the published local map
         raw_arr[robot_pos[0], robot_pos[1], :] = [0, 0, 255] #robot is red
