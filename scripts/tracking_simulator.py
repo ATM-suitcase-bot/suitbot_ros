@@ -131,9 +131,9 @@ def pure_pursuit_steer_control(state, trajectory, pind, override_pt):
 
     alpha = math.atan2(ty - state.y, tx - state.x) - state.yaw
 
-    isflip = np.abs(alpha) > (np.pi/2)
 
     delta = math.atan2(2.0 * 0.25 * math.sin(alpha) / Lf, 1.0)
+    isflip = np.abs(delta) > 1.0
 
     return delta, ind, isflip
 
@@ -318,7 +318,7 @@ class TrackingSimulator:
         force1 = msg_in.float1
         force2 = msg_in.float2
         # cap the target speed to (0, 1)
-        self.target_speed = max(min(self.target_speed * ((force1 - force2) / 15.0 * 0.01 + 1.0), 0.75), 0)
+        self.target_speed = max(min(self.target_speed * ((force1 - force2) / 15.0 * 0.03 + 1.0), 0.85), 0)
         global Lfc
         # cap it to (1, 3)
         Lfc = max(1.0, 1.0 + (self.target_speed - 0.5) * 2 / 0.5)
@@ -396,6 +396,7 @@ class TrackingSimulator:
             t_init = rospy.Time.now().to_sec()
             t_cur = t_init
             while not rospy.is_shutdown():
+                print(self.target_speed)
                 if(self.target_course == None): # No plan provided
                     if(self.has_spun):
                         self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
