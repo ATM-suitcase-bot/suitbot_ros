@@ -110,6 +110,11 @@ void JobManager::drive_state_callback(const std_msgs::Int8::ConstPtr& msg_in){
         reset_msg.request.need_reset = true;
         this->tracker_cli.call(reset_msg);
 
+        suitbot_ros::ResetNode reset_plan_msg;
+        reset_plan_msg.request.need_reset = true;
+        this->planner_cli.call(reset_plan_msg);
+
+        
         //--- reset job man params ---
         asked_destination = false;
         counter_state = 0;

@@ -27,6 +27,7 @@ PlannerNode::PlannerNode(ros::NodeHandle *nodehandle, parameters_t &_params)
     //map.coord_to_idx(goal_x, goal_y, goal_x_idx, goal_y_idx);
     initializeSubscribers();
     initializePublishers();
+    planner_cli = nh.advertiseService(params.RESET_PLANNER_SERVICE, &PlannerNode::reset_planner, this);
 }
 
 
@@ -43,11 +44,12 @@ void PlannerNode::set_goal_indices(int x_idx_, int y_idx_)
 }
 
 
-/*bool PlannerNode::reset_planner()
+bool PlannerNode::reset_planner(suitbot_ros::ResetNodeRequest &req, suitbot_ros::ResetNodeResponse &res)
 {
-    
-    return True;
-}*/
+    path_cmd = 0;
+    counter_cmd = 0;
+    return true;
+}
 
 
 
@@ -254,7 +256,7 @@ void PlannerNode::callback_path_cmd(const std_msgs::Int32 &msg_in)
     {
         int cmd = msg_in.data;
         path_cmd = cmd; //removed -2 offset, using suitbot yaml index now
-	std::cout << "path replan cmd received\n";
+	ROS_WARN_STREAM("path replan cmd received");
 	counter_cmd += 1;
     }
 }
@@ -319,8 +321,8 @@ int main(int argc, char **argv)
                 if (plannerNode.waypoint_cli.call(srv)){
                     ROS_INFO("Reset course succeeded: %d", (int)srv.response.success);
                 
-                    plannerNode.path_cmd = 0;
-		    plannerNode.counter_cmd = 0;
+                    plannerNode.counter_cmd = 1;
+                    
 		}
                 else{
                     ROS_WARN("Failed to call service reset_course");

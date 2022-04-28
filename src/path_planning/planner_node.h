@@ -37,6 +37,7 @@
 //#include <Eigen/Dense>
 #include <chrono>
 #include "suitbot_ros/SetCourse.h"
+#include "suitbot_ros/ResetNode.h"
 
 #include "../parameters.h"
 #include "../occupancy_map.h"
@@ -68,6 +69,7 @@ public:
     ros::Subscriber odom_sub; 
     ros::Subscriber ctrl_sub;
     ros::ServiceClient waypoint_cli; // point array
+    ros::ServiceServer planner_cli;
     ros::Publisher arrow_pub;
     ros::Publisher  planned_path_pub; // line list
     visualization_msgs::Marker planned_path_marker;
@@ -107,6 +109,7 @@ public:
 
     void publish2DMap(const ros::TimerEvent&);
 
+    bool reset_planner(suitbot_ros::ResetNodeRequest &req, suitbot_ros::ResetNodeResponse &res);
     // visualization
     void initVisualization();
 
