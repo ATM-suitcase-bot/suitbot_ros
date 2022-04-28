@@ -108,6 +108,7 @@ public:
     int set_mic_en_dis(bool state);
 
     bool last_cmd_halt = false;
+    bool asked_destination = false;
 }; 
 
 #endif /* JOB_MANAGEMENT_H_ */
