@@ -219,7 +219,7 @@ int main(int argc, char **argv)
         }
 
 
-        if (jobManager.state == IDLE && params.use_audio == true and !jobManager.asked_destination) {
+        if (jobManager.state == IDLE && params.use_audio == true && !jobManager.asked_destination) {
             // say something
             jobManager.try_speak("Where do you want to go?");
         
