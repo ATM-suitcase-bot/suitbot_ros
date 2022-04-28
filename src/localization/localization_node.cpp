@@ -160,7 +160,7 @@ void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr
     // check if an update must be performed or not
     if (!checkUpdateThresholds())
         return;
-    ROS_WARN_STREAM("pointcloudCallback starting");
+    //ROS_WARN_STREAM("pointcloudCallback starting");
     static const ros::Duration update_interval(1.0 / params.pf_update_rate);
     nextupdate_time = ros::Time::now() + update_interval;
 
@@ -179,7 +179,7 @@ void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr
     downsample(cloud_src, downsample_factor);
     *cloud_meas = *cloud_src;
 
-    ROS_WARN_STREAM("#points in cloud_down: " << cloud_src->points.size());
+    //ROS_WARN_STREAM("#points in cloud_down: " << cloud_src->points.size());
     // record time spent
 
     //Eigen::Vector3f delta_odom = cur_odom - prev_odom;
@@ -275,7 +275,7 @@ void LocalizationNode::odomCallback(const nav_msgs::Odometry &ctrl_in)
     TicToc tic_toc;
     pf.predict(cur_odom, prev_odom);
     prev_odom = cur_odom;
-    ROS_INFO_STREAM("time spent: " << tic_toc.toc() << " ms");
+    //ROS_INFO_STREAM("time spent: " << tic_toc.toc() << " ms");
     publishParticles();
 
     // detect jump? detect error?
@@ -302,14 +302,14 @@ bool LocalizationNode::checkUpdateThresholds()
     // Check translation threshold
     if (delta_odom[0]*delta_odom[0] + delta_odom[1]*delta_odom[1] > params.pf_update_dist_threshold)
     {
-        ROS_INFO_STREAM("Translation update");
+        //ROS_INFO_STREAM("Translation update");
         return true;
     }
 
     // Check yaw threshold 
     if (fabs(warpAngle(delta_odom[2])) > params.pf_update_angle_threshold) 
     {
-        ROS_INFO_STREAM("Rotation update");
+        //ROS_INFO_STREAM("Rotation update");
         return true;
     }
     return false;

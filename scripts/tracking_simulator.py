@@ -28,6 +28,14 @@ Lfc = 1.0  # [m] look-ahead distance
 Kp = 1.0  # speed proportional gain
 
 kernel = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]]).astype(np.uint8)
+def warp2pi(angle_rad):
+    """
+    warps an angle in (-pi, pi]. Used in the update step.
+    param angle_rad Input angle in radius
+    return angle_rad_warped Warped angle to (-pi, pi].
+    """
+    angle_rad_warped = ((-angle_rad + np.pi) % (2.0 * np.pi) - np.pi) * -1.0
+    return angle_rad_warped
 
 class State:
     def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0):
@@ -200,9 +208,9 @@ class TrackingSimulator:
         
     def get_local(self, index):
         #render goal pixel in the robot's space
-        relative_x = self.target_course.cx[index] - self.state.x
-        relative_y = self.target_course.cy[index] - self.state.y
-        [local_x, local_y] = self.path_perturb.rot_point([relative_x, relative_y], -1*self.state.yaw)
+        relative_x = self.target_course.cx[index] - self.smooth_state.x
+        relative_y = self.target_course.cy[index] - self.smooth_state.y
+        [local_x, local_y] = self.path_perturb.rot_point([relative_x, relative_y], -1*self.smooth_state.yaw)
         return [local_x, local_y]
     
     #Callback on global pose feedback- average current smooth state with input
@@ -217,7 +225,9 @@ class TrackingSimulator:
             z_quat = msg_in.pose.orientation.z
             w_quat = msg_in.pose.orientation.w
             in_yaw = np.arctan2(2.0*(z_quat*w_quat), -1.0+2.0*w_quat*w_quat)
-            self.smooth_state.yaw = self.smooth_state.yaw*self.smooth_factor + in_yaw*(1-self.smooth_factor)
+            diff = warp2pi(in_yaw-self.smooth_state.yaw)
+            self.smooth_state.yaw = self.smooth_state.yaw + (1-self.smooth_factor)*diff
+        
         else:
             print('junk global odom received')
     #Callback on obstacle avoidance (local)
@@ -271,7 +281,7 @@ class TrackingSimulator:
                 return
             alt_endpoint = True
         
-        fine_bot_pos = np.array([self.state.x, self.state.y, 0.0])
+        fine_bot_pos = np.array([self.smooth_state.x, self.smooth_state.y, 0.0])
          
         fine_goal_pos = fine_bot_pos[0:2] + np.array([local_x, local_y])
         bot_pix = self.path_perturb.get_pix_ind(fine_bot_pos, [0, 0])
@@ -288,7 +298,7 @@ class TrackingSimulator:
                 #need to handle logic here- should probably halt control, maybe send signal to planner
             else:
                 best_target_local_vec = np.array(best_target) - fine_bot_pos[0:2]
-                best_target_offs = np.array(self.path_perturb.rot_point(best_target_local_vec, self.state.yaw))
+                best_target_offs = np.array(self.path_perturb.rot_point(best_target_local_vec, self.smooth_state.yaw))
                 best_target_global = best_target_offs + fine_bot_pos[0:2]
                 
 
@@ -337,7 +347,7 @@ class TrackingSimulator:
             if (parameters.manual_control == True or parameters.debug_odometry == True):
                 msg_out = Odometry()
                 msg_out.header.stamp = msg_in.header.stamp
-                pt = Point(self.state.x, self.state.y, 0)
+                pt = Point(self.smooth_state.x, self.smooth_state.y, 0)
                 if (parameters.debug_odometry == True):
                     pt = Point(self.state.x - self.target_course.cx[0], self.state.y - self.target_course.cy[0], 0)
                 # np array of x y z w
@@ -367,7 +377,7 @@ class TrackingSimulator:
         self.target_course = TargetCourse(cx, cy)
         path_cmd = req.path_cmd
 
-        self.target_ind, _ = self.target_course.search_target_index(self.state)
+        self.target_ind, _ = self.target_course.search_target_index(self.smooth_state)
         self.lastIndex = l - 1
         rospy.loginfo("Tracking simulator: Reset success")
         return True
@@ -397,7 +407,7 @@ class TrackingSimulator:
             t_init = rospy.Time.now().to_sec()
             t_cur = t_init
             while not rospy.is_shutdown():
-                print(self.smooth_state)
+                #print([self.smooth_state.x, self.smooth_state.y, self.smooth_state.yaw])
                 if(self.target_course == None): # No plan provided
                     if(self.has_spun):
                         self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
@@ -412,7 +422,7 @@ class TrackingSimulator:
                         # Calc control cmd
                         ai = pid_control(self.target_speed, self.state.v, self.dt)
                         di, self.target_ind, isflip = pure_pursuit_steer_control(
-                            self.state, self.target_course, self.target_ind, self.target_pt)
+                            self.smooth_state, self.target_course, self.target_ind, self.target_pt)
 
                         if(self.stunlock>3):
                             self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
