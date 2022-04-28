@@ -100,7 +100,8 @@ void JobManager::drive_state_callback(const std_msgs::Int8::ConstPtr& msg_in){
         last_cmd_halt = false;
     }
     else if(msg_in->data == 2 and state == GUIDING){
-        try_speak("Destination reached");
+        ROS_WARN_STREAM("Should be saying that the destination is reached");
+	try_speak("Destination reached");
         state = IDLE;
 
         //--- reset all nodes ---

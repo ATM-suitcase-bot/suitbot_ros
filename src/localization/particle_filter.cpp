@@ -194,8 +194,8 @@ void ParticleFilter::init(int num_particles_total, bool use_guess, float coord_x
         int i = 0;
         while (i < num_particles_total)
         {
-            float rand_x = ranGaussian(coord_x, 2.0);
-            float rand_y = ranGaussian(coord_y, 2.0);
+            float rand_x = ranGaussian(coord_x, 1.0);
+            float rand_y = ranGaussian(coord_y, 1.0);
             float rand_theta = rngUniform(-M_PI, M_PI);
             Particle ptc(rand_x, rand_y, rand_theta, 1.0); 
             if (grid_map.isInMap(rand_x, rand_y))

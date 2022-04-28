@@ -285,7 +285,7 @@ int main(int argc, char **argv)
         while(ros::ok())
         {
             ROS_WARN_STREAM("main loop of planner running");
-            if(plannerNode.path_cmd != 0 && !plannerNode.has_planned){
+            if(plannerNode.path_cmd != 0 && !plannerNode.has_planned && plannerNode.counter_cmd == 0){
 
                 // Read goal location from yaml- default start to elevators
                 int x_idx = 0, y_idx = 0, x_goal_idx = 0, y_goal_idx = 0;

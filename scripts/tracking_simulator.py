@@ -27,7 +27,7 @@ k = 0.1  # look forward gain
 Lfc = 1.0  # [m] look-ahead distance
 Kp = 1.0  # speed proportional gain
 
-kernel = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]]).astype(np.uint8)
+kernel = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]]).astype(np.uint8)
 def warp2pi(angle_rad):
     """
     warps an angle in (-pi, pi]. Used in the update step.
@@ -140,8 +140,8 @@ def pure_pursuit_steer_control(state, trajectory, pind, override_pt):
     alpha = math.atan2(ty - state.y, tx - state.x) - state.yaw
 
 
-    delta = math.atan2(2.0 * 0.25 * math.sin(alpha) / Lf, 1.0)
-    isflip = np.abs(delta) > 1.0
+    delta = math.atan2(2.0 * 0.5 * math.sin(alpha) / Lf, 1.0)
+    isflip = np.abs(warp2pi(alpha)) > np.pi/2
 
     return delta, ind, isflip
 
@@ -241,7 +241,7 @@ class TrackingSimulator:
         im_dims = [msg_in.rows, msg_in.cols]
         robot_pos = [msg_in.robot_x_idx, msg_in.robot_y_idx]
 
-        if(robot_pos[0] >= im_dims[0] or robot_pos[1] >= im_dims[1]):
+        if(im_dims[1] < 6 or robot_pos[0] >= im_dims[0] or robot_pos[1] >= im_dims[1]):
             print('map does not contain robot position, invalid replanning')
             self.stunlock += 1
             return
