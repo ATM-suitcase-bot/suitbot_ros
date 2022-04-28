@@ -31,7 +31,7 @@ LocalizationNode::LocalizationNode(ros::NodeHandle *nodehandle, parameters_t &_p
 
     LidarPointCloudPtr cloud (new LidarPointCloud);
     loadPCDMap(params.pcd_file, cloud);
-    ROS_WARN_STREAM("#points in pcd map: " << cloud->points.size());
+    //ROS_WARN_STREAM("#points in pcd map: " << cloud->points.size());
     pcl_to_cloud_msg(cloud, map_point_cloud_msg);
     map_point_cloud_msg->header.frame_id = params.global_frame_id;
     
@@ -192,7 +192,7 @@ void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr
     TicToc t_update;
     pf.update(cloud_src);
     // record time spent
-    ROS_INFO_STREAM("pf update time: " << t_update.toc() << " ms" << endl);
+    //ROS_INFO_STREAM("pf update time: " << t_update.toc() << " ms" << endl);
 
     mean_p = pf.getMean();
 
@@ -205,7 +205,7 @@ void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr
         n_updates = 0;
         TicToc t_resample;
         pf.resample((int)(((float)(int)pf.particles.size())));
-        ROS_INFO_STREAM("pf resample time: " << t_resample.toc() << " ms" << endl);
+        //ROS_INFO_STREAM("pf resample time: " << t_resample.toc() << " ms" << endl);
     }
     // record time spent
 

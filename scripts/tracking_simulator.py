@@ -392,11 +392,12 @@ class TrackingSimulator:
 
     def loop(self):
         rospy.loginfo("Tracking simulator: entering loop")
+        
         if (parameters.manual_control == False and parameters.debug_odometry == False): # not manually controlling
             t_init = rospy.Time.now().to_sec()
             t_cur = t_init
             while not rospy.is_shutdown():
-                print(self.target_speed)
+                print(self.smooth_state)
                 if(self.target_course == None): # No plan provided
                     if(self.has_spun):
                         self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))

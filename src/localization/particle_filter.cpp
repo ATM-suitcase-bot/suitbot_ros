@@ -157,7 +157,7 @@ void ParticleFilter::init(int num_particles_total, bool use_guess, float coord_x
         // then we expand the size of each "cell" that we sample from
         sample_area_width /= (float)total_to_free_cell_ratio;
     }
-    ROS_WARN_STREAM("sample area width: " << sample_area_width);
+    //ROS_WARN_STREAM("sample area width: " << sample_area_width);
     particle_per_grid = std::max(1, std::min(num_particles_total, (int)total_to_free_cell_ratio));
 
     //ROS_WARN_STREAM("particle_per_grid: " << particle_per_grid);
@@ -185,7 +185,7 @@ void ParticleFilter::init(int num_particles_total, bool use_guess, float coord_x
     //particle_per_grid = std::max(1, std::min(100, 
      //           (int)((double)1000 / (double)((tmp_rmax - tmp_rmin)*(tmp_cmax-tmp_cmin)))));
 
-    ROS_WARN_STREAM("free cells: " << grid_map.num_free_cells << ", particle_per_grid: " << particle_per_grid);
+    //ROS_WARN_STREAM("free cells: " << grid_map.num_free_cells << ", particle_per_grid: " << particle_per_grid);
     if (use_guess)
     {
         float sum_x = 0;
@@ -314,7 +314,7 @@ void ParticleFilter::predict(const Eigen::Vector3f &cur_odom, const Eigen::Vecto
 // based on p2p distance
 void ParticleFilter::update(LidarPointCloudConstPtr cloud_in)
 {
-    ROS_WARN_STREAM("#particles: " << particles.size());
+    //ROS_WARN_STREAM("#particles: " << particles.size());
     /*  Incorporate measurements */
     float sum_weights = 0.0;
 
