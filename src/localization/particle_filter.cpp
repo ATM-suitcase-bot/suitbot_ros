@@ -73,8 +73,9 @@ float ParticleFilter::ranGaussian(const float mean, const float sigma)
 
 float ParticleFilter::rngUniform(const float range_from, const float range_to)
 {
-    std::uniform_real_distribution<float> distribution(range_from, range_to);
-    return distribution(generator_);
+    return range_from + fmod((float)(int)(rand()), (range_to-range_from));
+    //std::uniform_real_distribution<float> distribution(range_from, range_to);
+    //return distribution(generator_);
 }
 
 void ParticleFilter::sampleParticlesUniform(const float from_x, const float from_y,
@@ -92,14 +93,35 @@ void ParticleFilter::sampleParticlesUniform(const float from_x, const float from
     }
 }
 
+void ParticleFilter::sampleParticlesGaussian(const float x_coord, const float y_coord,
+                                            const float std_x, const float std_y, 
+                                            const int num, vector<Particle> &out_particles)
+{
+
+    for (int i = 0; i < num; i++)
+    {
+        float rand_x = ranGaussian(x_coord, std_x);
+        float rand_y = ranGaussian(y_coord, std_y);
+        float rand_theta = ranGaussian(0, M_PI / 8.0);
+        Particle ptc(rand_x, rand_y, rand_theta, 1.0); 
+        out_particles.push_back(ptc);
+    }
+}
+
 void ParticleFilter::set_params(
                    string map_file, string pcd_file, float resolution,
-				   float fixed_height_, int init_num_per_grid, int init_num_total, 
+				   float fixed_height_, float lidar_to_wb_,
+                   bool use_guess_, float init_x_, float init_y_,
+                   int init_num_per_grid, int init_num_total, 
 				   float _alpha1, float _alpha2, float _alpha3, float _alpha4,
 				   float _sigma_hit, float _lambda_short, float _max_range, float _max_span,
 				   float _z_hit, float _z_short, float _z_max, float _z_rand)
 {
     fixed_height = fixed_height_; 
+    lidar_to_wb = lidar_to_wb_;
+    use_guess = use_guess_;
+    init_x = init_x_;
+    init_y = init_y_;
     initial_num_particles_per_grid = init_num_per_grid; 
     initial_num_particles_total = init_num_total;
     int res = grid_map.initOccupancyGridMap(map_file, resolution);
@@ -125,18 +147,18 @@ void ParticleFilter::set_params(
 }
 
 
-void ParticleFilter::init()
+void ParticleFilter::init(int num_particles_total, bool use_guess, float coord_x, float coord_y)
 {
     int particle_per_grid = 1;
-    float total_to_free_cell_ratio = (float)initial_num_particles_total / (float)grid_map.num_free_cells;
+    float total_to_free_cell_ratio = (float)num_particles_total / (float)grid_map.num_free_cells;
     float sample_area_width = grid_map.resolution;
     if (total_to_free_cell_ratio < 1) // if we don't want a particle in each cell
     {
         // then we expand the size of each "cell" that we sample from
         sample_area_width /= (float)total_to_free_cell_ratio;
     }
-    ROS_WARN_STREAM("sample area width: " << sample_area_width);
-    particle_per_grid = std::max(1, std::min(initial_num_particles_per_grid, (int)total_to_free_cell_ratio));
+    //ROS_WARN_STREAM("sample area width: " << sample_area_width);
+    particle_per_grid = std::max(1, std::min(num_particles_total, (int)total_to_free_cell_ratio));
 
     //ROS_WARN_STREAM("particle_per_grid: " << particle_per_grid);
     int num_particles = 0;
@@ -163,35 +185,61 @@ void ParticleFilter::init()
     //particle_per_grid = std::max(1, std::min(100, 
      //           (int)((double)1000 / (double)((tmp_rmax - tmp_rmin)*(tmp_cmax-tmp_cmin)))));
 
-    ROS_WARN_STREAM("free cells: " << grid_map.num_free_cells << ", particle_per_grid: " << particle_per_grid);
-    for (int r = 0; r < grid_map.rows; r++)
+    //ROS_WARN_STREAM("free cells: " << grid_map.num_free_cells << ", particle_per_grid: " << particle_per_grid);
+    if (use_guess)
     {
-        for (int c = 0; c < grid_map.cols; c++)
+        float sum_x = 0;
+        float sum_y = 0;
+        float sum_th = 0;
+        int i = 0;
+        while (i < num_particles_total)
         {
-            if (grid_map.occupancy_map[r][c] == FREE)
+            float rand_x = ranGaussian(coord_x, 2.0);
+            float rand_y = ranGaussian(coord_y, 2.0);
+            float rand_theta = rngUniform(-M_PI, M_PI);
+            Particle ptc(rand_x, rand_y, rand_theta, 1.0); 
+            if (grid_map.isInMap(rand_x, rand_y))
             {
-                pair<int, int> indices;
-                indices.first = r;
-                indices.second = c;
-                if (sample_area.find(indices) != sample_area.end())
-                    continue;
-                float cx, cy, start_x, start_y, end_x, end_y;
-                grid_map.idx_to_coord(r, c, cx, cy); // center of the grid
-                start_x = cx - sample_area_width / 2;
-                start_y = cy - sample_area_width / 2;
-                end_x = start_x + sample_area_width;
-                end_y = start_y + sample_area_width;
-                sampleParticlesUniform(start_x, start_y, end_x, end_y, particle_per_grid, particles);
-                num_particles += particle_per_grid;
-                add_sample_area(sample_area_width, indices);
+                particles.push_back(ptc);
+                sum_x += rand_x;
+                sum_y += rand_y;
+                sum_th += rand_theta;
+                i++;
             }
-        } 
+        }
+        mean_ = Particle(sum_x/(float)num_particles_total, sum_y/(float)num_particles_total, warpAngle(sum_th/(float)num_particles_total), 1.0);
     }
-    
-    std::uniform_int_distribution<int> idx_distrib(0, num_particles);
-    int idx_rand = idx_distrib(generator_);
-    mean_ = particles[idx_rand]; // just a random particle from the set
-
+    else
+    {
+        for (int r = 0; r < grid_map.rows; r++)
+        {
+            for (int c = 0; c < grid_map.cols; c++)
+            {
+                if (grid_map.occupancy_map[r][c] == FREE)
+                {
+                    pair<int, int> indices;
+                    indices.first = r;
+                    indices.second = c;
+                    if (sample_area.find(indices) != sample_area.end())
+                        continue;
+                    float cx, cy, start_x, start_y, end_x, end_y;
+                    grid_map.idx_to_coord(r, c, cx, cy); // center of the grid
+                    start_x = cx - sample_area_width / 2;
+                    start_y = cy - sample_area_width / 2;
+                    end_x = start_x + sample_area_width;
+                    end_y = start_y + sample_area_width;
+                    sampleParticlesUniform(start_x, start_y, end_x, end_y, particle_per_grid, particles);
+                    num_particles += particle_per_grid;
+                    add_sample_area(sample_area_width, indices);
+                }
+            } 
+        }  
+        std::random_device rd{};
+        std::mt19937 gen{rd()};
+        std::uniform_int_distribution<int> idx_distrib(0, num_particles);
+        int idx_rand = idx_distrib(gen);
+        mean_ = particles[idx_rand]; // just a random particle from the set
+    }
     initialized_ = true;
 }
 
@@ -266,6 +314,7 @@ void ParticleFilter::predict(const Eigen::Vector3f &cur_odom, const Eigen::Vecto
 // based on p2p distance
 void ParticleFilter::update(LidarPointCloudConstPtr cloud_in)
 {
+    //ROS_WARN_STREAM("#particles: " << particles.size());
     /*  Incorporate measurements */
     float sum_weights = 0.0;
 
@@ -294,7 +343,7 @@ void ParticleFilter::update(LidarPointCloudConstPtr cloud_in)
         }
 
         /*  Evaluate the weight of the point cloud */
-        particles[i].weight = computeCloudWeight(cloud_in, measurements, px, py, pth);
+        particles[i].weight = computeCloudWeight(cloud_in, measurements, particles[i]);
 
         /*  Increase the summatory of weights */
         sum_weights += particles[i].weight;
@@ -304,19 +353,39 @@ void ParticleFilter::update(LidarPointCloudConstPtr cloud_in)
     float wt = 0;
     float wt_max = 0;
     int idx_max = -1;
+    vector<Particle> particlesCopy;
+    bool bad_particles = false;
     for (int i = 0; i < particles.size(); i++)
     {
         if (sum_weights > 0)
+        {
             particles[i].weight /= sum_weights;
+            if (particles[i].weight != 0)
+                particlesCopy.push_back(particles[i]);
+        }
         else
+        {
             particles[i].weight = 0;
+            bad_particles = true;
+            break;
+        }
         if (idx_max == -1 || particles[i].weight > wt_max)
         {
             wt_max = particles[i].weight;
             idx_max = i;
         }
     }
-    mean_ = particles[idx_max];
+    if (bad_particles || wt_max == 0)
+    {
+        ROS_WARN_STREAM("bad particles!!");
+        particles.clear();
+        init(100, true, mean_.x, mean_.y);
+    }
+    else
+    {
+        particles = particlesCopy;
+        mean_ = particles[idx_max];
+    }
 /*
     // instead of this, we do non maximum supression
     Particle mean_p;
@@ -338,8 +407,9 @@ void ParticleFilter::update(LidarPointCloudConstPtr cloud_in)
 
 void ParticleFilter::resample(int num_to_sample)
 {
+    int spawn = 30;
     std::vector<Particle> new_p(num_to_sample);
-    const float factor = 1.f / num_to_sample;
+    const float factor = 1.f / (float)(num_to_sample+spawn);
     const float r = factor * rngUniform(0, 1);
     float c = particles[0].weight;
     float u;
@@ -357,40 +427,50 @@ void ParticleFilter::resample(int num_to_sample)
         new_p[m] = particles[i];
         new_p[m].weight = factor;
     }
+    sampleParticlesGaussian(mean_.x, mean_.y, 0.2, 0.2, spawn, new_p);
+    for (int i = num_to_sample; i < num_to_sample+spawn; i++)
+        new_p[i].theta = warpAngle(new_p[i].theta + mean_.theta);
+    particles = new_p;
 
     //! Asign the new particles set
-    particles = new_p;
 }
 
 
-float ParticleFilter::computeCloudWeight(LidarPointCloudConstPtr cloud, const vector<float> &measurements, const float px, const float py, const float pth)
+float ParticleFilter::computeCloudWeight(LidarPointCloudConstPtr cloud, const vector<float> &measurements, Particle p)
 {
     vector<float> dists; // computed distance from lidar to obstacle
     vector<float> angles;
 
     // transform cloud to particle frame
-    // TODO check if we need to rotate z to point towards the ground
-    Eigen::Affine3f transform = Eigen::Affine3f::Identity();
-    transform.translation() << px, py, fixed_height;
-    // rotate around z axis
-    float theta = pth;
-    transform.rotate(Eigen::AngleAxisf(theta, Eigen::Vector3f::UnitZ()));
-    // Executing the transformation
     LidarPointCloudPtr transformed_cloud(new LidarPointCloud);
-    pcl::transformPointCloud(*cloud, *transformed_cloud, transform);
+    align_cloud_to_particle(cloud, p, transformed_cloud);
 
-    Eigen::Vector3f robot_position(px, py, fixed_height);
+    Eigen::Vector3f robot_position(p.x, p.y, fixed_height);
     associate(transformed_cloud, point_cloud_map, kdtree, robot_position, dists, angles);
 
-    // compute weight
     float prob = 1.0;
+    float sum_dists = 0;
     for (int i = 0; i < dists.size(); i++)
     {
         float meas = measurements[i];
         float meas_computed = dists[i];
+        sum_dists += sqrt((meas - meas_computed)*(meas - meas_computed));
+    }
+    if (dists.size() != 0)
+        // inverse average distance
+        prob = 1.0 / (sum_dists / (float)dists.size());
+    /*
+    // compute weight
+    for (int i = 0; i < dists.size(); i++)
+    {
+        float meas = measurements[i];
+        float meas_computed = dists[i];
+        float angle = fabs(warpAngle(angles[i]));
         float sig_hit_sqaure = sigma_hit * sigma_hit;
         float p_hit = (meas >= 0 && meas <= max_range) ? 
             (1.0 / sqrt(2*M_PI*sig_hit_sqaure))*exp(-0.5*((meas-meas_computed)*(meas-meas_computed)/sig_hit_sqaure)) : 0.0;
+        float p_hit_angle = (angle >= 0 && angle <= 1.2) ? 
+            (1.0 / sqrt(2*M_PI*0.25))*exp(-0.5*(angle*angle/0.25)) : 0.0;
         float p_short = (meas >= 0 && meas <= meas_computed) ?
             lambda_short * exp(-lambda_short * meas) : 0.0;
         float p_max = (meas > max_range-max_span && meas < max_range+max_span) ? 1.0/(2*max_span) : 0.0;
@@ -400,6 +480,9 @@ float ParticleFilter::computeCloudWeight(LidarPointCloudConstPtr cloud, const ve
 
         if (p > 0) prob *= p;
     }
+    //if (dists.size() != 0)
+        //prob /= (float)dists.size();
+    */
     return prob;
 }
 
@@ -487,4 +570,18 @@ void ParticleFilter::buildParticleMsg(geometry_msgs::PoseStamped& msg) const
     msg.pose.orientation.z = sin(static_cast<double>(mean_.theta * 0.5f));
     msg.pose.orientation.w = cos(static_cast<double>(mean_.theta * 0.5f));
     
+}
+
+void ParticleFilter::align_cloud_to_particle(LidarPointCloudConstPtr cloud_meas_in, 
+                                            const Particle p, 
+                                            LidarPointCloudPtr cloud_aligned)
+{
+    float dx = lidar_to_wb * cos(p.theta);
+    float dy = lidar_to_wb * sin(p.theta);
+    Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+    transform.translation() << p.x + dx, p.y + dy, fixed_height;
+    // rotate around z axis
+    transform.rotate(Eigen::AngleAxisf(p.theta, Eigen::Vector3f::UnitZ()));
+    // Executing the transformation
+    pcl::transformPointCloud(*cloud_meas_in, *cloud_aligned, transform);
 }

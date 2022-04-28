@@ -7,7 +7,9 @@ void loadPCDMap(string pcd_file, LidarPointCloudPtr cloud)
         cerr << "ERROR: Couldn't read pcd file. Exiting." << endl;
         exit(1);
     }
-    downsample(cloud, 10);
+    voxel_grid(cloud, 0.5);
+    //downsample(cloud, 40);
+    radius_filter(cloud, 1.0, 2);
 }
 
 void cloud_msg_to_pcl(sensor_msgs::PointCloud2ConstPtr msg_in, LidarPointCloudPtr pcl_p_out)

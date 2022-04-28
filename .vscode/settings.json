@@ -108,6 +108,9 @@
         "stack": "cpp",
         "filesystem": "cpp",
         "variant": "cpp",
-        "bit": "cpp"
+        "bit": "cpp",
+        "any": "cpp",
+        "regex": "cpp",
+        "charconv": "cpp"
     }
 }
