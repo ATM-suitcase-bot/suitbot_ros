@@ -96,6 +96,7 @@ typedef struct params
 
     float init_x; /*!< Start x-axis position */
     float init_y; /*!< Start y-axis position */
+    float init_theta;
 
     float pf_alpha1, pf_alpha2, pf_alpha3, pf_alpha4;
     float pf_sigma_hit, pf_lambda_short, pf_max_range, pf_max_span;
@@ -248,6 +249,7 @@ typedef struct params
 
         init_x = (float)readParam<double>(n, "init_x");
         init_y = (float)readParam<double>(n, "init_y");
+        init_theta = (float)readParam<double>(n, "init_theta");
 
         pf_alpha1 = readParam<float>(n, "pf_alpha1");
         pf_alpha2 = readParam<float>(n, "pf_alpha2");

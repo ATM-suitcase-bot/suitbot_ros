@@ -17,9 +17,9 @@ LocalizationNode::LocalizationNode(ros::NodeHandle *nodehandle, parameters_t &_p
                                                                         cloud_meas(new LidarPointCloud)
 {
     ROS_INFO("Initializing Localization Node...");
-    prev_odom(0) = 0.0;
-    prev_odom(1) = 0.0;
-    prev_odom(2) = 0.0;
+    prev_odom(0) = params.init_x;
+    prev_odom(1) = params.init_y;
+    prev_odom(2) = params.init_theta;
     cur_odom = prev_odom;
     pf.set_params(params.map_file, params.pcd_file, params.global_map_resolution, 
                   params.fixed_height, params.lidar_to_wb,
