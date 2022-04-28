@@ -147,40 +147,62 @@ class TrackingSimulator:
         
         self.twist_sub = rospy.Subscriber(parameters.encoder_topic, TwistStamped, self.callback_update)
         self.path_service = rospy.Service(parameters.reset_path_service, SetCourse, self.callback_reset_course)
+        self.node_reset_service = rospy.Service(parameters.reset_tracker_service, bool, self.callback_reset_node)
         self.force_sub = rospy.Subscriber(parameters.force_topic, TwoFloats, self.callback_force)
         
         self.obs_sub = rospy.Subscriber("/suitbot/local_obs", LocalMapMsg, self.callback_obs)
 
         self.true_pos_sub = rospy.Subscriber(parameters.pf_mean_particle_topic, PoseStamped, self.callback_true_pos)
 
-        self.target_course = None
-        self.time = 0.0
-        #self.state = None
-        #if (parameters.manual_control == True or parameters.debug_odometry == True):
-        self.state = State(x=parameters.init_x, y=parameters.init_y, yaw=parameters.init_theta, v=0.0)
+        #inter-loop constants
+        self.smooth_factor = 0.5 #big smooth is big inertia
+        self.dt = 0.1
+        self.r = rospy.Rate(1.0/self.dt)
+        self.path_perturb = PathPerturb()
+        self.spin_v = [0.12, 0.45] #v/omega to spin with
+        self.spin_time = 18.0 #time (s) to spin
 
+        #changing parameters
+        self.target_course = None
+        self.state = State(x=parameters.init_x, y=parameters.init_y, yaw=parameters.init_theta, v=0.0)
         #a smooth, globally correct-ish odometry state
         self.smooth_state = State(x=parameters.init_x, y=parameters.init_y, yaw=parameters.init_theta, v=0.0)
-        self.smooth_factor = 0.5 #big smooth is big inertia
         
         self.target_ind = None
         self.lastIndex = None
-        self.dt = 0.1
-        self.r = rospy.Rate(1.0/self.dt)
+
         self.target_speed = 0.6  # [m/s]
         self.t_prev = rospy.Time.now().to_sec()
 
         #init path perturation object for path recalculation
-        self.path_perturb = PathPerturb()
         self.avoiding = False
         self.target_pt = None
-        self.has_spun = True #has the robot done a lil localization loop
-        self.spin_v = [0.12, 0.45] #v/omega to spin with
-        self.spin_time = 18.0 #time (s) to spin
+        self.has_spun = False #has the robot done a lil localization loop
         self.spin_start = rospy.Time.now().to_sec()
-
         self.stunlock = 0
 
+    def callback_reset_node(self, msg_in):
+        #copy-paste of changing parameter init from main init
+        self.target_course = None
+        self.state = State(x=parameters.init_x, y=parameters.init_y, yaw=parameters.init_theta, v=0.0)
+        #a smooth, globally correct-ish odometry state
+        self.smooth_state = State(x=parameters.init_x, y=parameters.init_y, yaw=parameters.init_theta, v=0.0)
+        
+        self.target_ind = None
+        self.lastIndex = None
+
+        self.target_speed = 0.6  # [m/s]
+        self.t_prev = rospy.Time.now().to_sec()
+
+        #init path perturation object for path recalculation
+        self.avoiding = False
+        self.target_pt = None
+        self.has_spun = False #has the robot done a lil localization loop
+        self.spin_start = rospy.Time.now().to_sec()
+        self.stunlock = 0
+        
+        return True
+        
     def get_local(self, index):
         #render goal pixel in the robot's space
         relative_x = self.target_course.cx[index] - self.state.x
@@ -336,7 +358,6 @@ class TrackingSimulator:
         if (parameters.manual_control == True):
             return True
         l = len(req.points)
-        print(l)
         cx = np.zeros(l)
         cy = np.zeros(l)
         for i in range(l):
@@ -345,14 +366,6 @@ class TrackingSimulator:
             cy[i] = point.y
         self.target_course = TargetCourse(cx, cy)
         path_cmd = req.path_cmd
-        # initial state
-        
-        if path_cmd == 0:
-            self.state = State(x=cx[0], y=cy[0], yaw=1.57, v=0.0)
-        elif path_cmd == 1:
-            self.state = State(x=cx[0], y=cy[0], yaw=-1.57, v=0.0)
-        elif path_cmd == 2:
-            self.state = State(x=cx[0], y=cy[0], yaw=3.14, v=0.0)
 
         self.target_ind, _ = self.target_course.search_target_index(self.state)
         self.lastIndex = l - 1
