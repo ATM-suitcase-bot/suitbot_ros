@@ -111,6 +111,8 @@ void JobManager::drive_state_callback(const std_msgs::Int8::ConstPtr& msg_in){
         this->tracker_cli.call(reset_msg);
 
         //--- reset job man params ---
+        asked_destination = false;
+        counter_state = 0;
         
     }
     else if(msg_in->data == 3 and !last_cmd_halt){
