@@ -172,7 +172,7 @@ class TrackingSimulator:
         self.spin_time = 18.0 #time (s) to spin
         self.spin_start = rospy.Time.now().to_sec()
 
-        self.stunlock = False
+        self.stunlock = 0
 
     def get_local(self, index):
         #render goal pixel in the robot's space
@@ -191,7 +191,7 @@ class TrackingSimulator:
 
         if(robot_pos[0] >= im_dims[0] or robot_pos[1] >= im_dims[1]):
             print('map does not contain robot position, invalid replanning')
-            self.stunlock = True
+            self.stunlock += 1
             return
         
         raw_arr = np.reshape(msg_in.cells, im_dims)
@@ -207,6 +207,9 @@ class TrackingSimulator:
         #convert goal point into pixel in local map
         [local_x, local_y] = self.get_local(self.target_ind)
         [pix_x, pix_y] = self.path_perturb.get_pix_ind([local_x, local_y], robot_pos)
+        if(pix_y >= np.shape(occ_map)[1]):
+            self.stunlock += 1
+            return
 
         alt_endpoint = False
         alt_offset = 0
@@ -217,6 +220,9 @@ class TrackingSimulator:
             alt_offset += 1
             [local_x, local_y] = self.get_local(self.target_ind+alt_offset)
             [pix_x, pix_y] = self.path_perturb.get_pix_ind([local_x, local_y], robot_pos)
+            if(pix_y >= np.shape(occ_map)[1]):
+                self.stunlock += 1
+                return
             alt_endpoint = True
         
         fine_bot_pos = np.array([self.state.x, self.state.y, 0.0])
@@ -232,7 +238,7 @@ class TrackingSimulator:
 
             if(best_target is None):
                 print('replanning failed, need new global path OR to wait')
-                self.stunlock = True
+                self.stunlock += 1
                 #need to handle logic here- should probably halt control, maybe send signal to planner
             else:
                 best_target_local_vec = np.array(best_target) - fine_bot_pos[0:2]
@@ -243,11 +249,11 @@ class TrackingSimulator:
                 #then we go to the 'best_target_global'
                 self.avoiding = True
                 self.target_pt = best_target_global
-                self.stunlock = False
+                self.stunlock = 0
         else: #init path found to be safe
             self.avoiding = False
             self.target_pt = None
-            self.stunlock = False
+            self.stunlock = 0
 
             if(alt_endpoint):
                 self.avoiding = True
@@ -369,9 +375,8 @@ class TrackingSimulator:
                     di, self.target_ind, isflip = pure_pursuit_steer_control(
                         self.state, self.target_course, self.target_ind, self.target_pt)
 
-                    if(self.stunlock):
-                        ai = 0.0
-                        di = 0.0
+                    if(self.stunlock>3):
+                        self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
                         self.status_int(3)
                     else:
                         if(isflip):
