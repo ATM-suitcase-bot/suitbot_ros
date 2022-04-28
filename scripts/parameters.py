@@ -21,6 +21,7 @@ class Parameters:
         self.encoder_topic = rospy.get_param('encoder_topic')
         self.voltage_topic = rospy.get_param('voltage_topic')
         self.drive_status_topic = rospy.get_param('drive_status_topic')
+        self.pf_mean_particle_topic = rospy.get_param('pf_mean_particle_topic')
 
         self.reset_path_service = rospy.get_param('reset_path_service')
         self.reset_tracker_service = rospy.get_param('reset_tracker_service')
