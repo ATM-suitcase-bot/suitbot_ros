@@ -24,7 +24,7 @@ PlannerNode::PlannerNode(ros::NodeHandle *nodehandle, parameters_t &_params)
         // TODO error handling
         exit(1);
     }
-    map.coord_to_idx(goal_x, goal_y, goal_x_idx, goal_y_idx);
+    //map.coord_to_idx(goal_x, goal_y, goal_x_idx, goal_y_idx);
     initializeSubscribers();
     initializePublishers();
 }
@@ -282,6 +282,7 @@ int main(int argc, char **argv)
     {
         while(ros::ok())
         {
+            ROS_WARN_STREAM("main loop of planner running");
             if(plannerNode.path_cmd != 0 && !plannerNode.has_planned){
 
                 // Read goal location from yaml- default start to elevators
@@ -334,5 +335,6 @@ int main(int argc, char **argv)
             
     }
 
+    ros::spin();
     return 0;
 }
