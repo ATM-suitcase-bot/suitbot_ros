@@ -1,5 +1,4 @@
 <launch>
-    <param name="/use_sim_time" value="false" />
     <rosparam file="$(find suitbot_ros)/config/suitbot.yaml" />
 
     <arg name="use_rviz"  default="true"/> 
@@ -52,7 +51,7 @@
     <group if="$(arg use_serial)">
         <node name="embedded_device_driver" pkg="suitbot_ros" type="embedded_device_driver.py" output="screen"/>
         <node name="tracking_simulator" pkg="suitbot_ros" type="tracking_simulator.py" output="screen"/>
-        <!--node name="lidar_driver" pkg="suitbot_ros" type="lidar_driver.py" output="screen"/-->
+        <node name="lidar_driver" pkg="suitbot_ros" type="lidar_driver.py" output="screen"/>
         <node name="lidar_parse" pkg="suitbot_ros" type="lidar_parse" output="screen"/>
     </group>
 
