@@ -254,7 +254,8 @@ void PlannerNode::callback_path_cmd(const std_msgs::Int32 &msg_in)
     {
         int cmd = msg_in.data;
         path_cmd = cmd; //removed -2 offset, using suitbot yaml index now
-        counter_cmd += 1;
+	std::cout << "path replan cmd received\n";
+	counter_cmd += 1;
     }
 }
 
@@ -317,7 +318,8 @@ int main(int argc, char **argv)
                 if (plannerNode.waypoint_cli.call(srv)){
                     ROS_INFO("Reset course succeeded: %d", (int)srv.response.success);
                 
-                    plannerNode.path_cmd = 0
+                    plannerNode.path_cmd = 0;
+		    plannerNode.counter_cmd = 0;
 		}
                 else{
                     ROS_WARN("Failed to call service reset_course");

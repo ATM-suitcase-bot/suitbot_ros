@@ -184,9 +184,6 @@ class TrackingSimulator:
     def callback_reset_node(self, msg_in):
         #copy-paste of changing parameter init from main init
         self.target_course = None
-        self.state = State(x=parameters.init_x, y=parameters.init_y, yaw=parameters.init_theta, v=0.0)
-        #a smooth, globally correct-ish odometry state
-        self.smooth_state = State(x=parameters.init_x, y=parameters.init_y, yaw=parameters.init_theta, v=0.0)
         
         self.target_ind = None
         self.lastIndex = None
@@ -197,8 +194,6 @@ class TrackingSimulator:
         #init path perturation object for path recalculation
         self.avoiding = False
         self.target_pt = None
-        self.has_spun = True #do not respin
-        self.spin_start = rospy.Time.now().to_sec()
         self.stunlock = 0
         
         return True
@@ -212,14 +207,19 @@ class TrackingSimulator:
     
     #Callback on global pose feedback- average current smooth state with input
     def callback_true_pos(self, msg_in):
-        self.smooth_state.x = self.smooth_state.x*self.smooth_factor + msg_in.pose.position.x*(1-self.smooth_factor)
-        self.smooth_state.y = self.smooth_state.y*self.smooth_factor + msg_in.pose.position.y*(1-self.smooth_factor)
-
-        z_quat = msg_in.pose.orientation.z
-        w_quat = msg_in.pose.orientation.w
-        in_yaw = np.arctan2(2.0*(z_quat*w_quat), -1.0+2.0*w_quat*w_quat)
-        self.smooth_state.yaw = self.smooth_state.yaw*self.smooth_factor + in_yaw*(1-self.smooth_factor)
+        if(self.target_course is None):
+            return
+        if(np.abs(self.smooth_state.x-msg_in.pose.position.x) < 4.0 and np.abs(self.smooth_state.y-msg_in.pose.position.y) < 4.0):
         
+            self.smooth_state.x = self.smooth_state.x*self.smooth_factor + msg_in.pose.position.x*(1-self.smooth_factor)
+            self.smooth_state.y = self.smooth_state.y*self.smooth_factor + msg_in.pose.position.y*(1-self.smooth_factor)
+
+            z_quat = msg_in.pose.orientation.z
+            w_quat = msg_in.pose.orientation.w
+            in_yaw = np.arctan2(2.0*(z_quat*w_quat), -1.0+2.0*w_quat*w_quat)
+            self.smooth_state.yaw = self.smooth_state.yaw*self.smooth_factor + in_yaw*(1-self.smooth_factor)
+        else:
+            print('junk global odom received')
     #Callback on obstacle avoidance (local)
     def callback_obs(self, msg_in):
         #read input message to python-style array form
