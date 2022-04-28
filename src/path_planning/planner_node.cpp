@@ -43,6 +43,13 @@ void PlannerNode::set_goal_indices(int x_idx_, int y_idx_)
 }
 
 
+bool PlannerNode::reset_planner()
+{
+    
+    return True;
+}
+
+
 
 void PlannerNode::initializeSubscribers()
 {
@@ -270,88 +277,59 @@ int main(int argc, char **argv)
 
     ros::Rate loop_rate(1);
 
-    if (params.manual_control == false)
+    if (params.manual_control == false && params.use_audio == true)
     {
-        if (params.use_audio == false)
-            plannerNode.path_cmd = params.course_idx;
-            
-        while (plannerNode.path_cmd == 0 && ros::ok())
+        while(ros::ok())
         {
+            if(plannerNode.path_cmd != 0 && !plannerNode.has_planned){
+
+                // Read goal location from yaml- default start to elevators
+                int x_idx = 0, y_idx = 0, x_goal_idx = 0, y_goal_idx = 0;
+                start_x = plannerNode.pt.x;
+                start_y = plannerNode.pt.y;
+
+                //offset by 1 to fix missing index 1 in yaml
+                x_goal_idx = (int)params.state_map[plannerNode.path_cmd-1][std::string("pos")][0];
+                y_goal_idx = (int)params.state_map[plannerNode.path_cmd-1][std::string("pos")][1];
+            
+                plannerNode.map.coord_to_idx(start_x, start_y, x_idx, y_idx);
+                std::cout << x_idx << ", " << y_idx << ", " << x_goal_idx << ", " << y_goal_idx << endl;
+
+                plannerNode.set_start_indices(x_idx, y_idx);
+                plannerNode.set_goal_indices(x_goal_idx, y_goal_idx);
+
+                if (plannerNode.a_star_planner() < 0)
+                {
+                    ROS_WARN("Planner Node: No Path Found!");
+                }
+
+                suitbot_ros::SetCourse srv;
+                srv.request.path_cmd = plannerNode.path_cmd;
+                //Critical vis update to load in marker cords
+                srv.request.path_cmd = plannerNode.path_cmd;
+                plannerNode.updateVisualization();
+
+                for (int i = 0; i < plannerNode.planned_path_marker.points.size(); i++)
+                {
+                    geometry_msgs::Point pt = plannerNode.planned_path_marker.points[i];
+                    srv.request.points.push_back(pt);
+                }
+                if (plannerNode.waypoint_cli.call(srv)){
+                    ROS_INFO("Reset course succeeded: %d", (int)srv.response.success);
+                    plannerNode.has_planned = true;
+                }
+                else{
+                    ROS_WARN("Failed to call service reset_course");
+                }
+                std::cout << "in planning, should scarcely execute\n";
+
+            }
+
             ros::spinOnce();
             loop_rate.sleep();
-            continue;
         }
-        std::cout << "Planner Node: Use plan idx: " << plannerNode.path_cmd << std::endl;
-    
-
-        // Read goal location from yaml- default start to elevators
-        int x_idx = 0, y_idx = 0, x_goal_idx = 0, y_goal_idx = 0;
-        start_x = plannerNode.pt.x;
-        start_y = plannerNode.pt.y;
-
-        //std::cout << "parsing xml\n";
-        //std::cout << "odo: " << plannerNode.pt.x << " " << plannerNode.pt.y << " " << plannerNode.yaw << "\n";
-        //offset by 1 to fix missing index 1 in yaml
-	    //std::cout << params.state_map[plannerNode.path_cmd][std::string("pos")]<<"\n";	
-        x_goal_idx = (int)params.state_map[plannerNode.path_cmd-1][std::string("pos")][0];
-        y_goal_idx = (int)params.state_map[plannerNode.path_cmd-1][std::string("pos")][1];
             
-        plannerNode.map.coord_to_idx(start_x, start_y, x_idx, y_idx);
-        std::cout << plannerNode.map.occupancy_map[x_idx][y_idx] << "\n"; 
-        std::cout << plannerNode.map.occupancy_map[x_goal_idx][y_goal_idx] << "\n"; 
-        std::cout << x_idx << ", " << y_idx << ", " << x_goal_idx << ", " << y_goal_idx << endl;
-
-        plannerNode.set_start_indices(x_idx, y_idx);
-        plannerNode.set_goal_indices(x_goal_idx, y_goal_idx);
     }
 
-    bool no_course = true;
-
-    // replan
-    if (params.manual_control == false)
-    {
-        TicToc t;
-        if (plannerNode.a_star_planner() < 0)
-        {
-            ROS_WARN("Planner Node: No Path Found!");
-        }
-        ROS_INFO("Planning time: %f ms", t.toc());
-    }
-
-    while (ros::ok())
-    {
-        //plannerNode.updateVisualization();
-        if (no_course && params.manual_control == false) 
-        {
-            suitbot_ros::SetCourse srv;
-            srv.request.path_cmd = plannerNode.path_cmd;
-	    //Critical vis update to load in marker cords
-	    plannerNode.updateVisualization();
-	    std::cout << plannerNode.planned_path_marker.points.size() << "\n";
-	    for (int i = 0; i < plannerNode.planned_path_marker.points.size(); i++)
-            {
-                geometry_msgs::Point pt = plannerNode.planned_path_marker.points[i];
-                srv.request.points.push_back(pt);
-            }
-            if (plannerNode.waypoint_cli.call(srv))
-            {
-                ROS_INFO("Reset course succeedded: %d", (int)srv.response.success);
-            }
-            else
-            {
-                ROS_WARN("Failed to call service reset_course");
-                ros::spinOnce();
-                loop_rate.sleep();
-                continue;
-            }
-            no_course = false;
-        }
-
-        ros::spinOnce();
-
-        loop_rate.sleep();
-    }
-    // ROS_INFO("Planner Node: main going into spin");
-    // ros::spin();
     return 0;
 }

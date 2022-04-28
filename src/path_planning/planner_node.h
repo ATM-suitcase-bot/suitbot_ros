@@ -121,6 +121,8 @@ public:
 
     void backtrack(Node *goal_node);
 
+    bool has_planned = false;
+
 };
 
 
