@@ -49,7 +49,7 @@ LocalizationNode::LocalizationNode(ros::NodeHandle *nodehandle, parameters_t &_p
 
 void LocalizationNode::initializeSubscribers()
 {
-    point_sub = nh.subscribe(params.LIDAR_SYNC_TOPIC, 1, &LocalizationNode::pointcloudCallback, this);
+    point_sub = nh.subscribe(params.LIDAR_ORIGINAL_TOPIC, 1, &LocalizationNode::pointcloudCallback, this);
     odom_sub = nh.subscribe(params.CTRL_TOPIC, 1, &LocalizationNode::odomCallback, this);
 }
 

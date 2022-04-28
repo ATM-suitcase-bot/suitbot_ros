@@ -15,7 +15,7 @@ LidarParse::LidarParse(ros::NodeHandle* nodehandle, parameters_t &_params) :
 void LidarParse::initializeSubscribers()
 {
     ROS_INFO("Initializing Subscribers");
-    pointcloud_sub = nh.subscribe(params.LIDAR_SYNC_TOPIC, 1, &LidarParse::pointcloud_callback, this);
+    pointcloud_sub = nh.subscribe(params.LIDAR_ORIGINAL_TOPIC, 1, &LidarParse::pointcloud_callback, this);
 }
 
 
