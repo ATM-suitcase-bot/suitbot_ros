@@ -38,6 +38,7 @@ void JobManager::initializeServices()
     //initialization_cli = nh.serviceClient<suitbot_ros::InitializationSrvMsg>("init_pose");
     audio_cli = nh.serviceClient<std_srvs::SetBool>(params.LISTENING_SERVICE);
     speech_cli = nh.serviceClient<suitbot_ros::SpeechSrv>(params.SPEECH_SERVICE);
+    tracker_cli = nh.serviceClient<suitbot_ros::ResetNode>(params.RESET_TRACKER_SERVICE);
     
 }
 
@@ -100,7 +101,16 @@ void JobManager::drive_state_callback(const std_msgs::Int8::ConstPtr& msg_in){
     }
     else if(msg_in->data == 2 and state == GUIDING){
         state = IDLE;
-        //reset all nodes
+
+        //--- reset all nodes ---
+
+        //Reset tracker
+        suitbot_ros::ResetNode reset_msg;
+        reset_msg.request.data = true;
+        this->tracker_cli.call(reset_msg);
+
+        //--- reset job man params ---
+        
     }
     else if(msg_in->data == 3 and !last_cmd_halt){
         try_speak("Unavoidable or excessively close obstacles detected. Halting.")
