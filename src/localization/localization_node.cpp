@@ -124,8 +124,9 @@ void LocalizationNode::publishParticles()
     particles_pose_pub.publish(msg);
 
     mean_particle_pub.publish(mean_msg);
-
     Particle mean_p = pf.getMean();
+    ROS_WARN_STREAM("mean_p: " << mean_p.x, ", " << mean_p.y << ", " << mean_p.theta);
+
     LidarPointCloudPtr cloud_out(new LidarPointCloud);
     pf.align_cloud_to_particle(cloud_meas, mean_p, cloud_out); 
     cloud_out->width = cloud_out->points.size();
