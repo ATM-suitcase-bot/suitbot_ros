@@ -48,6 +48,7 @@ bool PlannerNode::reset_planner(suitbot_ros::ResetNodeRequest &req, suitbot_ros:
 {
     path_cmd = 0;
     counter_cmd = 0;
+    has_planned = false;
     return true;
 }
 
@@ -284,7 +285,8 @@ int main(int argc, char **argv)
     {
         while(ros::ok())
         {
-            ROS_WARN_STREAM("main loop of planner running");
+            ROS_WARN_STREAM("main loop of planner running" << plannerNode.path_cmd << "," << plannerNode.has_planned);
+    ROS_INFO("Initializing Planner Node...");
             if(plannerNode.path_cmd != 0 && !plannerNode.has_planned){
 
                 // Read goal location from yaml- default start to elevators
@@ -321,7 +323,8 @@ int main(int argc, char **argv)
                 if (plannerNode.waypoint_cli.call(srv)){
                     ROS_INFO("Reset course succeeded: %d", (int)srv.response.success);
                 
-                    plannerNode.counter_cmd = 1;
+                    plannerNode.has_planned = true;
+		    plannerNode.counter_cmd = 1;
                     
 		}
                 else{

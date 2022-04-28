@@ -163,7 +163,7 @@ class TrackingSimulator:
         self.true_pos_sub = rospy.Subscriber(parameters.pf_mean_particle_topic, PoseStamped, self.callback_true_pos)
         self.true_pose_pub = rospy.Publisher("/suitbot/odom_smooth", Odometry, queue_size=10)
         #inter-loop constants
-        self.smooth_factor = 0.5 #big smooth is big inertia
+        self.smooth_factor = 0.7 #big smooth is big inertia
         self.dt = 0.1
         self.r = rospy.Rate(1.0/self.dt)
         self.path_perturb = PathPerturb()
