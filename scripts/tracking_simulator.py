@@ -10,7 +10,7 @@ from cv_bridge import CvBridge
 from nav_msgs.msg import Odometry
 from tf.transformations import quaternion_about_axis
 from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion, Twist, TwistStamped, Vector3, PoseWithCovariance, TwistWithCovariance
-from suitbot_ros.srv import SetCourse
+from suitbot_ros.srv import SetCourse, ResetNode
 from suitbot_ros.msg import TwoFloats
 from suitbot_ros.msg import LocalMapMsg
 from sensor_msgs.msg import Image
@@ -147,7 +147,7 @@ class TrackingSimulator:
         
         self.twist_sub = rospy.Subscriber(parameters.encoder_topic, TwistStamped, self.callback_update)
         self.path_service = rospy.Service(parameters.reset_path_service, SetCourse, self.callback_reset_course)
-        self.node_reset_service = rospy.Service(parameters.reset_tracker_service, bool, self.callback_reset_node)
+        self.node_reset_service = rospy.Service(parameters.reset_tracker_service, ResetNode, self.callback_reset_node)
         self.force_sub = rospy.Subscriber(parameters.force_topic, TwoFloats, self.callback_force)
         
         self.obs_sub = rospy.Subscriber("/suitbot/local_obs", LocalMapMsg, self.callback_obs)
