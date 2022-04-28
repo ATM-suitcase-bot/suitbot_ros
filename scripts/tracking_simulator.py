@@ -197,7 +197,7 @@ class TrackingSimulator:
         #init path perturation object for path recalculation
         self.avoiding = False
         self.target_pt = None
-        self.has_spun = False #has the robot done a lil localization loop
+        self.has_spun = True #do not respin
         self.spin_start = rospy.Time.now().to_sec()
         self.stunlock = 0
         

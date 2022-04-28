@@ -207,7 +207,7 @@ int main(int argc, char **argv)
     int counter = 0;
     jobManager.counter_state = 0;
     // wait for 5 seconds til all nodes are up
-    sleep(4); //CHANGE TO WAIT FOR SYSTEM SPIN
+    sleep(19); //CHANGE TO WAIT FOR SYSTEM SPIN
 
     jobManager.try_speak("Robot initialized");
     

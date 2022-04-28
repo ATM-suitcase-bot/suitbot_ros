@@ -316,8 +316,9 @@ int main(int argc, char **argv)
                 }
                 if (plannerNode.waypoint_cli.call(srv)){
                     ROS_INFO("Reset course succeeded: %d", (int)srv.response.success);
-                    plannerNode.has_planned = true;
-                }
+                
+                    plannerNode.path_cmd = 0
+		}
                 else{
                     ROS_WARN("Failed to call service reset_course");
                 }
