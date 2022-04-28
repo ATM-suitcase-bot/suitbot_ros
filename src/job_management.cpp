@@ -99,11 +99,12 @@ void JobManager::drive_state_callback(const std_msgs::Int8::ConstPtr& msg_in){
         last_cmd_halt = false;
     }
     else if(msg_in->data == 2 and state == GUIDING){
+        try_speak("Destination reached");
         state = IDLE;
         //reset all nodes
     }
     else if(msg_in->data == 3 and !last_cmd_halt){
-        try_speak("Unavoidable or excessively close obstacles detected. Halting.")
+        try_speak("Close obstacles detected. Halting.");
         last_cmd_halt = true;
     }
 }
@@ -196,6 +197,8 @@ int main(int argc, char **argv)
     // wait for 5 seconds til all nodes are up
     sleep(4); //CHANGE TO WAIT FOR SYSTEM SPIN
 
+    jobManager.try_speak("Robot initialized");
+    
     while (ros::ok())
     {
         //OVERRIDING manual state will disable other modes
@@ -204,13 +207,14 @@ int main(int argc, char **argv)
         }
 
 
-        if (jobManager.state = IDLE && params.use_audio == true) {
+        if (jobManager.state == IDLE && params.use_audio == true and !jobManager.asked_destination) {
             // say something
-            jobManager.try_speak("Robot initialized, where do you want to go?");
+            jobManager.try_speak("Where do you want to go?");
         
         
             // enable audio listening
             mic_enabled = jobManager.set_mic_en_dis(true);
+	    jobManager.asked_destination = true;
             
         }
         
