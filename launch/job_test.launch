@@ -59,7 +59,7 @@
     <node name="planner_node" pkg="suitbot_ros" type="planner_node" output="screen"/>
     <node name="localization_node" pkg="suitbot_ros" type="localization_node" output="screen"/>
 
-    <node name="worldtf" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 1 world child_frame 1"/>
+    <!-- node name="worldtf" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 1 world child_frame 1"-->
 
     <group if="$(arg use_rviz)">
         <!-- stuff that will only be evaluated if foo is true -->

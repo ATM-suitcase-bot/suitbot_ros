@@ -125,7 +125,7 @@ void LocalizationNode::publishParticles()
 
     mean_particle_pub.publish(mean_msg);
     Particle mean_p = pf.getMean();
-    ROS_WARN_STREAM("mean_p: " << mean_p.x, ", " << mean_p.y << ", " << mean_p.theta);
+    ROS_WARN_STREAM("mean_p: " << mean_p.x << ", " << mean_p.y << ", " << mean_p.theta);
 
     LidarPointCloudPtr cloud_out(new LidarPointCloud);
     pf.align_cloud_to_particle(cloud_meas, mean_p, cloud_out); 
@@ -161,7 +161,7 @@ void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr
     // check if an update must be performed or not
     if (!checkUpdateThresholds())
         return;
-    //ROS_WARN_STREAM("pointcloudCallback starting");
+    ROS_WARN_STREAM("pointcloudCallback starting");
     static const ros::Duration update_interval(1.0 / params.pf_update_rate);
     nextupdate_time = ros::Time::now() + update_interval;
 
@@ -252,7 +252,7 @@ void LocalizationNode::compute_delta_odom(const geometry_msgs::TwistStamped &twi
 
 void LocalizationNode::odomCallback(const nav_msgs::Odometry &ctrl_in)
 {
-    ROS_DEBUG("odomCallback open");
+    ROS_WARN_STREAM("odomCallback open");
     // If the filter is not initialized, initialize it then exit
     if (!pf.isInitialized())
     {
