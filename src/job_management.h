@@ -105,6 +105,9 @@ public:
     int error_handler();
 
     int try_speak(std::string message);
+    int set_mic_en_dis(bool state);
+
+    bool last_cmd_halt = false;
 }; 
 
 #endif /* JOB_MANAGEMENT_H_ */
