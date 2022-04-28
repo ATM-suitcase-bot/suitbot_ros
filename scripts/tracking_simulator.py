@@ -194,7 +194,7 @@ class TrackingSimulator:
         self.smooth_state.y = self.smooth_state.y*self.smooth_factor + msg_in.pose.position.y*(1-self.smooth_factor)
 
         z_quat = msg_in.pose.orientation.z
-        q_quat = msg_in.pose.orientation.q
+        w_quat = msg_in.pose.orientation.w
         in_yaw = np.arctan2(2.0*(z_quat*w_quat), -1.0+2.0*w_quat*w_quat)
         self.smooth_state.yaw = self.smooth_state.yaw*self.smooth_factor + in_yaw*(1-self.smooth_factor)
         
