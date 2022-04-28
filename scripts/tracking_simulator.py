@@ -189,6 +189,9 @@ class TrackingSimulator:
         self.spin_start = rospy.Time.now().to_sec()
         self.stunlock = 0
 
+        self.a_out = 0.0
+        self.d_out = 0.0
+
     def callback_reset_node(self, msg_in):
         #copy-paste of changing parameter init from main init
         self.target_course = None
@@ -344,21 +347,20 @@ class TrackingSimulator:
             self.state.update_actual(v, w, d_t)
             self.smooth_state.update_actual(v, w, d_t) #additionally update smooth state estimate
             
-            if (parameters.manual_control == True or parameters.debug_odometry == True):
-                msg_out = Odometry()
-                msg_out.header.stamp = msg_in.header.stamp
-                pt = Point(self.smooth_state.x, self.smooth_state.y, 0)
-                if (parameters.debug_odometry == True):
-                    pt = Point(self.state.x - self.target_course.cx[0], self.state.y - self.target_course.cy[0], 0)
-                # np array of x y z w
-                q = quaternion_about_axis(self.state.yaw, (0,0,1))
-                #print(self.state.yaw)
-                ang = Quaternion(q[0], q[1], q[2], q[3])
-                msg_out.pose.pose = Pose(pt, ang)
-                linear = Vector3(0.0, 0.0, 0.0)
-                angular = Vector3(0.0, 0.0, 0.0)
-                msg_out.twist.twist = Twist(linear, angular)
-                self.ctrl_pub.publish(msg_out)
+            msg_out = Odometry()
+            msg_out.header.stamp = msg_in.header.stamp
+            pt = Point(self.state.x, self.state.y, 0)
+            if (parameters.debug_odometry == True):
+                pt = Point(self.state.x - self.target_course.cx[0], self.state.y - self.target_course.cy[0], 0)
+            # np array of x y z w
+            q = quaternion_about_axis(self.state.yaw, (0,0,1))
+            ang = Quaternion(q[0], q[1], q[2], q[3])
+            msg_out.pose.pose = Pose(pt, ang)
+            linear = Vector3(self.a_out, 0.0, 0.0)
+            angular = Vector3(0.0, 0.0, self.d_out)
+            msg_out.twist.twist = Twist(linear, angular)
+            self.ctrl_pub.publish(msg_out)
+            
         except:
             rospy.logwarn_throttle_identical(5, "Tracking simulator: bad update_callback")
 
@@ -387,19 +389,6 @@ class TrackingSimulator:
         status_msg.data = np.int8(int_to_send)
         self.drive_status_pub.publish(status_msg)
 
-    def getOdoOut(self, ai, di):
-        msg_out = Odometry()
-        msg_out.header.stamp = rospy.Time.now()
-        pt = Point(self.state.x, self.state.y, 0)
-        # np array of x y z w
-        q = quaternion_about_axis(self.state.yaw, (0,0,1))
-        ang = Quaternion(q[0], q[1], q[2], q[3])
-        msg_out.pose.pose = Pose(pt, ang)
-        linear = Vector3(ai, 0.0, 0.0)
-        angular = Vector3(0.0, 0.0, di)
-        msg_out.twist.twist = Twist(linear, angular)
-        return msg_out
-
     def getSmoothOdoOut(self):
         msg_out = Odometry()
         msg_out.header.stamp = rospy.Time.now()
@@ -423,12 +412,14 @@ class TrackingSimulator:
                 #print([self.smooth_state.x, self.smooth_state.y, self.smooth_state.yaw])
                 if(self.target_course == None): # No plan provided
                     if(self.has_spun):
-                        self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
+                        self.a_out = 0.0
+                        self.d_out = 0.0
                         self.status_int(0)
                     else:
                         if(rospy.Time.now().to_sec() - self.spin_start > self.spin_time):
                             self.has_spun = True
-                        self.ctrl_pub.publish(self.getOdoOut(self.spin_v[0], self.spin_v[1]))
+                        self.a_out = self.spin_v[0]
+                        self.d_out = self.spin_v[1]
 
                 else:
                     if(self.target_ind < self.lastIndex):
@@ -438,17 +429,21 @@ class TrackingSimulator:
                             self.smooth_state, self.target_course, self.target_ind, self.target_pt)
 
                         if(self.stunlock>3):
-                            self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
+                            self.a_out = 0.0
+                            self.d_out = 0.0
                             self.status_int(3)
                         else:
                             if(isflip):
-                                self.ctrl_pub.publish(self.getOdoOut(ai/4.0, di*2.0))
+                                self.a_out = ai/4.0
+                                self.d_out = di*2.0
                             else:
-                                self.ctrl_pub.publish(self.getOdoOut(ai, di))
+                                self.a_out = ai
+                                self.d_out = di
                             self.status_int(1)
 
                     else: #stopping
-                        self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
+                        self.a_out = 0.0
+                        self.d_out = 0.0
                         self.status_int(2)
                 self.true_pose_pub.publish(self.getSmoothOdoOut())
                     
