@@ -55,7 +55,7 @@ void PlannerNode::initializeSubscribers()
 {
     ROS_INFO("Planner Node: Initializing Subscribers");
     odom_sub = nh.subscribe("/suitbot/odom", 1, &PlannerNode::subscriberCallback, this);
-    ctrl_sub = nh.subscribe(params.CTRL_TOPIC, 1, &PlannerNode::controlCallback, this);
+    ctrl_sub = nh.subscribe("/suitbot/odom_smooth", 1, &PlannerNode::controlCallback, this);
     waypoint_cli = nh.serviceClient<suitbot_ros::SetCourse>(params.RESET_PATH_SERVICE);
 
     path_cmd_sub = nh.subscribe(params.USR_CMD_TOPIC, 1, &PlannerNode::callback_path_cmd, this);

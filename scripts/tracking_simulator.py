@@ -153,7 +153,7 @@ class TrackingSimulator:
         self.obs_sub = rospy.Subscriber("/suitbot/local_obs", LocalMapMsg, self.callback_obs)
 
         self.true_pos_sub = rospy.Subscriber(parameters.pf_mean_particle_topic, PoseStamped, self.callback_true_pos)
-
+        self.true_pose_pub = rospy.Publisher("/suitbot/odom_smooth", Odometry, queue_size=10)
         #inter-loop constants
         self.smooth_factor = 0.5 #big smooth is big inertia
         self.dt = 0.1
@@ -390,6 +390,19 @@ class TrackingSimulator:
         msg_out.twist.twist = Twist(linear, angular)
         return msg_out
 
+    def getSmoothOdoOut(self):
+        msg_out = Odometry()
+        msg_out.header.stamp = rospy.Time.now()
+        pt = Point(self.smooth_state.x, self.smooth_state.y, 0)
+        # np array of x y z w
+        q = quaternion_about_axis(self.state.yaw, (0,0,1))
+        ang = Quaternion(q[0], q[1], q[2], q[3])
+        msg_out.pose.pose = Pose(pt, ang)
+        linear = Vector3(0.0, 0.0, 0.0)
+        angular = Vector3(0.0, 0.0, 0.0)
+        msg_out.twist.twist = Twist(linear, angular)
+        return msg_out
+
     def loop(self):
         rospy.loginfo("Tracking simulator: entering loop")
         if (parameters.manual_control == False and parameters.debug_odometry == False): # not manually controlling
@@ -425,6 +438,7 @@ class TrackingSimulator:
                     else: #stopping
                         self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
                         self.status_int(2)
+                self.true_pose_pub.publish(self.getSmoothOdoOut())
                     
                 self.r.sleep()
                 t_cur = rospy.Time.now().to_sec()
