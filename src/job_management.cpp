@@ -38,6 +38,7 @@ void JobManager::initializeServices()
     //initialization_cli = nh.serviceClient<suitbot_ros::InitializationSrvMsg>("init_pose");
     audio_cli = nh.serviceClient<std_srvs::SetBool>(params.LISTENING_SERVICE);
     speech_cli = nh.serviceClient<suitbot_ros::SpeechSrv>(params.SPEECH_SERVICE);
+    tracker_cli = nh.serviceClient<suitbot_ros::ResetNode>(params.RESET_TRACKER_SERVICE);
     
 }
 
@@ -71,7 +72,6 @@ void JobManager::audio_cmd_subscriber_callback(const std_msgs::Int32 &msg_in)
             state = GUIDING;
             direction = msg_in.data;
             // start path planning and following job. we use state to control run or not run
-
         }
     }
     // elif it's in INITIALIZATION or GUIDING state, possibly go to complete state
@@ -95,7 +95,30 @@ void JobManager::localization_callback(const nav_msgs::Odometry::ConstPtr& msg_i
 
 void JobManager::drive_state_callback(const std_msgs::Int8::ConstPtr& msg_in){
 
-    std::cout << "job state callback: " << msg_in->data << "\n";
+    std::cout << "job state callback: " << std::to_string((msg_in->data)) << "\n";
+    if(msg_in->data == 1){
+        last_cmd_halt = false;
+    }
+    else if(msg_in->data == 2 and state == GUIDING){
+        try_speak("Destination reached");
+        state = IDLE;
+
+        //--- reset all nodes ---
+
+        //Reset tracker
+        suitbot_ros::ResetNode reset_msg;
+        reset_msg.request.need_reset = true;
+        this->tracker_cli.call(reset_msg);
+
+        //--- reset job man params ---
+        asked_destination = false;
+        counter_state = 0;
+        
+    }
+    else if(msg_in->data == 3 and !last_cmd_halt){
+        try_speak("Close obstacles detected. Halting.");
+        last_cmd_halt = true;
+    }
 }
 
 bool JobManager::serviceCallback(std_srvs::TriggerRequest &request, std_srvs::TriggerResponse &response)
@@ -152,6 +175,21 @@ int JobManager::try_speak(std::string message)
     }
 }
 
+int JobManager::set_mic_en_dis(bool state)
+{
+    std_srvs::SetBool srv_mic;
+    srv_mic.request.data = state;
+    if (audio_cli.call(srv_mic))
+    {
+        ROS_INFO("Audio listener state set");
+        return state;
+    }
+    else {
+        ROS_INFO("Failed to set audio listener state");
+        return false;
+    }
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "job_management");
@@ -163,40 +201,37 @@ int main(int argc, char **argv)
     ROS_INFO_STREAM("main: instantiating an object of type JobManager");
     JobManager jobManager(&nh, params);
 
-
     bool mic_enabled = false;
 
     ros::Rate loop_rate(1);
     int counter = 0;
-    int counter_state = 0;
+    jobManager.counter_state = 0;
     // wait for 5 seconds til all nodes are up
-    sleep(4);
+    sleep(19); //CHANGE TO WAIT FOR SYSTEM SPIN
 
-    if (params.manual_control == false && params.use_audio == true) {
-        // say something
-        jobManager.try_speak("Robot initialized, where do you want to go?");
-        
-        
-        // enable audio listening
-        std_srvs::SetBool srv_mic;
-        srv_mic.request.data = true;
-        if (jobManager.audio_cli.call(srv_mic))
-        {
-            ROS_INFO("Audio listener enabled");
-            mic_enabled = true;
-        }
-        else {
-            ROS_INFO("fail to enable listening");
-        }
-    }
-    else if (params.manual_control == true) { // manual control, we set the state to MANUAL. no audio
-        jobManager.state = MANUAL_MODE;
-    }
-
+    jobManager.try_speak("Robot initialized");
+    
     while (ros::ok())
     {
+        //OVERRIDING manual state will disable other modes
+        if (params.manual_control == true) { // manual control, we set the state to MANUAL. no audio
+            jobManager.state = MANUAL_MODE;
+        }
+
+
+        if (jobManager.state == IDLE && params.use_audio == true and !jobManager.asked_destination) {
+            // say something
+            jobManager.try_speak("Where do you want to go?");
         
-        if (jobManager.state == GUIDING && counter_state == 0)
+        
+            // enable audio listening
+            mic_enabled = jobManager.set_mic_en_dis(true);
+	    jobManager.asked_destination = true;
+            
+        }
+        
+
+        if (jobManager.state == GUIDING && jobManager.counter_state == 0)
         {
             std::cout << "guiding! direction: " << int(jobManager.direction) << " " << params.ELEV << std::endl;
             std::string dir;
@@ -225,26 +260,14 @@ int main(int argc, char **argv)
             {
                 jobManager.try_speak("Received command. Going to " + dir);
             }
-            counter_state += 1;
-            if (params.use_audio)
-            {
-                std_srvs::SetBool srv_mic;
-                srv_mic.request.data = false;
-                if (jobManager.audio_cli.call(srv_mic))
-                {
-                    ROS_INFO("Audio listener disabled");
-                    mic_enabled = true;
-                }
-                else {
-                    ROS_INFO("fail to enable listening");
-                }
-            }
+            jobManager.counter_state += 1;
+            mic_enabled = jobManager.set_mic_en_dis(false);
         }
         ros::spinOnce();
 
         loop_rate.sleep();
     }
-    ROS_INFO("main: going into spin; let the callbacks do all the work");
+    ROS_INFO("Job management main loop exited");
     ros::spin();
     return 0;
 }

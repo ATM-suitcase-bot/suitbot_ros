@@ -12,7 +12,7 @@ Panels:
         - /PointCloud22
         - /PointCloud22/Status1
       Splitter Ratio: 0.5
-    Tree Height: 404
+    Tree Height: 70
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -70,7 +70,7 @@ Visualization Manager:
       Marker Topic: /suitbot/planner/planned_path
       Name: Marker
       Namespaces:
-        {}
+        planner_node: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -131,7 +131,6 @@ Visualization Manager:
       Head Length: 0.07000000029802322
       Head Radius: 0.029999999329447746
       Name: PoseArray
-      Queue Size: 100000
       Shaft Length: 0.23000000417232513
       Shaft Radius: 0.009999999776482582
       Shape: Arrow (Flat)
@@ -147,7 +146,6 @@ Visualization Manager:
       Head Length: 0.30000001192092896
       Head Radius: 0.30000001192092896
       Name: Pose
-      Queue Size: 10
       Shaft Length: 1
       Shaft Radius: 0.20000000298023224
       Shape: Arrow
@@ -216,11 +214,10 @@ Visualization Manager:
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
-      Field of View: 0.7853981852531433
       Focal Point:
-        X: 47.54506301879883
-        Y: 64.97000885009766
-        Z: -7.456638336181641
+        X: 48.96575927734375
+        Y: 102.9158706665039
+        Z: -7.148292064666748
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -233,7 +230,7 @@ Visualization Manager:
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 901
+  Height: 545
   Hide Left Dock: false
   Hide Right Dock: false
   Image:
@@ -247,6 +244,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1267
-  X: 72
+  Width: 957
+  X: 67
   Y: 27

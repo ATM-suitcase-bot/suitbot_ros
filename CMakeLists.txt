@@ -57,6 +57,7 @@ add_service_files(FILES
   InitializationSrvMsg.srv
   SetCourse.srv
   SpeechSrv.srv
+  ResetNode.srv
 )
 
 # Actually generate the language-specific message and service files

@@ -14,6 +14,10 @@ planner_arrow_topic: "/suitbot/planner/arrow"
 global_map_topic: "/suitbot/planner/global_map"
 planned_path_topic: "/suitbot/planner/planned_path"
 
+reset_tracker_service: "/suitbot/ctrl/reset_track"
+reset_localization_service: "/suitbot/ctrl/reset_localize"
+reset_planner_service: "/suitbot/ctrl/reset_planner"
+
 lidar_original_topic: "/livox/lidar"
 lidar_sync_topic: "/suitbot/lidar"
 

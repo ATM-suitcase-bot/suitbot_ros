@@ -9,8 +9,8 @@ import rospy
 from cv_bridge import CvBridge
 from nav_msgs.msg import Odometry
 from tf.transformations import quaternion_about_axis
-from geometry_msgs.msg import Point, Pose, Quaternion, Twist, TwistStamped, Vector3, PoseWithCovariance, TwistWithCovariance
-from suitbot_ros.srv import SetCourse
+from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion, Twist, TwistStamped, Vector3, PoseWithCovariance, TwistWithCovariance
+from suitbot_ros.srv import SetCourse, ResetNode
 from suitbot_ros.msg import TwoFloats
 from suitbot_ros.msg import LocalMapMsg
 from sensor_msgs.msg import Image
@@ -147,40 +147,79 @@ class TrackingSimulator:
         
         self.twist_sub = rospy.Subscriber(parameters.encoder_topic, TwistStamped, self.callback_update)
         self.path_service = rospy.Service(parameters.reset_path_service, SetCourse, self.callback_reset_course)
+        self.node_reset_service = rospy.Service(parameters.reset_tracker_service, ResetNode, self.callback_reset_node)
         self.force_sub = rospy.Subscriber(parameters.force_topic, TwoFloats, self.callback_force)
         
         self.obs_sub = rospy.Subscriber("/suitbot/local_obs", LocalMapMsg, self.callback_obs)
 
-        self.target_course = None
-        self.time = 0.0
-        #self.state = None
-        #if (parameters.manual_control == True or parameters.debug_odometry == True):
-        self.state = State(x=parameters.init_x, y=parameters.init_y, yaw=parameters.init_theta, v=0.0)
-        self.target_ind = None
-        self.lastIndex = None
+        self.true_pos_sub = rospy.Subscriber(parameters.pf_mean_particle_topic, PoseStamped, self.callback_true_pos)
+
+        #inter-loop constants
+        self.smooth_factor = 0.5 #big smooth is big inertia
         self.dt = 0.1
         self.r = rospy.Rate(1.0/self.dt)
+        self.path_perturb = PathPerturb()
+        self.spin_v = [0.12, 0.45] #v/omega to spin with
+        self.spin_time = 18.0 #time (s) to spin
+
+        #changing parameters
+        self.target_course = None
+        self.state = State(x=parameters.init_x, y=parameters.init_y, yaw=parameters.init_theta, v=0.0)
+        #a smooth, globally correct-ish odometry state
+        self.smooth_state = State(x=parameters.init_x, y=parameters.init_y, yaw=parameters.init_theta, v=0.0)
+        
+        self.target_ind = None
+        self.lastIndex = None
+
         self.target_speed = 0.6  # [m/s]
         self.t_prev = rospy.Time.now().to_sec()
 
         #init path perturation object for path recalculation
-        self.path_perturb = PathPerturb()
         self.avoiding = False
         self.target_pt = None
-        self.has_spun = True #has the robot done a lil localization loop
-        self.spin_v = [0.12, 0.45] #v/omega to spin with
-        self.spin_time = 18.0 #time (s) to spin
+        self.has_spun = False #has the robot done a lil localization loop
         self.spin_start = rospy.Time.now().to_sec()
+        self.stunlock = 0
 
-        self.stunlock = False
+    def callback_reset_node(self, msg_in):
+        #copy-paste of changing parameter init from main init
+        self.target_course = None
+        
+        self.target_ind = None
+        self.lastIndex = None
 
+        self.target_speed = 0.6  # [m/s]
+        self.t_prev = rospy.Time.now().to_sec()
+
+        #init path perturation object for path recalculation
+        self.avoiding = False
+        self.target_pt = None
+        self.stunlock = 0
+        
+        return True
+        
     def get_local(self, index):
         #render goal pixel in the robot's space
         relative_x = self.target_course.cx[index] - self.state.x
         relative_y = self.target_course.cy[index] - self.state.y
         [local_x, local_y] = self.path_perturb.rot_point([relative_x, relative_y], -1*self.state.yaw)
         return [local_x, local_y]
+    
+    #Callback on global pose feedback- average current smooth state with input
+    def callback_true_pos(self, msg_in):
+        if(self.target_course is None):
+            return
+        if(np.abs(self.smooth_state.x-msg_in.pose.position.x) < 4.0 and np.abs(self.smooth_state.y-msg_in.pose.position.y) < 4.0):
+        
+            self.smooth_state.x = self.smooth_state.x*self.smooth_factor + msg_in.pose.position.x*(1-self.smooth_factor)
+            self.smooth_state.y = self.smooth_state.y*self.smooth_factor + msg_in.pose.position.y*(1-self.smooth_factor)
 
+            z_quat = msg_in.pose.orientation.z
+            w_quat = msg_in.pose.orientation.w
+            in_yaw = np.arctan2(2.0*(z_quat*w_quat), -1.0+2.0*w_quat*w_quat)
+            self.smooth_state.yaw = self.smooth_state.yaw*self.smooth_factor + in_yaw*(1-self.smooth_factor)
+        else:
+            print('junk global odom received')
     #Callback on obstacle avoidance (local)
     def callback_obs(self, msg_in):
         #read input message to python-style array form
@@ -191,7 +230,7 @@ class TrackingSimulator:
 
         if(robot_pos[0] >= im_dims[0] or robot_pos[1] >= im_dims[1]):
             print('map does not contain robot position, invalid replanning')
-            self.stunlock = True
+            self.stunlock += 1
             return
         
         raw_arr = np.reshape(msg_in.cells, im_dims)
@@ -207,7 +246,17 @@ class TrackingSimulator:
         #convert goal point into pixel in local map
         [local_x, local_y] = self.get_local(self.target_ind)
         [pix_x, pix_y] = self.path_perturb.get_pix_ind([local_x, local_y], robot_pos)
+        
+        if(pix_x <= robot_pos[0]+1):#in the dramatic spin special case
+            self.stunlock = 0
+            self.avoiding = False
+            self.target_pt = None
+            return
 
+        if(pix_y >= np.shape(occ_map)[1]):
+            self.stunlock += 1
+            return
+        
         alt_endpoint = False
         alt_offset = 0
         
@@ -217,6 +266,9 @@ class TrackingSimulator:
             alt_offset += 1
             [local_x, local_y] = self.get_local(self.target_ind+alt_offset)
             [pix_x, pix_y] = self.path_perturb.get_pix_ind([local_x, local_y], robot_pos)
+            if(pix_y >= np.shape(occ_map)[1]):
+                self.stunlock += 1
+                return
             alt_endpoint = True
         
         fine_bot_pos = np.array([self.state.x, self.state.y, 0.0])
@@ -232,7 +284,7 @@ class TrackingSimulator:
 
             if(best_target is None):
                 print('replanning failed, need new global path OR to wait')
-                self.stunlock = True
+                self.stunlock += 1
                 #need to handle logic here- should probably halt control, maybe send signal to planner
             else:
                 best_target_local_vec = np.array(best_target) - fine_bot_pos[0:2]
@@ -243,15 +295,15 @@ class TrackingSimulator:
                 #then we go to the 'best_target_global'
                 self.avoiding = True
                 self.target_pt = best_target_global
-                self.stunlock = False
+                self.stunlock = 0
         else: #init path found to be safe
             self.avoiding = False
             self.target_pt = None
-            self.stunlock = False
+            self.stunlock = 0
 
             if(alt_endpoint):
                 self.avoiding = True
-                self.target_pt = [self.target_course.cx[index+alt_offset], self.target_course.cy[index+alt_offset]]
+                self.target_pt = [self.target_course.cx[self.target_ind+alt_offset], self.target_course.cy[self.target_ind+alt_offset]]
         
         #render key pixels on the published local map
         raw_arr[robot_pos[0], robot_pos[1], :] = [0, 0, 255] #robot is red
@@ -280,6 +332,8 @@ class TrackingSimulator:
             d_t = t_cur - self.t_prev
             self.t_prev = t_cur
             self.state.update_actual(v, w, d_t)
+            self.smooth_state.update_actual(v, w, d_t) #additionally update smooth state estimate
+            
             if (parameters.manual_control == True or parameters.debug_odometry == True):
                 msg_out = Odometry()
                 msg_out.header.stamp = msg_in.header.stamp
@@ -304,7 +358,6 @@ class TrackingSimulator:
         if (parameters.manual_control == True):
             return True
         l = len(req.points)
-        print(l)
         cx = np.zeros(l)
         cy = np.zeros(l)
         for i in range(l):
@@ -313,14 +366,6 @@ class TrackingSimulator:
             cy[i] = point.y
         self.target_course = TargetCourse(cx, cy)
         path_cmd = req.path_cmd
-        # initial state
-        
-        if path_cmd == 0:
-            self.state = State(x=cx[0], y=cy[0], yaw=1.57, v=0.0)
-        elif path_cmd == 1:
-            self.state = State(x=cx[0], y=cy[0], yaw=-1.57, v=0.0)
-        elif path_cmd == 2:
-            self.state = State(x=cx[0], y=cy[0], yaw=3.14, v=0.0)
 
         self.target_ind, _ = self.target_course.search_target_index(self.state)
         self.lastIndex = l - 1
@@ -347,42 +392,39 @@ class TrackingSimulator:
 
     def loop(self):
         rospy.loginfo("Tracking simulator: entering loop")
-        while parameters.manual_control == False and self.target_course == None and not rospy.is_shutdown():
-            if(self.has_spun):
-                self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
-                self.status_int(0)
-            else:
-                if(rospy.Time.now().to_sec() - self.spin_start > self.spin_time):
-                    self.has_spun = True
-                self.ctrl_pub.publish(self.getOdoOut(self.spin_v[0], self.spin_v[1]))
-            self.r.sleep()
-        
-        rospy.loginfo("Tracking simulator: start simulator")
-       
         if (parameters.manual_control == False and parameters.debug_odometry == False): # not manually controlling
             t_init = rospy.Time.now().to_sec()
             t_cur = t_init
             while not rospy.is_shutdown():
-                if(self.target_ind < self.lastIndex):
-                    # Calc control cmd
-                    ai = pid_control(self.target_speed, self.state.v, self.dt)
-                    di, self.target_ind, isflip = pure_pursuit_steer_control(
-                        self.state, self.target_course, self.target_ind, self.target_pt)
-
-                    if(self.stunlock):
-                        ai = 0.0
-                        di = 0.0
-                        self.status_int(3)
+                if(self.target_course == None): # No plan provided
+                    if(self.has_spun):
+                        self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
+                        self.status_int(0)
                     else:
-                        if(isflip):
-                            self.ctrl_pub.publish(self.getOdoOut(ai/2.0, di))
-                        else:
-                            self.ctrl_pub.publish(self.getOdoOut(ai, di))
-                        self.status_int(1)
+                        if(rospy.Time.now().to_sec() - self.spin_start > self.spin_time):
+                            self.has_spun = True
+                        self.ctrl_pub.publish(self.getOdoOut(self.spin_v[0], self.spin_v[1]))
 
-                else: #stopping
-                    self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
-                    self.status_int(2)
+                else:
+                    if(self.target_ind < self.lastIndex):
+                        # Calc control cmd
+                        ai = pid_control(self.target_speed, self.state.v, self.dt)
+                        di, self.target_ind, isflip = pure_pursuit_steer_control(
+                            self.state, self.target_course, self.target_ind, self.target_pt)
+
+                        if(self.stunlock>3):
+                            self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
+                            self.status_int(3)
+                        else:
+                            if(isflip):
+                                self.ctrl_pub.publish(self.getOdoOut(ai/4.0, di*2.0))
+                            else:
+                                self.ctrl_pub.publish(self.getOdoOut(ai, di))
+                            self.status_int(1)
+
+                    else: #stopping
+                        self.ctrl_pub.publish(self.getOdoOut(0.0, 0.0))
+                        self.status_int(2)
                     
                 self.r.sleep()
                 t_cur = rospy.Time.now().to_sec()

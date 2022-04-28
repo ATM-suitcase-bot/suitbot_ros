@@ -37,6 +37,7 @@
 
 #include <suitbot_ros/InitializationSrvMsg.h>
 #include <suitbot_ros/SpeechSrv.h>
+#include <suitbot_ros/ResetNode.h>
 
 //#include "localization/initialization.h"
 
@@ -69,6 +70,10 @@ public:
     ros::ServiceClient audio_cli; // enable or disable audio listening
     ros::ServiceClient speech_cli;
 
+    ros::ServiceClient tracker_cli;
+    ros::ServiceClient localization_cli;
+    ros::ServiceClient planner_cli;
+
     state_t state = IDLE;
 
     int direction;
@@ -76,7 +81,7 @@ public:
     // TODO A planner node
 
     double goal_x, goal_y;
-
+    int global_state = 0;
 
     
     double val_from_subscriber_; 
@@ -100,6 +105,11 @@ public:
     int error_handler();
 
     int try_speak(std::string message);
+    int set_mic_en_dis(bool state);
+
+    bool last_cmd_halt = false;
+    bool asked_destination = false;
+    int counter_state = 0;
 }; 
 
 #endif /* JOB_MANAGEMENT_H_ */
