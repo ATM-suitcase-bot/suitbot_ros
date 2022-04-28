@@ -75,6 +75,7 @@ typedef struct params
     string PLANNED_PATH_TOPIC;
 
     string LIDAR_SYNC_TOPIC;
+    string LIDAR_ORIGINAL_TOPIC;
 
     string LOCAL_MAP_TOPIC;
 
@@ -171,6 +172,7 @@ typedef struct params
         PLANNED_PATH_TOPIC = readParam<string>(n, "planned_path_topic");
 
         LIDAR_SYNC_TOPIC = readParam<string>(n, "lidar_sync_topic");
+        LIDAR_ORIGINAL_TOPIC = readParam<string>(n, "lidar_original_topic");
 
         LOCAL_MAP_TOPIC = readParam<string>(n, "local_map_topic");
         LOCAL_MAP_IMAGE_TOPIC = readParam<string>(n, "local_map_image_topic");
