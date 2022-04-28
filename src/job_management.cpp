@@ -107,7 +107,7 @@ void JobManager::drive_state_callback(const std_msgs::Int8::ConstPtr& msg_in){
 
         //Reset tracker
         suitbot_ros::ResetNode reset_msg;
-        reset_msg.request.data = true;
+        reset_msg.request.need_reset = true;
         this->tracker_cli.call(reset_msg);
 
         //--- reset job man params ---
@@ -205,7 +205,7 @@ int main(int argc, char **argv)
 
     ros::Rate loop_rate(1);
     int counter = 0;
-    int counter_state = 0;
+    jobManager.counter_state = 0;
     // wait for 5 seconds til all nodes are up
     sleep(4); //CHANGE TO WAIT FOR SYSTEM SPIN
 
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
         }
         
 
-        if (jobManager.state == GUIDING && counter_state == 0)
+        if (jobManager.state == GUIDING && jobManager.counter_state == 0)
         {
             std::cout << "guiding! direction: " << int(jobManager.direction) << " " << params.ELEV << std::endl;
             std::string dir;
@@ -260,7 +260,7 @@ int main(int argc, char **argv)
             {
                 jobManager.try_speak("Received command. Going to " + dir);
             }
-            counter_state += 1;
+            jobManager.counter_state += 1;
             mic_enabled = jobManager.set_mic_en_dis(false);
         }
         ros::spinOnce();

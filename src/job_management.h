@@ -109,6 +109,7 @@ public:
 
     bool last_cmd_halt = false;
     bool asked_destination = false;
+    int counter_state = 0;
 }; 
 
 #endif /* JOB_MANAGEMENT_H_ */
