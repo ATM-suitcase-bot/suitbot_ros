@@ -43,11 +43,11 @@ void PlannerNode::set_goal_indices(int x_idx_, int y_idx_)
 }
 
 
-bool PlannerNode::reset_planner()
+/*bool PlannerNode::reset_planner()
 {
     
     return True;
-}
+}*/
 
 
 
