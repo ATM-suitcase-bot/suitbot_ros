@@ -63,6 +63,9 @@ public:
     sensor_msgs::PointCloud2Ptr map_point_cloud_msg;
     ros::Publisher map_point_cloud_pub;
     ros::Timer map_point_cloud_pub_timer;
+
+    sensor_msgs::PointCloud2Ptr cloud_msg_out;
+    ros::Publisher lidar_meas_pub;
     
     parameters_t params;
 
@@ -90,6 +93,8 @@ public:
 
     // 3D point cloud map
 
+    // 3d lidar measurement
+    LidarPointCloudPtr cloud_meas;
 
     bool is_odom{ false };  /*!< Flag to know the initialize of odometry */
     

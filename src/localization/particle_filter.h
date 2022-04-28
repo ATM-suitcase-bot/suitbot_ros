@@ -10,7 +10,7 @@
 #define PARTICLE_FILTER_H_
 
 #include <random>
-
+#include<cstdlib>
 #include <math.h>
 #include <float.h>
 #include <stdio.h>
@@ -78,8 +78,10 @@ public:
     float dist_thresh = 10;
 	pcl::KdTreeFLANN<LidarPoint> kdtree;
 
+	float init_x = 0.0;
+	float init_y = 0.0;
 
-
+	bool use_guess = false;
 
 	// Constructor
 	// @param Number of particles
@@ -103,7 +105,9 @@ public:
 
 	void set_params(
                    string map_file, string pcd_file, float resolution,
-				   float fixed_height_, int init_num_per_grid, int init_num_total, 
+				   float fixed_height_, float lidar_to_wb_,
+				   bool use_guess_, float init_x_, float init_y_,
+				   int init_num_per_grid, int init_num_total, 
 				   float _alpha1, float _alpha2, float _alpha3, float _alpha4,
 				   float _sigma_hit, float _lambda_short, float _max_range, float _max_span,
 				   float _z_hit, float _z_short, float _z_max, float _z_rand);
@@ -117,7 +121,7 @@ public:
 	/**
 	 * @brief This function implements the PF init stage.
     */
-	void init();
+	void init(int num_particles_total, bool use_guess=false, float coord_x=0.0, float coord_y=0.0);
 
 	/**
 	 * @brief This function implements the PF prediction stage.
@@ -144,7 +148,7 @@ public:
 	void update(LidarPointCloudConstPtr cloud_in);
 
 	float computeCloudWeight(LidarPointCloudConstPtr cloud, const vector<float> &measurements, 
-							 const float px, const float py, const float pth);
+							 Particle p);
 
 
 
@@ -165,6 +169,10 @@ public:
 
 	void buildParticleMsg(geometry_msgs::PoseStamped& msg) const;
 
+	void align_cloud_to_particle(LidarPointCloudConstPtr cloud_meas_in, 
+                                            const Particle p, 
+                                            LidarPointCloudPtr cloud_aligned);
+
 
 private:
     Particle mean_;           /*!< Particle to show the mean of all the particles */
@@ -176,6 +184,8 @@ private:
 
 
 	unordered_set<pair<int, int>, hash_pair> sample_area;
+
+	float lidar_to_wb = 0.3;
 
     /** 
     * @brief To generate the random value by the Gaussian distribution.
@@ -198,6 +208,10 @@ private:
 	void sampleParticlesUniform(const float from_x, const float from_y,
                                             const float to_x, const float to_y,
 											const int num, vector<Particle> &out_particles);
+
+	void sampleParticlesGaussian(const float x_coord, const float y_coord,
+                                            const float std_x, const float std_y,
+                                            const int num, vector<Particle> &out_particles);
 
 	void add_sample_area(float sample_area_width, pair<int, int> indices);
 

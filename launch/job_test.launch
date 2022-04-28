@@ -1,4 +1,5 @@
 <launch>
+    <param name="/use_sim_time" value="false" />
     <rosparam file="$(find suitbot_ros)/config/suitbot.yaml" />
 
     <arg name="use_rviz"  default="true"/> 
@@ -16,6 +17,9 @@
         <arg name="debug_angular"         default="0.0"/> 
         <param name="debug_angular"              type="double"   value="$(arg debug_angular)"/>
 
+    <arg name="use_guess"            default="true"/> 
+    <param name="use_guess"           type="bool"   value="$(arg use_guess)"/>
+    
         <arg name="init_x"                default="51.75"/> 
         <param name="init_x"              type="double"   value="$(arg init_x)"/>
         <arg name="init_y"                default="45.75"/> 
@@ -29,7 +33,8 @@
     <param name="course_idx"          type="int"   value="$(arg course_idx)"/>
 
     <arg name="use_serial"            default="true"/> 
-    <param name="use_serial"           type="bool"   value="$(arg use_audio)"/>
+    <param name="use_serial"           type="bool"   value="$(arg use_serial)"/>
+
     
 
     <param name="map_file" value="$(find suitbot_ros)/data/wean_map_good_grid_edited_filled.png"/>
@@ -54,6 +59,7 @@
     <node name="planner_node" pkg="suitbot_ros" type="planner_node" output="screen"/>
     <node name="localization_node" pkg="suitbot_ros" type="localization_node" output="screen"/>
 
+    <node name="worldtf" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 1 world child_frame 1"/>
 
     <group if="$(arg use_rviz)">
         <!-- stuff that will only be evaluated if foo is true -->

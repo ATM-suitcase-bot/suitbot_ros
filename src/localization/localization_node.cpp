@@ -12,7 +12,9 @@
 #include <pcl/filters/voxel_grid.h>
 
 LocalizationNode::LocalizationNode(ros::NodeHandle *nodehandle, parameters_t &_params) : nh(*nodehandle), params(_params), 
-                                                                        map_point_cloud_msg(new sensor_msgs::PointCloud2)
+                                                                        map_point_cloud_msg(new sensor_msgs::PointCloud2),
+                                                                        cloud_msg_out(new sensor_msgs::PointCloud2),
+                                                                        cloud_meas(new LidarPointCloud)
 {
     ROS_INFO("Initializing Localization Node...");
     prev_odom(0) = 0.0;
@@ -20,7 +22,8 @@ LocalizationNode::LocalizationNode(ros::NodeHandle *nodehandle, parameters_t &_p
     prev_odom(2) = 0.0;
     cur_odom = prev_odom;
     pf.set_params(params.map_file, params.pcd_file, params.global_map_resolution, 
-                  params.fixed_height, 
+                  params.fixed_height, params.lidar_to_wb,
+                  params.use_guess, params.init_x, params.init_y, 
                   params.pf_init_num_particles_per_grid, params.pf_init_num_particles_total,
                   params.pf_alpha1, params.pf_alpha2, params.pf_alpha3, params.pf_alpha4,
                   params.pf_sigma_hit, params.pf_lambda_short, params.pf_max_range, params.pf_max_span,
@@ -28,19 +31,20 @@ LocalizationNode::LocalizationNode(ros::NodeHandle *nodehandle, parameters_t &_p
 
     LidarPointCloudPtr cloud (new LidarPointCloud);
     loadPCDMap(params.pcd_file, cloud);
+    ROS_WARN_STREAM("#points in pcd map: " << cloud->points.size());
     pcl_to_cloud_msg(cloud, map_point_cloud_msg);
     map_point_cloud_msg->header.frame_id = params.global_frame_id;
-
+    
     if (!pf.isInitialized())
     {
         ROS_WARN("Filter not initialized yet. Initializing particles randomly in free space.");
-        pf.init();
+        pf.init(params.pf_init_num_particles_total, params.use_guess, params.init_x, params.init_y);
     }
 
-    initializeSubscribers();
     initializePublishers();
-    initializeServices();
     publishParticles();
+    initializeSubscribers();
+    initializeServices();
 }
 
 void LocalizationNode::initializeSubscribers()
@@ -63,6 +67,7 @@ void LocalizationNode::initializePublishers()
         map_point_cloud_pub_timer = nh.createTimer(ros::Duration(ros::Rate(params.publish_point_cloud_rate)),
                                                     &LocalizationNode::publishMapPointCloud, this);
     }
+    lidar_meas_pub = nh.advertise<sensor_msgs::PointCloud2>(params.PF_LIDAR_TOPIC, 1, true);
   
 }
 
@@ -99,7 +104,7 @@ void LocalizationNode::publishParticles()
     if (!pf.isInitialized())
     {
         ROS_WARN("Filter not initialized yet. Initializing particles randomly in free space.");
-        pf.init();
+        pf.init(params.pf_init_num_particles_total, params.use_guess, params.init_x, params.init_y);
     }
 
     /* Build the msg based on the particles position and orientation */
@@ -117,7 +122,18 @@ void LocalizationNode::publishParticles()
 
     /* Publish particle cloud */
     particles_pose_pub.publish(msg);
+
     mean_particle_pub.publish(mean_msg);
+
+    Particle mean_p = pf.getMean();
+    LidarPointCloudPtr cloud_out(new LidarPointCloud);
+    pf.align_cloud_to_particle(cloud_meas, mean_p, cloud_out); 
+    cloud_out->width = cloud_out->points.size();
+    cloud_out->height = 1;
+    pcl_to_cloud_msg(cloud_out, cloud_msg_out);
+    cloud_msg_out->header.stamp = ros::Time::now();
+    cloud_msg_out->header.frame_id = params.global_frame_id;
+    lidar_meas_pub.publish(*cloud_msg_out);
 }
 
 
@@ -151,15 +167,19 @@ void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr
     // apply voxel grid
     LidarPointCloudPtr cloud_src(new LidarPointCloud);
     pcl::fromROSMsg(*msg, *cloud_src);
-    
+    /*
     pcl::VoxelGrid<LidarPoint> sor;
     sor.setInputCloud(cloud_src);
     sor.setLeafSize(params.voxel_size, params.voxel_size, params.voxel_size);
     LidarPointCloudPtr cloud_down(new LidarPointCloud);
     sor.filter(*cloud_down);
+    */
+    // adjustable downsampling
+    int downsample_factor = max(1, int((float)(int)(cloud_src->points.size()) / 1600.0));
+    downsample(cloud_src, downsample_factor);
+    *cloud_meas = *cloud_src;
 
-    downsample(cloud_down, 3);
-    
+    ROS_WARN_STREAM("#points in cloud_down: " << cloud_src->points.size());
     // record time spent
 
     //Eigen::Vector3f delta_odom = cur_odom - prev_odom;
@@ -170,7 +190,7 @@ void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr
 
     /* Perform particle update based on current point-cloud */
     TicToc t_update;
-    pf.update(cloud_down);
+    pf.update(cloud_src);
     // record time spent
     ROS_INFO_STREAM("pf update time: " << t_update.toc() << " ms" << endl);
 
@@ -184,7 +204,7 @@ void LocalizationNode::pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr
     {
         n_updates = 0;
         TicToc t_resample;
-        pf.resample(pf.particles.size());
+        pf.resample((int)(((float)(int)pf.particles.size())));
         ROS_INFO_STREAM("pf resample time: " << t_resample.toc() << " ms" << endl);
     }
     // record time spent
@@ -236,7 +256,7 @@ void LocalizationNode::odomCallback(const nav_msgs::Odometry &ctrl_in)
     if (!pf.isInitialized())
     {
         ROS_WARN("Filter not initialized yet. Initializing particles randomly in free space.");
-        pf.init();
+        pf.init(params.pf_init_num_particles_total, params.use_guess, params.init_x, params.init_y);
         publishParticles();
         return;
     }

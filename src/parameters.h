@@ -41,6 +41,8 @@ typedef struct params
     bool manual_control;
     bool use_audio;
 
+    bool use_guess;
+
     int course_idx;
 
     // command types
@@ -80,6 +82,8 @@ typedef struct params
 
     string PCD_MAP_TOPIC;
 
+    string PF_LIDAR_TOPIC;
+
     // for localization
     // string base_frame_id;   /*!< Name of the robot TF */
     // string odom_frame_id;   /*!< Name of the flight origin of the robot TF */
@@ -89,10 +93,8 @@ typedef struct params
 
     // bool set_initial_pose; /*!< Flag to indicate if t he initial pose has been received */
 
-    // double init_x; /*!< Start x-axis position */
-    // double init_y; /*!< Start y-axis position */
-    // double init_z; /*!< Start z-axis position */
-    // double init_a; /*!< Start yaw angle */
+    float init_x; /*!< Start x-axis position */
+    float init_y; /*!< Start y-axis position */
 
     float pf_alpha1, pf_alpha2, pf_alpha3, pf_alpha4;
     float pf_sigma_hit, pf_lambda_short, pf_max_range, pf_max_span;
@@ -123,6 +125,7 @@ typedef struct params
     int pf_init_num_particles_total;
 
     float fixed_height;
+    float lidar_to_wb;
 
     Eigen::Affine3f pcd_map_transformation;
     
@@ -176,6 +179,8 @@ typedef struct params
         PF_PARTICLES_TOPIC = readParam<string>(n, "pf_particles_topic");
         PF_MEAN_PARTICLE_TOPIC = readParam<string>(n, "pf_mean_particle_topic");
 
+        PF_LIDAR_TOPIC = readParam<string>(n, "pf_lidar_topic");
+
         // command types
         state_map = readParam<XmlRpc::XmlRpcValue>(n, "states_map");
         //cout << (state_map);
@@ -219,6 +224,8 @@ typedef struct params
 
         use_audio = readParam<bool>(n, "use_audio");
 
+        use_guess = readParam<bool>(n, "use_guess");
+
         course_idx = readParam<int>(n, "course_idx");
 
         pf_update_rate = readParam<double>(n, "pf_update_rate");
@@ -226,6 +233,7 @@ typedef struct params
         global_frame_id = readParam<string>(n, "global_frame_id");
 
         fixed_height = readParam<float>(n, "fixed_height");
+        lidar_to_wb = readParam<float>(n, "lidar_to_wb");
 
         pf_resample_interval = readParam<int>(n, "pf_resample_interval");
         pf_update_dist_threshold = readParam<float>(n, "pf_update_dist_threshold");
@@ -235,6 +243,9 @@ typedef struct params
         pf_init_num_particles_total = readParam<int>(n, "pf_init_num_particles_total");
 
         publish_point_cloud_rate = readParam<double>(n, "publish_point_cloud_rate");
+
+        init_x = (float)readParam<double>(n, "init_x");
+        init_y = (float)readParam<double>(n, "init_y");
 
         pf_alpha1 = readParam<float>(n, "pf_alpha1");
         pf_alpha2 = readParam<float>(n, "pf_alpha2");
