@@ -105,7 +105,7 @@ public:
     int error_handler();
 
     int try_speak(std::string message);
-    int set_mic_en_dis(bool state);
+    int set_mic_en_dis(bool mic_state);
 
     bool last_cmd_halt = false;
     bool asked_destination = false;

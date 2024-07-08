@@ -330,6 +330,8 @@ class TrackingSimulator:
     def callback_force(self, msg_in):
         force1 = msg_in.float1
         force2 = msg_in.float2
+        if(force2 > 11.9 or force1 > 35):
+            print('excessive pull/push')
         # cap the target speed to (0, 1)
         self.target_speed = max(min(self.target_speed * ((force1 - force2) / 15.0 * 0.03 + 1.0), 0.85), 0)
         global Lfc
@@ -350,8 +352,8 @@ class TrackingSimulator:
             msg_out = Odometry()
             msg_out.header.stamp = msg_in.header.stamp
             pt = Point(self.state.x, self.state.y, 0)
-            if (parameters.debug_odometry == True):
-                pt = Point(self.state.x - self.target_course.cx[0], self.state.y - self.target_course.cy[0], 0)
+            #if (parameters.debug_odometry == True):
+            #    pt = Point(self.state.x - self.target_course.cx[0], self.state.y - self.target_course.cy[0], 0)
             # np array of x y z w
             q = quaternion_about_axis(self.state.yaw, (0,0,1))
             ang = Quaternion(q[0], q[1], q[2], q[3])
@@ -449,7 +451,33 @@ class TrackingSimulator:
                     
                 self.r.sleep()
                 t_cur = rospy.Time.now().to_sec()
+        elif (parameters.debug_odometry): # not manually controlling
+            t_init = rospy.Time.now().to_sec()
+            final_odom_print = False
+            fast_print = False
+            last_print = False
+            while not rospy.is_shutdown():
+                t_elap = rospy.Time.now().to_sec() - t_init
+                if(t_elap < parameters.debug_time):
 
+                    if(t_elap > 2 and not fast_print):
+                        print(t_elap)
+                        print(np.hypot(self.state.x, self.state.y))
+                        fast_print = True
+                    if(t_elap > 6 and not last_print):
+                        print(t_elap)
+                        print(np.hypot(self.state.x, self.state.y))
+                        last_print = True
+                    self.a_out = parameters.debug_linear
+                    self.d_out = parameters.debug_angular
+                else:
+                    if(not final_odom_print):
+                        print(t_elap)
+                        print([self.state.x, self.state.y, self.state.yaw])
+                        final_odom_print = True
+
+                    self.a_out = 0.0
+                    self.d_out = 0.0
 
 if __name__ == '__main__':
     parameters = Parameters()

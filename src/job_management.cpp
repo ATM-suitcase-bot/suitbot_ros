@@ -81,7 +81,7 @@ void JobManager::audio_cmd_subscriber_callback(const std_msgs::Int32 &msg_in)
         {
             // cancel current job
 
-            state = IDLE;
+            //state = IDLE;
         }
     }
     //
@@ -181,10 +181,10 @@ int JobManager::try_speak(std::string message)
     }
 }
 
-int JobManager::set_mic_en_dis(bool state)
+int JobManager::set_mic_en_dis(bool mic_state)
 {
     std_srvs::SetBool srv_mic;
-    srv_mic.request.data = state;
+    srv_mic.request.data = mic_state;
     if (audio_cli.call(srv_mic))
     {
         ROS_INFO("Audio listener state set");
